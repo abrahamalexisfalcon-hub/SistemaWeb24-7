@@ -1,0 +1,719 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { catalogoApi } from '../../api';
+import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
+import type { OrdenResumenTecnico, MaterialCatalogo, MaterialConsumido } from '../../types';
+import { ChevronLeft, Plus, Trash2, Minus } from 'lucide-react';
+
+interface BorradorAtencion {
+  evaluacion: string;
+  solucion: string;
+  sugerencias: string;
+  descripcionMateriales?: string;
+  materialesSeleccionados: Array<{
+    materialId: number | null;
+    descripcion: string;
+    cantidad: number;
+    esPersonalizado: boolean;
+  }>;
+}
+
+// Normaliza texto para comparaciones sin diferencias de mayúsculas, espacios ni acentos
+const normalizar = (texto: string): string => {
+  return texto
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+};
+
+// Sanitiza una lista de materiales unificando duplicados y sumando sus cantidades
+const sanitizarMateriales = (
+  items: Array<{ materialId: number | null; descripcion: string; cantidad: number; esPersonalizado: boolean }>,
+  catalogoList: MaterialCatalogo[] = []
+) => {
+  const resultado: Array<{ materialId: number | null; descripcion: string; cantidad: number; esPersonalizado: boolean }> = [];
+
+  for (const item of items) {
+    if (item.esPersonalizado) {
+      const normDesc = normalizar(item.descripcion);
+      if (!normDesc) {
+        resultado.push({ ...item });
+        continue;
+      }
+      // Verificar si ya existe en resultado como ítem manual
+      const existingManual = resultado.find(
+        (r) => r.esPersonalizado && normalizar(r.descripcion) === normDesc
+      );
+      if (existingManual) {
+        existingManual.cantidad += item.cantidad;
+        continue;
+      }
+      // O si coincide con un ítem del catálogo ya seleccionado
+      const existingCat = resultado.find((r) => {
+        if (r.esPersonalizado || r.materialId === null) return false;
+        const catItem = catalogoList.find((c) => c.id === r.materialId);
+        return catItem ? normalizar(catItem.nombre) === normDesc : false;
+      });
+      if (existingCat) {
+        existingCat.cantidad += item.cantidad;
+        continue;
+      }
+      resultado.push({ ...item });
+    } else {
+      if (item.materialId === null) {
+        resultado.push({ ...item });
+        continue;
+      }
+      const existing = resultado.find((r) => !r.esPersonalizado && r.materialId === item.materialId);
+      if (existing) {
+        existing.cantidad += item.cantidad;
+      } else {
+        resultado.push({ ...item });
+      }
+    }
+  }
+
+  return resultado;
+};
+
+export const AtencionTecnica: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [orden] = useState<OrdenResumenTecnico | null>(
+    (location.state as { orden?: OrdenResumenTecnico })?.orden || null
+  );
+
+  const [catalogo, setCatalogo] = useState<MaterialCatalogo[]>([]);
+  const [toastMensaje, setToastMensaje] = useState<string | null>(null);
+
+  // 1 & 2. Clave dinámica por orden y carga del estado inicial desde localStorage
+  const ordenId = id || orden?.id || '1';
+  const DRAFT_KEY = `borrador_atencion_${ordenId}`;
+
+  const [evaluacion, setEvaluacion] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(`borrador_atencion_${id || '1'}`);
+      if (saved) {
+        const parsed: BorradorAtencion = JSON.parse(saved);
+        return parsed.evaluacion || '';
+      }
+    } catch (e) {
+      console.error('Error cargando borrador de evaluación:', e);
+    }
+    return '';
+  });
+
+  const [solucion, setSolucion] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(`borrador_atencion_${id || '1'}`);
+      if (saved) {
+        const parsed: BorradorAtencion = JSON.parse(saved);
+        return parsed.solucion || '';
+      }
+    } catch (e) {
+      console.error('Error cargando borrador de solución:', e);
+    }
+    return '';
+  });
+
+  const [sugerencias, setSugerencias] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(`borrador_atencion_${id || '1'}`);
+      if (saved) {
+        const parsed: BorradorAtencion = JSON.parse(saved);
+        return parsed.sugerencias || '';
+      }
+    } catch (e) {
+      console.error('Error cargando borrador de sugerencias:', e);
+    }
+    return '';
+  });
+
+  const [materialesSeleccionados, setMaterialesSeleccionados] = useState<
+    Array<{ materialId: number | null; descripcion: string; cantidad: number; esPersonalizado: boolean }>
+  >(() => {
+    try {
+      const saved = localStorage.getItem(`borrador_atencion_${id || '1'}`);
+      if (saved) {
+        const parsed: BorradorAtencion = JSON.parse(saved);
+        if (Array.isArray(parsed.materialesSeleccionados)) {
+          return sanitizarMateriales(parsed.materialesSeleccionados);
+        }
+      }
+    } catch (e) {
+      console.error('Error cargando borrador de materiales seleccionados:', e);
+    }
+    return [];
+  });
+
+  // Temporizador para ocultar notificación flotante
+  useEffect(() => {
+    if (toastMensaje) {
+      const timer = setTimeout(() => {
+        setToastMensaje(null);
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMensaje]);
+
+  // 3. Auto-guardado en tiempo real en localStorage (persiste array vacío [] sin cadenas fantasma)
+  useEffect(() => {
+    const draftData: BorradorAtencion = {
+      evaluacion,
+      solucion,
+      sugerencias,
+      materialesSeleccionados,
+    };
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+    } catch (e) {
+      console.error('Error guardando borrador en localStorage:', e);
+    }
+  }, [evaluacion, solucion, sugerencias, materialesSeleccionados, DRAFT_KEY]);
+
+  useEffect(() => {
+    catalogoApi
+      .getMaterialesActivos()
+      .then((data) => {
+        setCatalogo(data);
+      })
+      .catch((err) => {
+        console.warn('Usando catálogo inicial local:', err);
+        setCatalogo([
+          { id: 1, nombre: 'Cable eléctrico 2.5mm (metro)' },
+          { id: 2, nombre: 'Interruptor termomagnético 20A' },
+          { id: 3, nombre: 'Cinta aislante 3M' },
+          { id: 4, nombre: 'Toma corriente doble' },
+          { id: 5, nombre: 'Tubo conduit 1/2' },
+          { id: 6, nombre: 'Empaque de jebe para grifería' },
+        ]);
+      });
+  }, []);
+
+  const getCatalogoNombre = (materialId: number | null): string => {
+    if (materialId === null) return '';
+    const item = catalogo.find((c) => c.id === materialId);
+    return item ? item.nombre : '';
+  };
+
+  // Detecta si una descripción manual coincide con un ítem del catálogo o manual ya agregado
+  const findDuplicateIndex = (
+    currentIndex: number,
+    descripcion: string
+  ): { targetIndex: number; targetName: string } | null => {
+    const norm = normalizar(descripcion);
+    if (!norm) return null;
+
+    for (let i = 0; i < materialesSeleccionados.length; i++) {
+      if (i === currentIndex) continue;
+      const other = materialesSeleccionados[i];
+
+      if (other.esPersonalizado) {
+        if (normalizar(other.descripcion) === norm) {
+          return {
+            targetIndex: i,
+            targetName: other.descripcion.trim() || 'Ítem personalizado',
+          };
+        }
+      } else if (other.materialId !== null) {
+        const nombreCat = getCatalogoNombre(other.materialId);
+        if (normalizar(nombreCat) === norm) {
+          return {
+            targetIndex: i,
+            targetName: nombreCat,
+          };
+        }
+      }
+    }
+
+    return null;
+  };
+
+  // Incrementa la cantidad en la tarjeta existente y elimina la fila duplicada
+  const handleFusionarDuplicado = (fromIndex: number, targetIndex: number) => {
+    const itemOrigen = materialesSeleccionados[fromIndex];
+    if (!itemOrigen) return;
+
+    const targetName =
+      materialesSeleccionados[targetIndex].esPersonalizado
+        ? materialesSeleccionados[targetIndex].descripcion.trim() || 'Ítem existente'
+        : getCatalogoNombre(materialesSeleccionados[targetIndex].materialId);
+
+    const cantASumar = itemOrigen.cantidad;
+
+    setMaterialesSeleccionados((prev) => {
+      return prev
+        .map((item, idx) => {
+          if (idx === targetIndex) {
+            return { ...item, cantidad: item.cantidad + cantASumar };
+          }
+          return item;
+        })
+        .filter((_, idx) => idx !== fromIndex);
+    });
+
+    setToastMensaje(`Se sumaron ${cantASumar} unidad(es) a "${targetName}" para evitar duplicados.`);
+  };
+
+  const handleAddMaterial = () => {
+    const selectedCatIds = new Set(
+      materialesSeleccionados
+        .filter((m) => !m.esPersonalizado && m.materialId !== null)
+        .map((m) => m.materialId)
+    );
+    const manualNormalizedNames = new Set(
+      materialesSeleccionados
+        .filter((m) => m.esPersonalizado && m.descripcion.trim())
+        .map((m) => normalizar(m.descripcion))
+    );
+
+    const primerDisponible = catalogo.find(
+      (cat) => !selectedCatIds.has(cat.id) && !manualNormalizedNames.has(normalizar(cat.nombre))
+    );
+
+    if (primerDisponible) {
+      setMaterialesSeleccionados((prev) => [
+        ...prev,
+        {
+          materialId: primerDisponible.id,
+          descripcion: '',
+          cantidad: 1,
+          esPersonalizado: false,
+        },
+      ]);
+    } else {
+      // Si todos los del catálogo ya están seleccionados, agregar como personalizado
+      setMaterialesSeleccionados((prev) => [
+        ...prev,
+        {
+          materialId: null,
+          descripcion: '',
+          cantidad: 1,
+          esPersonalizado: true,
+        },
+      ]);
+    }
+  };
+
+  const handleRemoveMaterial = (index: number) => {
+    setMaterialesSeleccionados(materialesSeleccionados.filter((_, i) => i !== index));
+  };
+
+  const handleCambiarCantidad = (index: number, nuevaCantidad: number) => {
+    const cantidadFinal = Math.max(1, nuevaCantidad);
+    const updated = [...materialesSeleccionados];
+    updated[index] = { ...updated[index], cantidad: cantidadFinal };
+    setMaterialesSeleccionados(updated);
+  };
+
+  const handleUpdateMaterialId = (index: number, materialId: number) => {
+    const updated = [...materialesSeleccionados];
+    updated[index] = {
+      ...updated[index],
+      materialId,
+      esPersonalizado: false,
+      descripcion: '',
+    };
+    setMaterialesSeleccionados(updated);
+  };
+
+  const handleUpdateDescripcion = (index: number, descripcion: string) => {
+    const updated = [...materialesSeleccionados];
+    updated[index] = { ...updated[index], descripcion };
+    setMaterialesSeleccionados(updated);
+  };
+
+  const handleTogglePersonalizado = (index: number, esPersonalizado: boolean) => {
+    if (!esPersonalizado) {
+      const selectedCatIds = new Set(
+        materialesSeleccionados
+          .filter((m, i) => i !== index && !m.esPersonalizado && m.materialId !== null)
+          .map((m) => m.materialId)
+      );
+      const manualNormalizedNames = new Set(
+        materialesSeleccionados
+          .filter((m, i) => i !== index && m.esPersonalizado && m.descripcion.trim())
+          .map((m) => normalizar(m.descripcion))
+      );
+
+      const primerDisponible = catalogo.find(
+        (cat) => !selectedCatIds.has(cat.id) && !manualNormalizedNames.has(normalizar(cat.nombre))
+      );
+
+      if (!primerDisponible && catalogo.length > 0) {
+        setToastMensaje('Todos los ítems del catálogo ya están seleccionados en la lista.');
+        return;
+      }
+
+      const updated = [...materialesSeleccionados];
+      updated[index] = {
+        ...updated[index],
+        esPersonalizado: false,
+        materialId: primerDisponible ? primerDisponible.id : (catalogo[0]?.id ?? null),
+        descripcion: '',
+      };
+      setMaterialesSeleccionados(updated);
+    } else {
+      const updated = [...materialesSeleccionados];
+      updated[index] = {
+        ...updated[index],
+        esPersonalizado: true,
+        materialId: null,
+        descripcion: updated[index].descripcion || '',
+      };
+      setMaterialesSeleccionados(updated);
+    }
+  };
+
+  // 4. Navegación a la siguiente pantalla (Firma y Validación)
+  const handleContinuar = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Sanitizar cualquier duplicado residual antes de procesar
+    const materialesLimpios = sanitizarMateriales(materialesSeleccionados, catalogo);
+    if (materialesLimpios.length !== materialesSeleccionados.length) {
+      setMaterialesSeleccionados(materialesLimpios);
+    }
+
+    // Estructurar array de materiales para Spring Boot
+    const listaMateriales: MaterialConsumido[] = materialesLimpios.map((m) => {
+      if (m.esPersonalizado) {
+        return {
+          materialId: null,
+          descripcion: m.descripcion || 'Material personalizado',
+          cantidad: m.cantidad,
+        };
+      }
+      return {
+        materialId: m.materialId,
+        descripcion: null,
+        cantidad: m.cantidad,
+      };
+    });
+
+    // Navegar al paso 5: Validación y Cierre garantizando la transferencia de datos
+    navigate(`/tecnico/ordenes/${id}/cierre`, {
+      state: {
+        orden: orden || {
+          id: Number(id),
+          codigoOrden: 'ORD-2026-001',
+          tipoServicio: 'Mantenimiento Eléctrico Preventivo',
+          nombreAfiliado: 'Carlos Mendoza Paredes',
+          direccion: 'Av. Central 120',
+          distrito: 'Villa El Salvador',
+          estado: 'EN_DOMICILIO',
+        },
+        formulario: {
+          evaluacionAveria: evaluacion || 'Avería eléctrica identificada en el circuito principal.',
+          detalleSolucion: solucion || 'Se realizó mantenimiento preventivo y reemplazo de componentes defectuosos.',
+          sugerencias: sugerencias || 'Evitar sobrecargar las tomas y realizar revisión periódica.',
+          materiales: listaMateriales,
+        },
+      },
+    });
+  };
+
+  const codigo = orden ? `#${orden.codigoOrden}` : '#ORD-2026-001';
+  const horaLlegada = orden?.horaLlegada || '10:48 AM';
+
+  return (
+    <TecnicoLayout activeTab="ordenes">
+      {/* Toast sutil de notificación ante fusiones automáticas */}
+      {toastMensaje && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[90%] bg-slate-900/95 text-white text-xs py-2.5 px-4 rounded-xl shadow-xl flex items-center justify-between gap-2 border border-slate-700 animate-in fade-in slide-in-from-top duration-200">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-emerald-400 font-bold">✓</span>
+            <span className="truncate">{toastMensaje}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastMensaje(null)}
+            className="text-slate-400 hover:text-white text-xs font-bold px-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <div className="px-5 pt-5 space-y-4">
+        {/* Cabecera con botón atrás y código (los datos no se borran al presionar atrás) */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(`/tecnico/ordenes/${id}`)}
+            className="p-1 -ml-1 text-slate-800 hover:text-[#0ea5e9] transition-colors"
+          >
+            <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+          </button>
+          <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
+            {codigo}
+          </h1>
+        </div>
+
+        {/* Stepper (Paso 2: En atención técnica activo) */}
+        <OrderStepper currentStep={2} />
+
+        {/* Tarjeta Formulario de Atención */}
+        <form onSubmit={handleContinuar} className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4">
+            {/* Badge de Estado y Título */}
+            <div>
+              <span className="inline-block px-3 py-1 bg-amber-100 text-amber-800 font-bold text-xs rounded-full border border-amber-200/60">
+                En atención técnica
+              </span>
+              <h2 className="text-lg font-extrabold text-slate-900 mt-2 leading-snug">
+                {orden?.tipoServicio || 'Mantenimiento Eléctrico Preventivo'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Llegada registrada: {horaLlegada}
+              </p>
+            </div>
+
+            {/* EVALUACIÓN */}
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                EVALUACIÓN
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={evaluacion}
+                onChange={(e) => setEvaluacion(e.target.value)}
+                placeholder="Describe la avería ..."
+                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] resize-none"
+              />
+            </div>
+
+            {/* DETALLE DE SOLUCIÓN */}
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                DETALLE DE SOLUCIÓN
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={solucion}
+                onChange={(e) => setSolucion(e.target.value)}
+                placeholder="Detalla la solución aplicada ..."
+                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] resize-none"
+              />
+            </div>
+
+            {/* MATERIALES EMPLEADOS */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  MATERIALES EMPLEADOS
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddMaterial}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-[#0ea5e9] hover:underline active:scale-95 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Agregar Ítem
+                </button>
+              </div>
+
+              {/* Lista de Tarjetas Individuales de Materiales */}
+              {materialesSeleccionados.length > 0 ? (
+                <div className="space-y-1">
+                  {materialesSeleccionados.map((item, idx) => {
+                    // Filtrar opciones del catálogo excluyendo las ya seleccionadas en otras filas
+                    const opcionesDisponibles = catalogo.filter((cat) => {
+                      if (item.materialId === cat.id) return true;
+                      const yaEnCatalogo = materialesSeleccionados.some(
+                        (m, otherIdx) => otherIdx !== idx && !m.esPersonalizado && m.materialId === cat.id
+                      );
+                      if (yaEnCatalogo) return false;
+
+                      const yaEnManual = materialesSeleccionados.some(
+                        (m, otherIdx) =>
+                          otherIdx !== idx &&
+                          m.esPersonalizado &&
+                          normalizar(m.descripcion) === normalizar(cat.nombre)
+                      );
+                      if (yaEnManual) return false;
+
+                      return true;
+                    });
+
+                    // Validar si la descripción manual coincide con otro ítem
+                    const dupInfo = item.esPersonalizado
+                      ? findDuplicateIndex(idx, item.descripcion)
+                      : null;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-xl border mb-2.5 space-y-2.5 transition-all ${
+                          dupInfo
+                            ? 'bg-rose-50/50 border-rose-300'
+                            : 'bg-gray-50/70 border-gray-200'
+                        }`}
+                      >
+                        {/* Fila superior: Selector de material o input si es "Otro", y botón de eliminar */}
+                        <div className="flex items-center justify-between gap-2">
+                          {item.esPersonalizado ? (
+                            <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder="Describe el material personalizado..."
+                                  value={item.descripcion}
+                                  onChange={(e) => handleUpdateDescripcion(idx, e.target.value)}
+                                  onBlur={() => {
+                                    if (dupInfo) {
+                                      handleFusionarDuplicado(idx, dupInfo.targetIndex);
+                                    }
+                                  }}
+                                  className={`flex-1 bg-white border ${
+                                    dupInfo
+                                      ? 'border-rose-400 focus:ring-2 focus:ring-rose-400 bg-rose-50/30 text-rose-900'
+                                      : 'border-gray-300 focus:ring-2 focus:ring-[#0ea5e9] text-gray-800'
+                                  } rounded-lg px-2.5 py-1.5 text-xs placeholder:text-gray-400 focus:outline-none transition-colors`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePersonalizado(idx, false)}
+                                  className="text-[11px] text-[#0ea5e9] hover:underline font-semibold whitespace-nowrap px-1"
+                                  title="Elegir del catálogo"
+                                >
+                                  Catálogo
+                                </button>
+                              </div>
+
+                              {/* Alerta interactiva de duplicado */}
+                              {dupInfo && (
+                                <div className="flex items-center justify-between bg-rose-100/90 border border-rose-200 rounded-lg px-2.5 py-1 text-[11px] text-rose-800">
+                                  <span className="font-medium">
+                                    ⚠️ Este material ya está registrado en la lista.
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      handleFusionarDuplicado(idx, dupInfo.targetIndex);
+                                    }}
+                                    className="text-[11px] font-bold text-rose-700 underline hover:text-rose-900 ml-1.5 whitespace-nowrap"
+                                  >
+                                    Sumar (+{item.cantidad})
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <select
+                              value={item.materialId ?? ''}
+                              onChange={(e) => {
+                                if (e.target.value === 'OTRO') {
+                                  handleTogglePersonalizado(idx, true);
+                                } else {
+                                  handleUpdateMaterialId(idx, Number(e.target.value));
+                                }
+                              }}
+                              className="flex-1 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9]"
+                            >
+                              {opcionesDisponibles.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.nombre}
+                                </option>
+                              ))}
+                              <option value="OTRO">Personalizado...</option>
+                            </select>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMaterial(idx)}
+                            title="Eliminar material"
+                            className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Fila inferior: Control de Cantidad Stepper */}
+                        <div className="flex items-center justify-between pt-1 border-t border-gray-200/60">
+                          <span className="text-xs text-gray-500 font-medium">
+                            Cantidad:
+                          </span>
+
+                          <div className="inline-flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <button
+                              type="button"
+                              disabled={item.cantidad <= 1}
+                              onClick={() => handleCambiarCantidad(idx, item.cantidad - 1)}
+                              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:scale-95 disabled:opacity-30 rounded-l-lg"
+                              title="Disminuir cantidad"
+                            >
+                              <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                            <span className="w-10 text-center font-bold text-gray-800 select-none text-sm">
+                              {item.cantidad}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCambiarCantidad(idx, item.cantidad + 1)}
+                              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:scale-95 rounded-r-lg"
+                              title="Aumentar cantidad"
+                            >
+                              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Estado vacío limpio cuando no se han registrado materiales */
+                <div className="space-y-2 py-1">
+                  <button
+                    type="button"
+                    onClick={handleAddMaterial}
+                    className="w-full py-3.5 border-2 border-dashed border-sky-300 hover:border-sky-500 rounded-xl flex items-center justify-center gap-2 text-sky-600 bg-sky-50/50 hover:bg-sky-50 text-sm font-semibold transition-all active:scale-[0.99]"
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <span> Agregar Material Utilizado</span>
+                  </button>
+                  <p className="text-[11px] text-center text-slate-400">
+                    No se han registrado materiales para este servicio
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* SUGERENCIAS */}
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                SUGERENCIAS
+              </label>
+              <textarea
+                rows={2}
+                value={sugerencias}
+                onChange={(e) => setSugerencias(e.target.value)}
+                placeholder="Describe las recomendaciones para garantizar el servicio..."
+                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Botón Primario: Completar Servicio e Ir a Firma */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              className="w-full py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center"
+            >
+              Completar Servicio e Ir a Firma
+            </button>
+          </div>
+        </form>
+      </div>
+    </TecnicoLayout>
+  );
+};
+
+export const EnAtencionScreen = AtencionTecnica;

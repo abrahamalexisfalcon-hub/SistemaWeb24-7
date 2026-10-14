@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#1e40af"/>
+  <!-- Shield and 24/7 Symbol -->
+  <path d="M256 90 L380 144 V256 C380 330 326 394 256 422 C186 394 132 330 132 256 V144 Z" fill="#2563eb" stroke="#ffffff" stroke-width="16" stroke-linejoin="round"/>
+  <text x="256" y="280" font-family="Arial, sans-serif" font-size="80" font-weight="900" fill="#ffffff" text-anchor="middle">24/7</text>
+  <text x="256" y="340" font-family="Arial, sans-serif" font-size="28" font-weight="600" fill="#bfdbfe" text-anchor="middle">ASISTENCIAS</text>
+</svg>
