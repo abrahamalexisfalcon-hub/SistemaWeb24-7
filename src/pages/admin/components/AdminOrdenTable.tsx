@@ -30,9 +30,9 @@ export const AdminOrdenTable: React.FC<AdminOrdenTableProps> = ({
   const fin = Math.min(paginaActual * filasPorPagina, totalOrdenes);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden w-full flex flex-col">
+      <div className="overflow-x-auto w-full">
+        <table className="w-full text-left border-collapse min-w-[700px] xl:min-w-full">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <th className="py-3 px-4">Código</th>
@@ -41,7 +41,7 @@ export const AdminOrdenTable: React.FC<AdminOrdenTableProps> = ({
               <th className="py-3 px-4">Técnico Asignado</th>
               <th className="py-3 px-4">Ubicación</th>
               <th className="py-3 px-4">Estado</th>
-              <th className="py-3 px-4 text-right">Acción</th>
+              <th className="py-3 px-4 text-right pr-6">Acción</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs">
@@ -91,15 +91,15 @@ export const AdminOrdenTable: React.FC<AdminOrdenTableProps> = ({
                       #{orden.codigoOrden}
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-slate-800">
-                      <div className="flex flex-col">
-                        <span>{afiliadoNombre}</span>
+                      <div className="flex flex-col max-w-[170px] xl:max-w-[220px]">
+                        <span className="truncate" title={afiliadoNombre}>{afiliadoNombre}</span>
                         <span className="text-[10px] text-slate-400 font-normal">
                           {fechaTexto}
                         </span>
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100/80">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100/80 whitespace-nowrap">
                         {orden.tipoServicio}
                       </span>
                     </td>
@@ -109,7 +109,7 @@ export const AdminOrdenTable: React.FC<AdminOrdenTableProps> = ({
                           <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
                             <User className="w-3 h-3" />
                           </div>
-                          <span className="truncate max-w-[140px]">
+                          <span className="truncate max-w-[140px]" title={tecnicoNombre}>
                             {tecnicoNombre.toLowerCase().startsWith('téc')
                               ? tecnicoNombre
                               : `Téc. ${tecnicoNombre}`}
@@ -120,7 +120,7 @@ export const AdminOrdenTable: React.FC<AdminOrdenTableProps> = ({
                       )}
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2 max-w-[200px]">
+                      <div className="flex items-center gap-2 max-w-[200px] xl:max-w-[240px]">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span className="truncate text-slate-600 font-medium" title={`${direccion} - ${distrito}`}>
                           {distrito ? `${direccion} - ${distrito}` : direccion}
@@ -140,7 +140,7 @@ export const AdminOrdenTable: React.FC<AdminOrdenTableProps> = ({
                         {badge.label}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap pr-6">
                       <button
                         type="button"
                         onClick={(e) => {

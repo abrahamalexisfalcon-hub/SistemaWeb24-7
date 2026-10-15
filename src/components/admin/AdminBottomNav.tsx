@@ -10,8 +10,8 @@ interface AdminBottomNavProps {
 
 export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({ activeTab, onTabChange }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 bg-[#111827] border-t border-slate-800 shadow-2xl">
-      <div className="grid grid-cols-5 h-16 items-center px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800 lg:hidden w-full shadow-2xl">
+      <div className="max-w-md sm:max-w-xl mx-auto grid grid-cols-5 h-16 items-center px-2">
         {/* 1. Órdenes */}
         <button
           onClick={() => onTabChange('ordenes')}

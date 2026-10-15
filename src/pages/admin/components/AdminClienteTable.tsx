@@ -28,9 +28,9 @@ export const AdminClienteTable: React.FC<AdminClienteTableProps> = ({
   const fin = Math.min(paginaActual * filasPorPagina, totalAfiliados);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden w-full flex flex-col">
+      <div className="overflow-x-auto w-full">
+        <table className="w-full text-left border-collapse min-w-[700px] xl:min-w-full">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <th className="py-3 px-4">Afiliado / Cliente</th>
@@ -38,7 +38,7 @@ export const AdminClienteTable: React.FC<AdminClienteTableProps> = ({
               <th className="py-3 px-4">Contacto</th>
               <th className="py-3 px-4">Dirección y Distrito</th>
               <th className="py-3 px-4">Estado</th>
-              <th className="py-3 px-4 text-right">Acciones</th>
+              <th className="py-3 px-4 text-right pr-6">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs">
@@ -63,25 +63,25 @@ export const AdminClienteTable: React.FC<AdminClienteTableProps> = ({
                         <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs shrink-0 border border-sky-200">
                           {nombre ? nombre.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
                         </div>
-                        <div>
-                          <div className="font-bold text-slate-900 text-xs">{nombre}</div>
+                        <div className="max-w-[160px] xl:max-w-[200px]">
+                          <div className="font-bold text-slate-900 text-xs truncate" title={nombre}>{nombre}</div>
                           {afiliado.numeroCuenta && (
-                            <div className="text-[10px] text-slate-400 font-mono">Cta: {afiliado.numeroCuenta}</div>
+                            <div className="text-[10px] text-slate-400 font-mono truncate">Cta: {afiliado.numeroCuenta}</div>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-700">
+                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-700 whitespace-nowrap">
                       {afiliado.dni || 'Sin DNI'}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-600">
+                    <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span className="font-medium">{afiliado.telefono || 'Sin teléfono'}</span>
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-slate-600">
-                      <div className="flex items-start gap-1.5 max-w-[240px]">
+                      <div className="flex items-start gap-1.5 max-w-[220px] xl:max-w-[280px]">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
                         <div className="flex flex-col min-w-0">
                           <span className="font-medium text-slate-800 truncate" title={afiliado.direccion}>
@@ -109,7 +109,7 @@ export const AdminClienteTable: React.FC<AdminClienteTableProps> = ({
                         </span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap pr-6">
                       <div className="inline-flex items-center gap-1.5 justify-end">
                         {onEditar && (
                           <button

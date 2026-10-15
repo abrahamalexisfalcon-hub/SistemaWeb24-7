@@ -20,7 +20,7 @@ export const AdminTecnicoCard: React.FC<AdminTecnicoCardProps> = ({
   );
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-3 space-y-3 transition-all">
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 transition-all flex flex-col justify-between h-full">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1 min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">

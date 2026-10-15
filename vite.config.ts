@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'pwa-192x192.svg', 'pwa-512x512.svg'],
+      includeAssets: ['favicon.svg', 'pwa-192x192.svg', 'pwa-512x512.svg', 'favicon-dark.png', 'favicon-light.png'],
       manifest: {
         name: '24/7 Asistencias',
         short_name: 'Asistencias 24/7',

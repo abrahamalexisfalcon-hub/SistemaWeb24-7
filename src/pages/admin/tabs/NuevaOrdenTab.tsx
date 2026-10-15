@@ -34,7 +34,7 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
   onAbrirEspecialidades,
 }) => {
   return (
-    <div className="p-5 space-y-4 lg:p-0 lg:space-y-6">
+    <div className="w-full space-y-4 lg:space-y-6">
       <div className="pb-1">
         <h1 className="text-2xl font-black text-slate-900 tracking-tight lg:text-3xl">
           Registrar Nueva Orden

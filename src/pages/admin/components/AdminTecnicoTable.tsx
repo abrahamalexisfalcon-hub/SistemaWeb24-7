@@ -28,9 +28,9 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
   const fin = Math.min(paginaActual * filasPorPagina, totalTecnicos);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden w-full flex flex-col">
+      <div className="overflow-x-auto w-full">
+        <table className="w-full text-left border-collapse min-w-[700px] xl:min-w-full">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <th className="py-3 px-4">Técnico</th>
@@ -39,7 +39,7 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
               <th className="py-3 px-4">Disponibilidad</th>
               <th className="py-3 px-4">Estado</th>
               <th className="py-3 px-4">Órdenes Activas</th>
-              <th className="py-3 px-4 text-right">Acción</th>
+              <th className="py-3 px-4 text-right pr-6">Acción</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs">
@@ -125,7 +125,7 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
                         {ordenesTecnico.length}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap pr-6">
                       <button
                         type="button"
                         onClick={() => onEditar(tecnico)}

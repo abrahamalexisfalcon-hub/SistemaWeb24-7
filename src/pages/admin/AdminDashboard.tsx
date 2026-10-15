@@ -110,14 +110,14 @@ export const AdminDashboard: React.FC = () => {
         ordenesPendientesCount={ordenesPendientesCount}
       />
 
-      {/* 2. Área de contenido principal */}
-      <div className="flex-1 min-w-0 min-h-screen flex flex-col justify-between w-full">
-        {/* En móvil: max-w-md mx-auto px-4 pt-6 pb-24. En escritorio: p-8 lg:p-10 max-w-7xl mx-auto w-full */}
-        <main className="w-full max-w-md mx-auto px-4 pt-6 pb-24 lg:max-w-7xl lg:p-10 flex-1 flex flex-col min-w-0">
+      {/* 2. Área de contenido principal 100% responsiva */}
+      <div className="flex-1 min-w-0 min-h-screen flex flex-col justify-between w-full overflow-x-hidden">
+        {/* Móvil/Tablet (< lg): max-w-3xl centrado sin franjas excesivas. Escritorio (>= lg): fluido con p-6 xl:p-10 */}
+        <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 pt-6 pb-24 lg:max-w-none lg:mx-0 lg:p-6 xl:p-10 flex-1 flex flex-col min-w-0 overflow-y-auto">
           {renderActiveTab()}
         </main>
 
-        {/* 3. Navegación inferior fija: visible únicamente en móvil (< lg) */}
+        {/* 3. Navegación inferior fija: visible únicamente en móvil y tablet (< lg) */}
         <div className="block lg:hidden">
           <AdminBottomNav activeTab={d.activeTab} onTabChange={d.setActiveTab} />
         </div>

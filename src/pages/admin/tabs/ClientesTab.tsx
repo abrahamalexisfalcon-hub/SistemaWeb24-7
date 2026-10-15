@@ -66,9 +66,9 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
   };
 
   return (
-    <div className="p-5 space-y-4 lg:p-0 lg:space-y-6">
+    <div className="w-full space-y-4 lg:space-y-6">
       {/* Cabecera y Controles */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pb-1 lg:pb-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-1 lg:pb-2 w-full">
         <div>
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight lg:text-3xl">
@@ -78,7 +78,7 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
             <button
               type="button"
               onClick={onNuevoAfiliado}
-              className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl px-3 py-2 text-xs shadow-sm transition-colors flex items-center gap-1.5 active:scale-95 lg:hidden cursor-pointer"
+              className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl px-3 py-2 text-xs shadow-sm transition-colors flex items-center gap-1.5 active:scale-95 sm:hidden cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Nuevo</span>
@@ -89,10 +89,10 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
           </p>
         </div>
 
-        {/* Buscador y Botón en Desktop */}
-        <div className="flex items-center gap-3">
+        {/* Buscador y Botón */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
           {/* Barra de Búsqueda */}
-          <div className="relative flex-1 lg:w-80">
+          <div className="relative flex-1 w-full sm:w-72 lg:w-80">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -119,11 +119,11 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
             )}
           </div>
 
-          {/* Botón Nuevo Afiliado en Desktop */}
+          {/* Botón Nuevo Afiliado en Tablet y Desktop */}
           <button
             type="button"
             onClick={onNuevoAfiliado}
-            className="hidden lg:flex bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl px-4 py-2.5 text-xs shadow-sm transition-colors items-center gap-1.5 active:scale-95 shrink-0 cursor-pointer"
+            className="hidden sm:flex bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl px-4 py-2.5 text-xs shadow-sm transition-colors items-center gap-1.5 active:scale-95 shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nuevo Afiliado</span>
@@ -146,9 +146,9 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
         </div>
       ) : (
         <>
-          {/* 1. Vista Móvil: Tarjetas con Paginación Táctil (< lg) */}
-          <div className="block lg:hidden space-y-3">
-            <div className="space-y-3">
+          {/* 1. Vista Móvil y Tablet: Tarjetas con Paginación Táctil (< lg) */}
+          <div className="block lg:hidden space-y-4 pb-28">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {afiliadosPaginados.map((a) => (
                 <div
                   key={a.id}
@@ -209,7 +209,7 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
             </div>
 
             {/* Paginación Móvil */}
-            <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs mt-4 mb-20 lg:mb-0">
+            <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs mt-4">
               <button
                 type="button"
                 onClick={() => {

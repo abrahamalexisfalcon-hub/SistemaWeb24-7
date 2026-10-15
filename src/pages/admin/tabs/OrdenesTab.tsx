@@ -137,9 +137,9 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col w-full">
       {/* Header Superior */}
-      <div className="flex items-center justify-between px-5 pt-6 pb-2 lg:px-0 lg:pt-0 lg:pb-6">
+      <div className="flex items-center justify-between pb-2 lg:pb-6">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight lg:text-3xl">
             Órdenes de trabajo
@@ -150,7 +150,7 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
         </div>
         <button
           onClick={onOpenPerfil}
-          className="w-10 h-10 rounded-full bg-slate-200/90 flex items-center justify-center text-slate-800 hover:bg-slate-300 transition-colors shadow-xs active:scale-95 lg:hidden"
+          className="w-10 h-10 rounded-full bg-slate-200/90 flex items-center justify-center text-slate-800 hover:bg-slate-300 transition-colors shadow-xs active:scale-95 lg:hidden cursor-pointer"
           title="Perfil Administrador"
         >
           <User className="w-5 h-5 fill-slate-800 stroke-none" />
@@ -158,11 +158,11 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
       </div>
 
       {/* Toolbar en Desktop (>= lg): Segmented control de estados, Buscador y Filtro de fechas */}
-      <div className="hidden lg:flex flex-col gap-3 mb-6">
+      <div className="hidden lg:flex flex-col gap-3 mb-6 w-full">
         {/* Fila 1: Segmented Control de Estados y Buscador */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 w-full">
           {/* Segmented Control */}
-          <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-2xl border border-slate-300/40">
+          <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-2xl border border-slate-300/40 overflow-x-auto">
             {(['Todas', 'En proceso', 'Pendientes', 'Finalizadas', 'Canceladas'] as const).map((filtro) => {
               const activo = filtroActivo === filtro;
               return (
@@ -172,7 +172,7 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
                     onFiltroChange(filtro);
                     setPaginaActual(1);
                   }}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     activo
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -185,7 +185,7 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
           </div>
 
           {/* Buscador Desktop */}
-          <div className="w-80">
+          <div className="w-full sm:w-72 lg:w-80 shrink-0">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
@@ -273,9 +273,9 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
       </div>
 
       {/* Toolbar en Móvil (< lg) */}
-      <div className="block lg:hidden">
+      <div className="block lg:hidden w-full">
         {/* Barra de Búsqueda */}
-        <div className="px-5 my-3">
+        <div className="my-3">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
@@ -292,7 +292,7 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
         </div>
 
         {/* Píldoras de Filtro (Tabs Horizontales) */}
-        <div className="px-5 mb-4 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+        <div className="mb-4 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
           {(['Todas', 'En proceso', 'Pendientes', 'Finalizadas', 'Canceladas'] as const).map((filtro) => {
             const activo = filtroActivo === filtro;
             return (
@@ -316,7 +316,7 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
       </div>
 
       {/* Contenedor Principal: Tarjetas en móvil, Tabla Operativa Paginada en escritorio */}
-      <div className="px-5 flex-1 lg:px-0">
+      <div className="w-full flex-1">
         {loading && (ordenes || []).length === 0 ? (
           <div className="py-16 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
             <RefreshCw className="w-6 h-6 animate-spin text-[#0ea5e9]" />
@@ -334,9 +334,9 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
           </div>
         ) : (
           <>
-            {/* 1. Versión Móvil: Listado de Tarjetas Paginadas (< lg) */}
-            <div className="block lg:hidden space-y-4">
-              <div className="space-y-4">
+            {/* 1. Versión Móvil y Tablet: Listado de Tarjetas Paginadas (< lg) */}
+            <div className="block lg:hidden space-y-4 pb-28">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {(ordenesPaginadas || []).map((orden) => (
                   <AdminOrdenCard
                     key={orden.id}
@@ -348,7 +348,7 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
               </div>
 
               {/* Componente de Paginación Móvil */}
-              <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs mt-4 mb-20 lg:mb-0">
+              <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs mt-4">
                 <button
                   type="button"
                   onClick={() => {
