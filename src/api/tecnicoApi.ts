@@ -20,14 +20,28 @@ export const tecnicoApi = {
   },
 
   // Obtiene las órdenes asignadas al técnico (sin teléfono por regla de negocio)
-  getOrdenes: async (tecnicoId: number): Promise<OrdenResumenTecnico[]> => {
-    const response = await api.get<OrdenResumenTecnico[]>(`/tecnico/ordenes/${tecnicoId}`);
+  getOrdenes: async (tecnicoId?: number): Promise<OrdenResumenTecnico[]> => {
+    const url = tecnicoId ? `/tecnico/ordenes/${tecnicoId}` : '/tecnico/ordenes';
+    const response = await api.get<OrdenResumenTecnico[]>(url);
+    return response.data;
+  },
+
+  // Obtiene solo las órdenes asignadas y activas (PENDIENTE, EN_DOMICILIO)
+  getOrdenesAsignadas: async (): Promise<OrdenResumenTecnico[]> => {
+    const response = await api.get<OrdenResumenTecnico[]>('/tecnico/ordenes/asignadas');
+    return response.data;
+  },
+
+  // Obtiene el historial de órdenes finalizadas
+  getHistorial: async (): Promise<OrdenResumenTecnico[]> => {
+    const response = await api.get<OrdenResumenTecnico[]>('/tecnico/ordenes/historial');
     return response.data;
   },
 
   // Obtiene una orden específica asignada al técnico
-  getOrdenPorId: async (ordenId: number, tecnicoId: number): Promise<OrdenResumenTecnico | null> => {
-    const response = await api.get<OrdenResumenTecnico[]>(`/tecnico/ordenes/${tecnicoId}`);
+  getOrdenPorId: async (ordenId: number, tecnicoId?: number): Promise<OrdenResumenTecnico | null> => {
+    const url = tecnicoId ? `/tecnico/ordenes/${tecnicoId}` : '/tecnico/ordenes';
+    const response = await api.get<OrdenResumenTecnico[]>(url);
     const encontrada = response.data.find((o) => o.id === ordenId);
     return encontrada || null;
   },

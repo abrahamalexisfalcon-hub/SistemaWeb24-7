@@ -9,6 +9,7 @@ export interface Usuario {
   rol: RolUsuario;
   disponible?: boolean;
   firmaUrl?: string | null;
+  firmaDigitalUrl?: string | null;
 }
 
 export interface AuthResponse {
@@ -19,6 +20,7 @@ export interface AuthResponse {
   rol: RolUsuario;
   disponible?: boolean;
   firmaUrl?: string | null;
+  firmaDigitalUrl?: string | null;
 }
 
 export interface PerfilTecnico {
@@ -31,6 +33,7 @@ export interface PerfilTecnico {
   ordenesCompletadasHoy?: number;
   calificacionPromedio?: number;
   firmaUrl?: string | null;
+  firmaDigitalUrl?: string | null;
 }
 
 export interface LoginRequest {
@@ -146,14 +149,37 @@ export interface OrdenDetalleAdmin {
   fechaAsignacion: string;
   fechaLlegada?: string;
   fechaFinalizacion?: string;
+  fechaCreacion?: string;
+  fechaProgramada?: string;
   afiliadoId: number;
-  afiliadoNombre: string;
-  afiliadoTelefono: string; // Administración sí tiene acceso
-  afiliadoDireccion: string;
-  afiliadoDistrito: string;
+  afiliadoNombre?: string;
+  nombreAfiliado?: string;
+  afiliadoTelefono?: string;
+  telefonoAfiliado?: string;
+  afiliadoDireccion?: string;
+  direccionAfiliado?: string;
+  direccion?: string;
+  afiliadoDistrito?: string;
+  distritoAfiliado?: string;
+  distrito?: string;
+  cliente?: {
+    id?: number;
+    nombre?: string;
+    direccion?: string;
+    distrito?: string;
+    telefono?: string;
+  };
   tecnicoId?: number;
   tecnicoNombre?: string;
+  nombreTecnico?: string;
   tecnicoFirmaUrl?: string;
+  tecnico?: {
+    id?: number;
+    nombre?: string;
+    nombreCompleto?: string;
+    email?: string;
+    telefono?: string;
+  };
   hojaServicio?: HojaServicioDetalleAdmin;
   motivoCancelacion?: string;
   fechaCancelacion?: string;
@@ -193,4 +219,37 @@ export interface TecnicoResumen {
   id: number;
   nombreCompleto: string;
   correo: string;
+  telefono: string;
+  especialidad?: string;
+  activo: boolean;
+  disponible?: boolean;
+}
+
+export interface CrearTecnicoRequest {
+  nombreCompleto: string;
+  correo: string;
+  password: string;
+  telefono: string;
+  especialidad: string;
+}
+
+export interface ActualizarTecnicoRequest {
+  nombreCompleto?: string;
+  telefono?: string;
+  especialidad?: string;
+  password?: string;
+}
+
+export interface ActualizarEstadoTecnicoRequest {
+  activo: boolean;
+}
+
+export interface Especialidad {
+  id: number;
+  nombre: string;
+  activo?: boolean;
+}
+
+export interface CrearEspecialidadRequest {
+  nombre: string;
 }

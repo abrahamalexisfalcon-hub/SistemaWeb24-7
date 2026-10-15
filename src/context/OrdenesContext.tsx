@@ -33,50 +33,21 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Referencias para evitar condiciones de carrera en peticiones concurrentes
   const fetchingRef = useRef(false);
   const lastFetchedRef = useRef<number | null>(null);
+  const lastUserIdRef = useRef<number | null>(null);
   const ordenesRef = useRef<OrdenResumenTecnico[]>([]);
   ordenesRef.current = ordenes;
 
-  const getFinalizadasIds = (): number[] => {
+  const getFinalizadasIds = (userId?: number): number[] => {
     try {
+      if (userId) {
+        const userScoped = localStorage.getItem(`ordenes_finalizadas_ids_${userId}`);
+        if (userScoped) return JSON.parse(userScoped);
+      }
       return JSON.parse(localStorage.getItem('ordenes_finalizadas_ids') || '[]');
     } catch {
       return [];
     }
   };
-
-  const getFallbackOrdenes = (finalizadasIds: number[]): OrdenResumenTecnico[] => [
-    {
-      id: 1,
-      codigoOrden: 'ORD-2026-001',
-      tipoServicio: 'Mantenimiento Eléctrico Preventivo',
-      estado: finalizadasIds.includes(1) ? 'FINALIZADA' : 'EN_DOMICILIO',
-      nombreAfiliado: 'Carlos Mendoza Paredes',
-      direccion: 'Av. Central 120',
-      referencia: 'Altura del Parque El Huerto',
-      distrito: 'Villa El Salvador',
-      fechaProgramada: 'Hoy, 10:30 AM',
-    },
-    {
-      id: 2,
-      codigoOrden: 'ORD-2026-002',
-      tipoServicio: 'Mantenimiento Eléctrico Preventivo',
-      estado: finalizadasIds.includes(2) ? 'FINALIZADA' : 'PENDIENTE',
-      nombreAfiliado: 'María Rodríguez Salas',
-      direccion: 'Av. Central 120',
-      distrito: 'Villa El Salvador',
-      fechaProgramada: 'Hoy, 10:30 AM',
-    },
-    {
-      id: 3,
-      codigoOrden: 'ORD-2026-003',
-      tipoServicio: 'Mantenimiento Eléctrico Preventivo',
-      estado: 'FINALIZADA',
-      nombreAfiliado: 'Juan Carlos Pérez',
-      direccion: 'Av. Central 120',
-      distrito: 'Villa El Salvador',
-      fechaProgramada: 'Hoy, 10:30 AM',
-    },
-  ];
 
   const cargarOrdenes = useCallback(
     async (force: boolean = false) => {
@@ -84,6 +55,16 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!user) {
         setLoading(false);
         return;
+      }
+
+      // Si cambió el usuario activo, resetear inmediatamente la memoria para aislamiento estricto
+      if (lastUserIdRef.current !== user.usuarioId) {
+        lastUserIdRef.current = user.usuarioId;
+        setOrdenes([]);
+        setPerfil(null);
+        lastFetchedRef.current = null;
+        setLastFetched(null);
+        force = true;
       }
 
       const now = Date.now();
@@ -107,7 +88,7 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setIsFetching(true);
       }
 
-      const finalizadasIds = getFinalizadasIds();
+      const finalizadasIds = getFinalizadasIds(user.usuarioId);
 
       try {
         const tecnicoId = user.usuarioId || 1;
@@ -116,13 +97,15 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
           tecnicoApi.getPerfil(),
         ]);
 
-        if (resOrdenes.status === 'fulfilled' && resOrdenes.value && resOrdenes.value.length > 0) {
+        if (resOrdenes.status === 'fulfilled' && Array.isArray(resOrdenes.value)) {
+          // Asignar fielmente las órdenes del técnico autenticado (incluso si la lista viene vacía)
           const mapeadas = resOrdenes.value.map((o) =>
             finalizadasIds.includes(o.id) ? { ...o, estado: 'FINALIZADA' as const } : o
           );
           setOrdenes(mapeadas);
-        } else if (!yaCargado) {
-          setOrdenes(getFallbackOrdenes(finalizadasIds));
+        } else if (resOrdenes.status === 'rejected' && !yaCargado) {
+          // Si falló la petición de red y no había datos, dejar lista vacía (sin contaminar con datos mock de otro técnico)
+          setOrdenes([]);
         }
 
         if (resPerfil.status === 'fulfilled' && resPerfil.value) {
@@ -132,9 +115,9 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
         lastFetchedRef.current = Date.now();
         setLastFetched(lastFetchedRef.current);
       } catch (err) {
-        console.warn('Carga de órdenes en segundo plano o fallback:', err);
+        console.warn('Carga de órdenes en segundo plano:', err);
         if (!yaCargado) {
-          setOrdenes(getFallbackOrdenes(finalizadasIds));
+          setOrdenes([]);
         }
       } finally {
         fetchingRef.current = false;
@@ -176,15 +159,23 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
     []
   );
 
-  // Carga inicial al autenticar
+  // Carga inicial al autenticar o cambiar de usuario
   useEffect(() => {
     if (user) {
+      if (lastUserIdRef.current !== user.usuarioId) {
+        lastUserIdRef.current = user.usuarioId;
+        setOrdenes([]);
+        setPerfil(null);
+        lastFetchedRef.current = null;
+        setLastFetched(null);
+      }
       cargarOrdenes(false);
     } else {
       setOrdenes([]);
       setPerfil(null);
       setLastFetched(null);
       lastFetchedRef.current = null;
+      lastUserIdRef.current = null;
       setLoading(false);
     }
   }, [user, cargarOrdenes]);

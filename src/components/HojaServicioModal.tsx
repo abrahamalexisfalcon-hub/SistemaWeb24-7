@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FileText, Download, X } from 'lucide-react';
 import logo247 from '../assets/Logo_negro.png';
 import { tecnicoApi } from '../api';
+import { useEspecialidades } from '../hooks';
 import type { OrdenDetalleAdmin, OrdenResumenTecnico, MaterialConsumido } from '../types';
 
 /* ─────────────── Props ─────────────── */
@@ -9,12 +10,6 @@ export interface HojaServicioModalProps {
   orden: OrdenDetalleAdmin | OrdenResumenTecnico | any;
   onClose: () => void;
 }
-
-/* ─────────────── Especialidades Oficiales ─────────────── */
-const ESPECIALIDADES = [
-  'Gasfitería', 'Electricidad', 'Cerrajería', 'Auxilio Vial',
-  'Perforaciones', 'Pintura', 'Armado de Muebles',
-];
 
 function calificacionLabel(value: number): 'Excelente' | 'Regular' | 'Malo' {
   if (value >= 4) return 'Excelente';
@@ -78,6 +73,15 @@ const RenglonesTexto: React.FC<{ texto?: string; minLineas?: number }> = ({ text
 /* ═══════════════════════════════════════════════════════════════════════════════ */
 export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onClose }) => {
   const [detalleExtra, setDetalleExtra] = useState<OrdenResumenTecnico | null>(null);
+  const { especialidades: espObjs } = useEspecialidades();
+
+  const listaEspecialidades = useMemo(() => {
+    const nombres = espObjs.map((e) => e.nombre);
+    if (orden?.tipoServicio && !nombres.some((n) => n.toLowerCase() === orden.tipoServicio?.toLowerCase())) {
+      return [...nombres, orden.tipoServicio];
+    }
+    return nombres;
+  }, [espObjs, orden?.tipoServicio]);
 
   // Consulta el detalle de la orden si faltan datos de la hoja de servicio o firmas
   useEffect(() => {
@@ -306,7 +310,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
               DATOS DEL SERVICIO:
             </h3>
             <div className="flex flex-wrap items-center gap-y-1 text-gray-900 py-0.5">
-              {ESPECIALIDADES.map((esp) => (
+              {listaEspecialidades.map((esp) => (
                 <CheckBox key={esp} label={esp} checked={especialidadMatch(esp)} />
               ))}
             </div>

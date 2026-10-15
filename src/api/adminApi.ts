@@ -5,8 +5,11 @@ import type {
   Afiliado,
   CrearAfiliadoRequest,
   TecnicoResumen,
+  CrearTecnicoRequest,
+  ActualizarTecnicoRequest,
   MaterialCatalogo,
-  EstadoOrden
+  EstadoOrden,
+  Especialidad
 } from '../types';
 
 export const adminApi = {
@@ -51,9 +54,25 @@ export const adminApi = {
     return response.data;
   },
 
-  // Técnicos para asignación
-  getTecnicos: async (): Promise<TecnicoResumen[]> => {
-    const response = await api.get<TecnicoResumen[]>('/admin/tecnicos');
+  // Técnicos
+  getTecnicos: async (soloActivos?: boolean): Promise<TecnicoResumen[]> => {
+    const params = soloActivos !== undefined ? { soloActivos } : undefined;
+    const response = await api.get<TecnicoResumen[]>('/admin/tecnicos', { params });
+    return response.data;
+  },
+
+  crearTecnico: async (data: CrearTecnicoRequest): Promise<TecnicoResumen> => {
+    const response = await api.post<TecnicoResumen>('/admin/tecnicos', data);
+    return response.data;
+  },
+
+  actualizarEstadoTecnico: async (id: number, activo: boolean): Promise<TecnicoResumen> => {
+    const response = await api.patch<TecnicoResumen>(`/admin/tecnicos/${id}/estado`, { activo });
+    return response.data;
+  },
+
+  actualizarTecnico: async (id: number, data: ActualizarTecnicoRequest): Promise<TecnicoResumen> => {
+    const response = await api.put<TecnicoResumen>(`/admin/tecnicos/${id}`, data);
     return response.data;
   },
 
@@ -70,6 +89,22 @@ export const adminApi = {
 
   toggleMaterial: async (id: number): Promise<MaterialCatalogo> => {
     const response = await api.patch<MaterialCatalogo>(`/admin/catalogo/materiales/${id}/toggle`);
+    return response.data;
+  },
+
+  // Especialidades
+  getEspecialidades: async (): Promise<Especialidad[]> => {
+    const response = await api.get<Especialidad[]>('/especialidades');
+    return response.data;
+  },
+
+  crearEspecialidad: async (nombre: string): Promise<Especialidad> => {
+    const response = await api.post<Especialidad>('/admin/especialidades', { nombre });
+    return response.data;
+  },
+
+  actualizarEspecialidad: async (id: number, nombre: string): Promise<Especialidad> => {
+    const response = await api.put<Especialidad>(`/admin/especialidades/${id}`, { nombre });
     return response.data;
   },
 };

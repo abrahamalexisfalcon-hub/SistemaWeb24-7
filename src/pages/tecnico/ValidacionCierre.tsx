@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useOrdenes } from '../../context/OrdenesContext';
 import { tecnicoApi } from '../../api';
 import { TecnicoLayout, OrderStepper, SignaturePad, type SignaturePadRef } from '../../components/tecnico';
@@ -10,6 +11,7 @@ export const ValidacionCierre: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const { actualizarOrdenLocal, invalidarCache } = useOrdenes();
 
   const stateData = location.state as {
@@ -143,10 +145,12 @@ export const ValidacionCierre: React.FC = () => {
 
       // 3. Registrar orden en caché local de finalizadas para reactividad inmediata
       try {
-        const finalizadasRaw = localStorage.getItem('ordenes_finalizadas_ids') || '[]';
+        const cacheKey = user?.usuarioId ? `ordenes_finalizadas_ids_${user.usuarioId}` : 'ordenes_finalizadas_ids';
+        const finalizadasRaw = localStorage.getItem(cacheKey) || '[]';
         const finalizadasIds: number[] = JSON.parse(finalizadasRaw);
         if (!finalizadasIds.includes(ordenId)) {
           finalizadasIds.push(ordenId);
+          localStorage.setItem(cacheKey, JSON.stringify(finalizadasIds));
           localStorage.setItem('ordenes_finalizadas_ids', JSON.stringify(finalizadasIds));
         }
       } catch (cacheErr) {
@@ -155,6 +159,7 @@ export const ValidacionCierre: React.FC = () => {
 
       // 4. Navegar a la pantalla de éxito con estado FINALIZADA garantizado
       const tecnicoNombre = (() => {
+        if (user?.nombreCompleto) return user.nombreCompleto;
         try {
           const raw = localStorage.getItem('auth_user') || localStorage.getItem('user');
           if (raw) return JSON.parse(raw).nombreCompleto || 'Técnico';
@@ -164,6 +169,10 @@ export const ValidacionCierre: React.FC = () => {
 
       const tecnicoFirmaUrl = (() => {
         try {
+          const userKey = user?.usuarioId ? `tecnico_${user.usuarioId}_firma_url` : null;
+          const userFirma = userKey ? localStorage.getItem(userKey) : null;
+          if (userFirma) return userFirma;
+
           const storedFirma = localStorage.getItem('tecnico_firma_url');
           if (storedFirma) return storedFirma;
           const raw = localStorage.getItem('auth_user') || localStorage.getItem('user');

@@ -32,8 +32,14 @@ export const Perfil: React.FC = () => {
   const [errorFirma, setErrorFirma] = useState<string | null>(null);
   const [exitoFirma, setExitoFirma] = useState<string | null>(null);
 
-  // Cargar datos del perfil operativo al montar
+  // Cargar datos del perfil operativo al montar o al cambiar de usuario
   useEffect(() => {
+    if (!user) return;
+    setCargando(true);
+    setEditandoFirma(false);
+    setErrorFirma(null);
+    setExitoFirma(null);
+
     tecnicoApi
       .getPerfil()
       .then((data) => {
@@ -41,8 +47,14 @@ export const Perfil: React.FC = () => {
         if (data.disponible !== undefined) {
           setDisponible(data.disponible);
         }
-        if (data.firmaUrl) {
-          localStorage.setItem('tecnico_firma_url', data.firmaUrl);
+        const firma = data.firmaDigitalUrl || data.firmaUrl;
+        if (firma) {
+          localStorage.setItem(`tecnico_${user.usuarioId}_firma_url`, firma);
+          localStorage.setItem('tecnico_firma_url', firma);
+        } else {
+          // El nuevo técnico no tiene firma: purgar residuos locales
+          localStorage.removeItem(`tecnico_${user.usuarioId}_firma_url`);
+          localStorage.removeItem('tecnico_firma_url');
         }
       })
       .catch((err) => {
@@ -51,7 +63,7 @@ export const Perfil: React.FC = () => {
       .finally(() => {
         setCargando(false);
       });
-  }, []);
+  }, [user]);
 
   // Manejar cambio en el Switch de Disponibilidad
   const handleToggleDisponibilidad = async () => {
@@ -86,8 +98,11 @@ export const Perfil: React.FC = () => {
 
     try {
       const data = await tecnicoApi.actualizarFirma(dataUrl);
-      const nuevaUrl = data.firmaUrl || dataUrl;
-      setPerfil((prev) => (prev ? { ...prev, firmaUrl: nuevaUrl } : null));
+      const nuevaUrl = data.firmaDigitalUrl || data.firmaUrl || dataUrl;
+      setPerfil((prev) => (prev ? { ...prev, firmaUrl: nuevaUrl, firmaDigitalUrl: nuevaUrl } : null));
+      if (user?.usuarioId) {
+        localStorage.setItem(`tecnico_${user.usuarioId}_firma_url`, nuevaUrl);
+      }
       localStorage.setItem('tecnico_firma_url', nuevaUrl);
 
       // Actualizar sesión almacenada en localStorage
@@ -112,7 +127,10 @@ export const Perfil: React.FC = () => {
     }
   };
 
-  const firmaActual = perfil?.firmaUrl || localStorage.getItem('tecnico_firma_url');
+  const firmaActual =
+    perfil?.firmaDigitalUrl ||
+    perfil?.firmaUrl ||
+    (user?.usuarioId ? localStorage.getItem(`tecnico_${user.usuarioId}_firma_url`) : null);
   const tieneFirma = Boolean(firmaActual);
 
   return (

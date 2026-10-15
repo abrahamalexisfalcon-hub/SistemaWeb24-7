@@ -53,6 +53,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         rol: data.rol,
       };
 
+      // Si cambia de usuario o inicia sesión fresca, limpiar datos residuales
+      const previousUserRaw = localStorage.getItem(USER_KEY);
+      if (previousUserRaw) {
+        try {
+          const prevUser = JSON.parse(previousUserRaw);
+          if (prevUser.usuarioId !== data.usuarioId) {
+            localStorage.removeItem('tecnico_firma_url');
+            localStorage.removeItem('ordenes_finalizadas_ids');
+          }
+        } catch {}
+      }
+
       setToken(data.token);
       setUser(authenticatedUser);
 
@@ -66,10 +78,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    setToken(null);
-    setUser(null);
+    if (user?.usuarioId) {
+      localStorage.removeItem(`tecnico_${user.usuarioId}_firma_url`);
+      localStorage.removeItem(`ordenes_finalizadas_ids_${user.usuarioId}`);
+    }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem('tecnico_firma_url');
+    localStorage.removeItem('ordenes_finalizadas_ids');
+    setToken(null);
+    setUser(null);
   };
 
   const isAuthenticated = !!token && !!user;

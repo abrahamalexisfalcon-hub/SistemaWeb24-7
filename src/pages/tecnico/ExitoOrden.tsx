@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { tecnicoApi } from '../../api';
+import { useEspecialidades } from '../../hooks';
 import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import type { OrdenResumenTecnico, MaterialConsumido } from '../../types';
 import { ChevronLeft, Check, Star, FileText, Download } from 'lucide-react';
@@ -26,10 +27,6 @@ interface ExitoState {
 }
 
 /* ─────────────── Helpers ─────────────── */
-const ESPECIALIDADES = [
-  'Gasfitería', 'Electricidad', 'Cerrajería', 'Auxilio Vial',
-  'Perforaciones', 'Pintura', 'Armado de Muebles',
-];
 
 function calificacionLabel(value: number): 'Excelente' | 'Regular' | 'Malo' {
   if (value >= 4) return 'Excelente';
@@ -95,6 +92,16 @@ export const ExitoOrden: React.FC = () => {
   const [modalPdfOpen, setModalPdfOpen] = useState(false);
   const [ordenDetalle, setOrdenDetalle] = useState<OrdenResumenTecnico | null>(null);
 
+  const { especialidades: espObjs } = useEspecialidades();
+  const tipoServicioActivo = ordenDetalle?.tipoServicio || ordenFromState?.tipoServicio;
+  const listaEspecialidades = useMemo(() => {
+    const nombres = espObjs.map((e) => e.nombre);
+    if (tipoServicioActivo && !nombres.some((n) => n.toLowerCase() === tipoServicioActivo.toLowerCase())) {
+      return [...nombres, tipoServicioActivo];
+    }
+    return nombres;
+  }, [espObjs, tipoServicioActivo]);
+
   const ordenId = Number(id) || ordenFromState?.id || 1;
 
   // Consulta el detalle de la orden si faltan datos de la hoja de servicio o firmas
@@ -147,14 +154,20 @@ export const ExitoOrden: React.FC = () => {
     orden?.tecnicoFirmaUrl ||
     (orden as any)?.tecnico?.firmaUrl ||
     (orden as any)?.tecnicoFirma ||
-    localStorage.getItem('tecnico_firma_url') ||
     (() => {
       try {
         const u = localStorage.getItem('user');
-        if (u) return JSON.parse(u).firmaUrl;
+        if (u) {
+          const parsed = JSON.parse(u);
+          const userKey = `tecnico_${parsed.usuarioId}_firma_url`;
+          const firma = localStorage.getItem(userKey);
+          if (firma) return firma;
+          if (parsed.firmaUrl) return parsed.firmaUrl;
+        }
       } catch {}
       return null;
     })() ||
+    localStorage.getItem('tecnico_firma_url') ||
     '';
 
 
@@ -355,7 +368,7 @@ export const ExitoOrden: React.FC = () => {
                   DATOS DEL SERVICIO:
                 </h3>
                 <div className="flex flex-wrap items-center gap-y-1 text-gray-900 py-0.5">
-                  {ESPECIALIDADES.map((esp) => (
+                  {listaEspecialidades.map((esp) => (
                     <CheckBox key={esp} label={esp} checked={especialidadMatch(esp)} />
                   ))}
                 </div>
