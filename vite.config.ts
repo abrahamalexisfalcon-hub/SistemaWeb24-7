@@ -8,10 +8,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'pwa-192x192.svg', 'pwa-512x512.svg', 'favicon-dark.png', 'favicon-light.png'],
+      includeAssets: ['favicon-dark.png', 'favicon-light.png', 'logo-192.png', 'logo-512.png'],
       manifest: {
-        name: '24/7 Asistencias',
-        short_name: 'Asistencias 24/7',
+        name: '24/7 Asistencias Generales',
+        short_name: '24/7 Asistencias',
         description: 'Plataforma para gestión de asistencias técnicas domiciliarias 24/7',
         theme_color: '#1e40af',
         background_color: '#ffffff',
@@ -21,22 +21,16 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/pwa-192x192.svg',
+            src: '/logo-192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
-            purpose: 'any'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
-            src: '/pwa-512x512.svg',
+            src: '/logo-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any'
-          },
-          {
-            src: '/pwa-512x512.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'maskable'
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       },
