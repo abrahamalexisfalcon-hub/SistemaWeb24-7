@@ -174,6 +174,7 @@ export interface OrdenDetalleAdmin {
     id?: number;
     nombre?: string;
     direccion?: string;
+    referencia?: string;
     distrito?: string;
     telefono?: string;
   };

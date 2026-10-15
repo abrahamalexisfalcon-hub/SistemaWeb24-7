@@ -47,6 +47,7 @@ export const OrdenesList: React.FC = () => {
         (orden.nombreAfiliado || '').toLowerCase().includes(termino) ||
         (orden.tipoServicio || '').toLowerCase().includes(termino) ||
         (orden.distrito || '').toLowerCase().includes(termino) ||
+        (orden.referencia || '').toLowerCase().includes(termino) ||
         (orden.direccion || '').toLowerCase().includes(termino);
 
       if (!coincideTexto) return false;
@@ -208,13 +209,20 @@ export const OrdenesList: React.FC = () => {
                     {orden.tipoServicio}
                   </h3>
 
-                  {/* Dirección y Distrito */}
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
-                    <div className="flex items-center gap-1.5 truncate pr-2">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span className="truncate">
-                        {orden.direccion} - {orden.distrito}
-                      </span>
+                  {/* Dirección, Distrito y Referencia */}
+                  <div className="flex items-start justify-between text-xs text-slate-500 pt-0.5">
+                    <div className="flex items-start gap-1.5 min-w-0 pr-2">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-slate-700">
+                          {orden.direccion} - {orden.distrito}
+                        </p>
+                        {orden.referencia && (
+                          <p className="text-[11px] text-slate-400 truncate mt-0.5" title={orden.referencia}>
+                            Ref: {orden.referencia}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <button
                       type="button"

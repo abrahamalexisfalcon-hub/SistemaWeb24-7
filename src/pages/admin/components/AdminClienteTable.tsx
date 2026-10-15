@@ -83,14 +83,18 @@ export const AdminClienteTable: React.FC<AdminClienteTableProps> = ({
                     <td className="py-3.5 px-4 text-slate-600">
                       <div className="flex items-start gap-1.5 max-w-[240px]">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                        <div className="flex flex-col">
+                        <div className="flex flex-col min-w-0">
                           <span className="font-medium text-slate-800 truncate" title={afiliado.direccion}>
                             {afiliado.direccion || 'Sin dirección'}
                           </span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-slate-500 font-medium">
                             {afiliado.distrito || 'Lima'}
-                            {afiliado.referencia ? ` • Ref: ${afiliado.referencia}` : ''}
                           </span>
+                          {afiliado.referencia && (
+                            <span className="text-xs text-slate-400 block truncate" title={afiliado.referencia}>
+                              Ref: {afiliado.referencia}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>

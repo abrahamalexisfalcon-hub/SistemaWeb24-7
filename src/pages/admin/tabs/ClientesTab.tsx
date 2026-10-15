@@ -33,6 +33,7 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
         (a.dni || '').toLowerCase().includes(q) ||
         (a.telefono || '').toLowerCase().includes(q) ||
         (a.direccion || '').toLowerCase().includes(q) ||
+        (a.referencia || '').toLowerCase().includes(q) ||
         (a.distrito || '').toLowerCase().includes(q)
     );
   }, [afiliados, busqueda]);
@@ -193,6 +194,11 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
                         {a.distrito ? ` - ${a.distrito}` : ''}
                       </span>
                     </p>
+                    {a.referencia && (
+                      <span className="text-xs text-slate-400 block truncate pl-5.5">
+                        Ref: {a.referencia}
+                      </span>
+                    )}
                     <p className="text-slate-500 flex items-center gap-2">
                       <Phone className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                       <span>{a.telefono || 'Sin teléfono'}</span>

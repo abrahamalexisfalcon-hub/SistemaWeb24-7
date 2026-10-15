@@ -54,14 +54,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       {/* 1. Header con Logotipo */}
       <div>
         <div className="p-6 border-b border-slate-800/80">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center gap-3">
             <img
               src={logoBlanco}
               alt="24/7 Asistencias"
-              className="h-9 w-auto object-contain"
+              className="h-24 w-auto object-contain"
             />
           </div>
-          <div className="mt-2.5 flex items-center gap-2">
+          <div className="mt-2.5 flex items-center justify-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
               Panel Administrador

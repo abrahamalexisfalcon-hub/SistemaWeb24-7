@@ -22,10 +22,13 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
   submitting,
   error,
 }) => {
-  const [nombreCompleto, setNombreCompleto] = useState('');
-  const [dni, setDni] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [direccion, setDireccion] = useState('');
+  const [formData, setFormData] = useState({
+    nombreCompleto: '',
+    dni: '',
+    telefono: '',
+    direccion: '',
+    referencia: '',
+  });
 
   // 3 Selectores encadenados de Ubigeo
   const [departamento, setDepartamento] = useState('Lima');
@@ -50,10 +53,13 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (afiliadoAEditar) {
-        setNombreCompleto(afiliadoAEditar.nombreCompleto || afiliadoAEditar.nombre || '');
-        setDni(afiliadoAEditar.dni || '');
-        setTelefono(afiliadoAEditar.telefono || '');
-        setDireccion(afiliadoAEditar.direccion || '');
+        setFormData({
+          nombreCompleto: afiliadoAEditar.nombreCompleto || afiliadoAEditar.nombre || '',
+          dni: afiliadoAEditar.dni || '',
+          telefono: afiliadoAEditar.telefono || '',
+          direccion: afiliadoAEditar.direccion || '',
+          referencia: afiliadoAEditar.referencia || '',
+        });
 
         // Mapeo automático de ubicación a partir de afiliadoAEditar.distrito
         const ubicacion = buscarUbicacionPorDistrito(afiliadoAEditar.distrito);
@@ -61,10 +67,13 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
         setProvincia(ubicacion.provincia);
         setDistrito(ubicacion.distrito);
       } else {
-        setNombreCompleto('');
-        setDni('');
-        setTelefono('');
-        setDireccion('');
+        setFormData({
+          nombreCompleto: '',
+          dni: '',
+          telefono: '',
+          direccion: '',
+          referencia: '',
+        });
         setDepartamento('Lima');
         setProvincia('Lima');
         setDistrito('Villa El Salvador');
@@ -73,6 +82,11 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
   }, [isOpen, afiliadoAEditar]);
 
   if (!isOpen) return null;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   // Cambiar departamento y encadenar provincia y distrito
   const handleDepartamentoChange = (nuevoDep: string) => {
@@ -105,19 +119,20 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
 
     if (esEdicion && afiliadoAEditar && onEditar) {
       await onEditar(afiliadoAEditar.id, {
-        nombreCompleto: nombreCompleto.trim(),
-        dni: dni.trim(),
-        telefono: telefono.trim(),
-        direccion: direccion.trim(),
+        nombreCompleto: formData.nombreCompleto.trim(),
+        dni: formData.dni.trim(),
+        telefono: formData.telefono.trim(),
+        direccion: formData.direccion.trim(),
+        referencia: formData.referencia.trim(),
         distrito: distritoFinal,
       });
     } else {
       await onSubmit({
-        nombreCompleto: nombreCompleto.trim(),
-        dni: dni.trim(),
-        telefono: telefono.trim(),
-        direccion: direccion.trim(),
-        referencia: '',
+        nombreCompleto: formData.nombreCompleto.trim(),
+        dni: formData.dni.trim(),
+        telefono: formData.telefono.trim(),
+        direccion: formData.direccion.trim(),
+        referencia: formData.referencia.trim(),
         distrito: distritoFinal,
       });
     }
@@ -157,9 +172,10 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
             </label>
             <input
               type="text"
+              name="nombreCompleto"
               required
-              value={nombreCompleto}
-              onChange={(e) => setNombreCompleto(e.target.value)}
+              value={formData.nombreCompleto}
+              onChange={handleChange}
               placeholder="Ej. Juan Pérez Ramos"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
             />
@@ -172,9 +188,10 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
               </label>
               <input
                 type="text"
+                name="dni"
                 required
-                value={dni}
-                onChange={(e) => setDni(e.target.value)}
+                value={formData.dni}
+                onChange={handleChange}
                 placeholder="70920543"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
               />
@@ -185,9 +202,10 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
               </label>
               <input
                 type="tel"
+                name="telefono"
                 required
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
+                value={formData.telefono}
+                onChange={handleChange}
                 placeholder="987556321"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
               />
@@ -200,9 +218,10 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
             </label>
             <input
               type="text"
+              name="direccion"
               required
-              value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
+              value={formData.direccion}
+              onChange={handleChange}
               placeholder="Av. Central 120"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
             />
@@ -260,6 +279,21 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Campo Referencia Opcional */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+              REFERENCIA <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+            </label>
+            <input
+              type="text"
+              name="referencia"
+              value={formData.referencia || ''}
+              onChange={handleChange}
+              placeholder="Ej. Frente al parque, portón blanco, timbre 2"
+              className="w-full text-sm rounded-xl border border-slate-200 px-4 py-2.5 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-400"
+            />
           </div>
 
           <button

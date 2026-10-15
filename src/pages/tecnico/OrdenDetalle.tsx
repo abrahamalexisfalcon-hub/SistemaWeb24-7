@@ -162,9 +162,11 @@ export const OrdenDetalle: React.FC = () => {
                 <p className="font-bold text-slate-800 text-sm">
                   {orden?.direccion} – {orden?.distrito}
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Ref: {orden?.referencia || 'Altura del Parque El Huerto'}
-                </p>
+                {orden?.referencia && (
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Ref: {orden.referencia}
+                  </p>
+                )}
               </div>
             </div>
           </div>

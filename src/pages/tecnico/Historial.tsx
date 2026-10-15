@@ -151,9 +151,18 @@ export const Historial: React.FC = () => {
                     </span>
                   </div>
                   <h3 className="font-bold text-slate-900 text-sm">{orden.tipoServicio}</h3>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{orden.direccion} - {orden.distrito}</span>
+                  <div className="flex items-start gap-1.5 text-xs text-slate-500">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-slate-700">
+                        {orden.direccion} - {orden.distrito}
+                      </p>
+                      {orden.referencia && (
+                        <p className="text-[11px] text-slate-400 truncate mt-0.5" title={orden.referencia}>
+                          Ref: {orden.referencia}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
                     <div className="flex items-center gap-1">
