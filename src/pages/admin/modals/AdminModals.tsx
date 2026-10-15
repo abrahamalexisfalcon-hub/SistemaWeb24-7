@@ -87,8 +87,13 @@ export const AdminModals: React.FC<AdminModalsProps> = ({ d, user, onLogout }) =
 
       <AfiliadoFormModal
         isOpen={d.modalNuevoAfiliado}
-        onClose={() => d.setModalNuevoAfiliado(false)}
+        onClose={() => {
+          d.setModalNuevoAfiliado(false);
+          d.setAfiliadoAEditar(null);
+        }}
         onSubmit={d.handleCrearAfiliado}
+        onEditar={d.handleGuardarEditarAfiliado}
+        afiliadoAEditar={d.afiliadoAEditar}
         submitting={d.submitting}
         error={d.formError}
       />

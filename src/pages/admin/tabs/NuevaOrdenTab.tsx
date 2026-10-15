@@ -34,13 +34,15 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
   onAbrirEspecialidades,
 }) => {
   return (
-    <div className="p-5 space-y-4">
-      <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-        Registrar Nueva Orden
-      </h1>
-      <p className="text-xs text-slate-500">
-        Crea y asigna una asistencia técnica de emergencia
-      </p>
+    <div className="p-5 space-y-4 lg:p-0 lg:space-y-6">
+      <div className="pb-1">
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight lg:text-3xl">
+          Registrar Nueva Orden
+        </h1>
+        <p className="text-xs text-slate-500 mt-1">
+          Crea y asigna una asistencia técnica de emergencia
+        </p>
+      </div>
 
       {formError && (
         <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-2xl flex items-center gap-2">
@@ -56,7 +58,10 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="bg-white rounded-3xl p-5 shadow-xs space-y-4 border border-slate-100">
+      {/* Grid de 2 columnas en Desktop (Formulario a la izquierda, Accesos Rápidos a la derecha) */}
+      <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
+        <div className="lg:col-span-2">
+          <form onSubmit={onSubmit} className="bg-white rounded-3xl p-5 shadow-xs space-y-4 border border-slate-100 lg:p-7">
         <div>
           <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
             Especialidad / Servicio
@@ -74,10 +79,10 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
           >
             {cargandoEspecialidades ? (
               <option value="" disabled>Cargando especialidades...</option>
-            ) : especialidades.length === 0 ? (
+            ) : (especialidades || []).length === 0 ? (
               <option value="" disabled>No hay especialidades registradas</option>
             ) : (
-              especialidades.map((esp) => (
+              (especialidades || []).map((esp) => (
                 <option key={esp} value={esp}>
                   {esp}
                 </option>
@@ -108,9 +113,9 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
             className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
           >
             <option value={0} disabled>Selecciona un afiliado...</option>
-            {afiliados.map((a) => (
+            {(afiliados || []).map((a) => (
               <option key={a.id} value={a.id}>
-                {a.nombreCompleto} (DNI: {a.dni}) - {a.distrito}
+                {a.nombreCompleto || a.nombre} (DNI: {a.dni}) - {a.distrito}
               </option>
             ))}
           </select>
@@ -126,8 +131,8 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
             className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
           >
             <option value={0} disabled>Selecciona un técnico...</option>
-            {tecnicos
-              .filter((t) => t.activo !== false)
+            {(tecnicos || [])
+              .filter((t) => t && t.activo !== false)
               .map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.nombreCompleto} ({t.especialidad || 'General'}) - {t.disponible ? 'Disponible' : 'En atención'}
@@ -148,46 +153,48 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
           )}
         </button>
       </form>
+        </div>
 
-      {/* Accesos Rápidos: Gestión del Servicio */}
-      <div className="mt-5">
-        <p className="text-xs font-bold tracking-wider text-slate-400 uppercase mb-2 px-1">
-          Gestión del Servicio
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          {/* Card 1: Catálogo de Materiales */}
-          <div
-            onClick={onAbrirMateriales}
-            className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-sm hover:shadow-md hover:border-sky-200 transition-all cursor-pointer flex flex-col justify-between text-left group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
-              <Package className="w-5 h-5 stroke-[2.2]" />
+        {/* Columna Derecha: Accesos Rápidos (Gestión del Servicio) */}
+        <div className="mt-5 lg:mt-0 lg:col-span-1">
+          <p className="text-xs font-bold tracking-wider text-slate-400 uppercase mb-2 px-1">
+            Gestión del Servicio
+          </p>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">
+            {/* Card 1: Catálogo de Materiales */}
+            <div
+              onClick={onAbrirMateriales}
+              className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs hover:shadow-md hover:border-sky-200 transition-all cursor-pointer flex flex-col justify-between text-left group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                <Package className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 group-hover:text-sky-600 transition-colors">
+                  Materiales
+                </h4>
+                <p className="text-xs text-slate-400 leading-snug mt-0.5">
+                  Repuestos por especialidad
+                </p>
+              </div>
             </div>
-            <div>
-              <h4 className="text-sm font-bold text-slate-800 group-hover:text-sky-600 transition-colors">
-                Materiales
-              </h4>
-              <p className="text-[11px] text-slate-400 leading-tight">
-                Repuestos por especialidad
-              </p>
-            </div>
-          </div>
 
-          {/* Card 2: Especialidades / Rubros */}
-          <div
-            onClick={onAbrirEspecialidades}
-            className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer flex flex-col justify-between text-left group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
-              <Layers className="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
-                Especialidades
-              </h4>
-              <p className="text-[11px] text-slate-400 leading-tight">
-                Rubros y servicios activos
-              </p>
+            {/* Card 2: Especialidades / Rubros */}
+            <div
+              onClick={onAbrirEspecialidades}
+              className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer flex flex-col justify-between text-left group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                <Layers className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                  Especialidades
+                </h4>
+                <p className="text-xs text-slate-400 leading-snug mt-0.5">
+                  Rubros y servicios activos
+                </p>
+              </div>
             </div>
           </div>
         </div>

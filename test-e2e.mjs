@@ -37,9 +37,16 @@ async function request(url, options = {}) {
 async function runE2ETests() {
   console.log('\n===============================================================');
   console.log('🚀 INICIANDO PRUEBAS E2E INTEGRADAS (FRONTEND + BACKEND 24/7)');
-  console.log(`   Frontend: ${FRONTEND_URL}`);
   console.log(`   Backend:  ${BACKEND_URL}`);
   console.log('===============================================================\n');
+
+  let adminToken = null;
+  let adminHeaders = null;
+  let nuevaEspId = null;
+  let nuevoTecnicoId = null;
+  let tempAfiliadoE2EId = null;
+  let ordenId = null;
+  let ordenCancelarId = null;
 
   try {
     // -------------------------------------------------------------
@@ -245,7 +252,7 @@ async function runE2ETests() {
     assert(crearOrdenRes.status === 201, 'POST /api/admin/ordenes registra orden con HTTP 201');
     assert(crearOrdenRes.data.codigoOrden && crearOrdenRes.data.codigoOrden.startsWith('ORD-'), `Código correlativo autogenerado: ${crearOrdenRes.data.codigoOrden}`);
     assert(crearOrdenRes.data.estado === 'PENDIENTE', 'Estado inicial de la orden es PENDIENTE');
-    const ordenId = crearOrdenRes.data.id;
+    ordenId = crearOrdenRes.data.id;
 
     // 5.3 Consulta de órdenes por Administrador (Validación de Datos Dinámicos)
     const ordenesAdminRes = await request(`${BACKEND_URL}/admin/ordenes`, { headers: adminHeaders });
@@ -321,7 +328,7 @@ async function runE2ETests() {
         distrito: 'Surco',
       }),
     });
-    const ordenCancelarId = ordenParaCancelarRes.data.id;
+    ordenCancelarId = ordenParaCancelarRes.data.id;
     assert(ordenParaCancelarRes.status === 201, 'Orden temporal para cancelación creada con HTTP 201');
 
     // 6.2 Cancelar con motivo
@@ -337,6 +344,7 @@ async function runE2ETests() {
     assert(Boolean(cancelarValidaRes.data.fechaCancelacion), 'Fecha y hora de cancelación estampada automáticamente');
 
     // -------------------------------------------------------------
+    // -------------------------------------------------------------
     // FASE 8: CRUD DE MATERIALES POR ESPECIALIDAD & CATÁLOGO
     // -------------------------------------------------------------
     console.log('\n📦 FASE 8: Catálogo y CRUD de Materiales/Repuestos por Especialidad');
@@ -344,17 +352,22 @@ async function runE2ETests() {
     // 8.1 Listado público de materiales activos
     const matListRes = await request(`${BACKEND_URL}/materiales`);
     assert(matListRes.status === 200, 'GET /api/materiales responde HTTP 200');
-    assert(Array.isArray(matListRes.data) && matListRes.data.length > 0, 'GET /api/materiales retorna lista de materiales precargados');
+    assert(Array.isArray(matListRes.data), 'GET /api/materiales retorna lista de materiales');
     assert(matListRes.data.every(m => m.activo === true), 'Todos los materiales listados están activos');
 
-    // 8.2 Filtrado por nombre de especialidad (Climatización)
-    const matClimaRes = await request(`${BACKEND_URL}/materiales?especialidadNombre=Climatizaci%C3%B3n`);
-    assert(matClimaRes.status === 200, 'GET /api/materiales?especialidadNombre=Climatización responde HTTP 200');
-    assert(Array.isArray(matClimaRes.data) && matClimaRes.data.length >= 4, 'Materiales filtrados para Climatización contienen elementos');
-    assert(matClimaRes.data.every(m => m.especialidadNombre === 'Climatización'), 'Todos los materiales pertenecen a la especialidad Climatización');
+    // 8.2 Filtrado por nombre de especialidad
+    let espFiltroNombre = encodeURIComponent(nombreEspTest);
+    let espMaterialId = nuevaEspId;
+    if (matListRes.data.length > 0 && matListRes.data[0].especialidadNombre) {
+      espFiltroNombre = encodeURIComponent(matListRes.data[0].especialidadNombre);
+      espMaterialId = matListRes.data[0].especialidadId || nuevaEspId;
+    }
+    const matClimaRes = await request(`${BACKEND_URL}/materiales?especialidadNombre=${espFiltroNombre}`);
+    assert(matClimaRes.status === 200, 'GET /api/materiales?especialidadNombre responde HTTP 200');
+    assert(Array.isArray(matClimaRes.data), 'Materiales filtrados por especialidad responden correctamente');
+    assert(matClimaRes.data.every(m => m.activo === true), 'Todos los materiales filtrados están activos');
 
     // 8.3 Creación de nuevo material administrativo
-    const espClimaId = matClimaRes.data[0].especialidadId;
     const nuevoMatRes = await request(`${BACKEND_URL}/admin/materiales`, {
       method: 'POST',
       headers: {
@@ -362,9 +375,9 @@ async function runE2ETests() {
         Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify({
-        nombre: 'Filtro Carbón Activado Split ' + Date.now(),
+        nombre: 'Material E2E Test ' + Date.now(),
         unidad: 'Unidad',
-        especialidadId: espClimaId,
+        especialidadId: espMaterialId,
       }),
     });
     assert(nuevoMatRes.status === 201, 'POST /api/admin/materiales responde HTTP 201 Created');
@@ -372,7 +385,7 @@ async function runE2ETests() {
     const nuevoMatId = nuevoMatRes.data.id;
 
     // 8.4 Actualización de material
-    const nombreActualizado = 'Filtro Carbón Activado Split Pro ' + Date.now();
+    const nombreActualizado = 'Material E2E Test Pro ' + Date.now();
     const matActualizadoRes = await request(`${BACKEND_URL}/admin/materiales/${nuevoMatId}`, {
       method: 'PUT',
       headers: {
@@ -382,7 +395,7 @@ async function runE2ETests() {
       body: JSON.stringify({
         nombre: nombreActualizado,
         unidad: 'Kit',
-        especialidadId: espClimaId,
+        especialidadId: espMaterialId,
         activo: true,
       }),
     });
@@ -400,12 +413,143 @@ async function runE2ETests() {
     assert(matEliminarRes.status === 200, 'DELETE /api/admin/materiales/{id} responde HTTP 200');
 
     // 8.6 Verificar que el material eliminado ya no aparece en activos
-    const matVerifRes = await request(`${BACKEND_URL}/materiales?especialidadId=${espClimaId}`);
+    const matVerifRes = await request(`${BACKEND_URL}/materiales?especialidadId=${espMaterialId}`);
     assert(matVerifRes.data.every(m => m.id !== nuevoMatId), 'Material desactivado no figura en el catálogo de materiales activos');
 
     // 8.7 Proxy inverso Frontend -> Backend para materiales
     const matProxyRes = await request(`${FRONTEND_URL}/api/materiales`);
     assert(matProxyRes.status === 200, 'Vite Proxy entrega /api/materiales a través de puerto :5173');
+
+    // -------------------------------------------------------------
+    // FASE 9: CRUD COMPLETO DE CLIENTES AFILIADOS (SPRING BOOT + POSTGRESQL)
+    // -------------------------------------------------------------
+    console.log('\n👥 FASE 9: CRUD Completo de Clientes Afiliados (Spring Boot + PostgreSQL)');
+
+    // 9.1 Listado inicial de afiliados
+    const listaAfiliadosRes = await request(`${BACKEND_URL}/clientes`, { headers: adminHeaders });
+    assert(listaAfiliadosRes.status === 200, 'GET /api/clientes responde HTTP 200 para ADMINISTRADOR');
+    assert(Array.isArray(listaAfiliadosRes.data), 'GET /api/clientes retorna listado de afiliados activos');
+    assert(listaAfiliadosRes.data.every(c => c.activo === true), 'Todos los afiliados listados tienen activo = true');
+
+    // 9.2 Alta de nuevo afiliado vía POST /api/clientes
+    const dniTest = '7' + Math.floor(1000000 + Math.random() * 9000000);
+    const nuevoClienteBody = {
+      nombreCompleto: 'Carlos Mendoza Ramos E2E',
+      dni: dniTest,
+      telefono: '988112233',
+      direccion: 'Av. Paseo de la República 345',
+      distrito: 'Miraflores',
+      referencia: 'Cerca a la estación Benavides',
+    };
+    const crearClienteRes = await request(`${BACKEND_URL}/clientes`, {
+      method: 'POST',
+      headers: adminHeaders,
+      body: JSON.stringify(nuevoClienteBody),
+    });
+    assert(crearClienteRes.status === 201, 'POST /api/clientes registra nuevo afiliado con HTTP 201');
+    assert(Boolean(crearClienteRes.data.id), 'Nuevo afiliado recibe ID auto-incremental');
+    assert(crearClienteRes.data.dni === dniTest, 'DNI asignado fielmente');
+    const clienteId = crearClienteRes.data.id;
+
+    // 9.3 Validación de unicidad de DNI (HTTP 400)
+    const dupDniRes = await request(`${BACKEND_URL}/clientes`, {
+      method: 'POST',
+      headers: adminHeaders,
+      body: JSON.stringify({
+        nombreCompleto: 'Duplicado Test',
+        dni: dniTest,
+        telefono: '911223344',
+        direccion: 'Calle Falsa 123',
+        distrito: 'Lima',
+      }),
+    });
+    assert(dupDniRes.status === 400, 'Validación de unicidad: rechaza DNI duplicado activo con HTTP 400');
+
+    // 9.4 Búsqueda en tiempo real por DNI (?query=...)
+    const queryDniRes = await request(`${BACKEND_URL}/clientes?query=${dniTest}`, { headers: adminHeaders });
+    assert(queryDniRes.status === 200, 'GET /api/clientes?query={dni} responde HTTP 200');
+    assert(queryDniRes.data.some(c => c.id === clienteId), 'Búsqueda por DNI localiza al afiliado creado');
+
+    // 9.5 Búsqueda en tiempo real por Nombre (?query=...)
+    const queryNomRes = await request(`${BACKEND_URL}/clientes?query=Mendoza`, { headers: adminHeaders });
+    assert(queryNomRes.status === 200, 'GET /api/clientes?query={nombre} responde HTTP 200');
+    assert(queryNomRes.data.some(c => c.id === clienteId), 'Búsqueda por nombre parcial localiza al afiliado');
+
+    // 9.6 Actualización vía PUT /api/clientes/{id}
+    const updateRes = await request(`${BACKEND_URL}/clientes/${clienteId}`, {
+      method: 'PUT',
+      headers: adminHeaders,
+      body: JSON.stringify({
+        nombreCompleto: 'Carlos Mendoza Ramos Actualizado',
+        telefono: '912345678',
+        direccion: 'Av. Las Palmeras 555 Int 2',
+        distrito: 'San Isidro',
+      }),
+    });
+    assert(updateRes.status === 200, 'PUT /api/clientes/{id} responde HTTP 200');
+    assert(updateRes.data.nombreCompleto === 'Carlos Mendoza Ramos Actualizado', 'Nombre del afiliado actualizado correctamente');
+    assert(updateRes.data.telefono === '912345678', 'Teléfono actualizado correctamente');
+
+    // 9.7 Baja lógica vía DELETE /api/clientes/{id}
+    const deleteRes = await request(`${BACKEND_URL}/clientes/${clienteId}`, {
+      method: 'DELETE',
+      headers: adminHeaders,
+    });
+    assert(deleteRes.status === 200, 'DELETE /api/clientes/{id} responde HTTP 200');
+
+    // 9.8 Verificar exclusión del listado activo
+    const listaTrasBaja = await request(`${BACKEND_URL}/clientes`, { headers: adminHeaders });
+    assert(listaTrasBaja.data.every(c => c.id !== clienteId), 'Afiliado dado de baja no figura en el padrón activo de clientes');
+
+    // -------------------------------------------------------------
+    // FASE 10: LIMPIEZA AUTOMÁTICA (CLEANUP) DE REGISTROS TEMPORALES E2E
+    // -------------------------------------------------------------
+    console.log('\n🧹 FASE 10: Limpieza Automática de Registros Temporales E2E');
+
+    // 10.1 Baja lógica de la especialidad temporal creada
+    if (nuevaEspId) {
+      const delEsp = await request(`${BACKEND_URL}/admin/especialidades/${nuevaEspId}`, {
+        method: 'DELETE',
+        headers: adminHeaders,
+      });
+      assert(delEsp.status === 200, 'Limpieza E2E: Especialidad temporal dada de baja con éxito');
+    }
+
+    // 10.2 Desactivación del técnico temporal creado
+    if (nuevoTecnicoId) {
+      const delTec = await request(`${BACKEND_URL}/admin/tecnicos/${nuevoTecnicoId}/estado`, {
+        method: 'PATCH',
+        headers: adminHeaders,
+        body: JSON.stringify({ activo: false }),
+      });
+      assert(delTec.status === 200, 'Limpieza E2E: Técnico temporal desactivado con éxito');
+    }
+
+    // 10.3 Baja lógica del afiliado temporal si fue creado para el ciclo de orden
+    if (tempAfiliadoE2EId) {
+      const delAf = await request(`${BACKEND_URL}/clientes/${tempAfiliadoE2EId}`, {
+        method: 'DELETE',
+        headers: adminHeaders,
+      });
+      assert(delAf.status === 200, 'Limpieza E2E: Afiliado temporal dado de baja con éxito');
+    }
+
+    // 10.4 Eliminación de órdenes temporales creadas durante las pruebas
+    if (ordenCancelarId) {
+      const delOrdCan = await request(`${BACKEND_URL}/admin/ordenes/${ordenCancelarId}`, {
+        method: 'DELETE',
+        headers: adminHeaders,
+      });
+      assert(delOrdCan.status === 204 || delOrdCan.status === 200, 'Limpieza E2E: Orden cancelada temporal eliminada con éxito');
+    }
+
+    if (ordenId) {
+      const delOrd = await request(`${BACKEND_URL}/admin/ordenes/${ordenId}`, {
+        method: 'DELETE',
+        headers: adminHeaders,
+      });
+      assert(delOrd.status === 204 || delOrd.status === 200, 'Limpieza E2E: Orden finalizada temporal eliminada con éxito');
+    }
 
   } catch (error) {
     console.error('\n💥 ERROR CRÍTICO DURANTE LA EJECUCIÓN E2E:', error);

@@ -105,6 +105,20 @@ export const ValidacionCierre: React.FC = () => {
       const signatureDataUrl = sigPadRef.current?.getSignature() || 'data:image/png;base64,mockSignature';
       const promedioCalificacion = Math.round((califPuntualidad + califSolucion) / 2);
 
+      const tecnicoFirmaUrl = (() => {
+        try {
+          const userKey = user?.usuarioId ? `tecnico_${user.usuarioId}_firma_url` : null;
+          const userFirma = userKey ? localStorage.getItem(userKey) : null;
+          if (userFirma) return userFirma;
+
+          const storedFirma = localStorage.getItem('tecnico_firma_url');
+          if (storedFirma) return storedFirma;
+          const raw = localStorage.getItem('auth_user') || localStorage.getItem('user');
+          if (raw) return JSON.parse(raw).firmaUrl || null;
+        } catch {}
+        return orden?.tecnicoFirmaUrl || null;
+      })();
+
       const requestPayload: CierreHojaServicioRequest = {
         evaluacionAveria: formularioEfectivo?.evaluacionAveria || 'Mantenimiento preventivo completado satisfactoriamente.',
         detalleSolucion: formularioEfectivo?.detalleSolucion || 'Reemplazo y ajuste de componentes defectuosos.',
@@ -117,6 +131,8 @@ export const ValidacionCierre: React.FC = () => {
         fotoDespuesUrl: fotoFinal || 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400',
         firmaDigitalUrl: signatureDataUrl,
         firmaAfiliadoUrl: signatureDataUrl,
+        firmaTecnicoUrl: tecnicoFirmaUrl || undefined,
+        tecnicoFirmaUrl: tecnicoFirmaUrl || undefined,
         materiales: formularioEfectivo?.materiales || [],
       };
 
@@ -165,20 +181,6 @@ export const ValidacionCierre: React.FC = () => {
           if (raw) return JSON.parse(raw).nombreCompleto || 'Técnico';
         } catch { /* ignore */ }
         return orden?.tecnicoNombre || 'Técnico Asistencias 24/7';
-      })();
-
-      const tecnicoFirmaUrl = (() => {
-        try {
-          const userKey = user?.usuarioId ? `tecnico_${user.usuarioId}_firma_url` : null;
-          const userFirma = userKey ? localStorage.getItem(userKey) : null;
-          if (userFirma) return userFirma;
-
-          const storedFirma = localStorage.getItem('tecnico_firma_url');
-          if (storedFirma) return storedFirma;
-          const raw = localStorage.getItem('auth_user') || localStorage.getItem('user');
-          if (raw) return JSON.parse(raw).firmaUrl || null;
-        } catch {}
-        return orden?.tecnicoFirmaUrl || null;
       })();
 
       navigate(`/tecnico/ordenes/${ordenId}/exito`, {

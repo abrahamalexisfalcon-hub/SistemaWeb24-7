@@ -121,7 +121,7 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
           <form onSubmit={handleSubmit} className="space-y-3 text-xs">
             <div>
               <label className="block font-bold text-slate-700 uppercase mb-1">
-                Apellidos y Nombres <span className="text-red-500">*</span>
+                NOMBRES Y APELLIDOS: <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"

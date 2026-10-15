@@ -9,10 +9,10 @@ import type {
   ActualizarTecnicoRequest,
   CrearOrdenRequest,
   CrearAfiliadoRequest,
+  ActualizarAfiliadoRequest,
 } from '../../types';
 import type { AdminTab } from '../../components/admin';
 import type { FiltroOrdenes } from './tabs';
-import { MOCK_ORDENES_FIGMA } from './utils';
 
 export function useAdminDashboard() {
   // Tabs y Filtros
@@ -32,6 +32,7 @@ export function useAdminDashboard() {
   const [mostrarHojaServicio, setMostrarHojaServicio] = useState<boolean>(false);
   const [modalPerfilAdmin, setModalPerfilAdmin] = useState<boolean>(false);
   const [modalNuevoAfiliado, setModalNuevoAfiliado] = useState<boolean>(false);
+  const [afiliadoAEditar, setAfiliadoAEditar] = useState<Afiliado | null>(null);
   const [modalAnularOrden, setModalAnularOrden] = useState<boolean>(false);
   const [anulando, setAnulando] = useState<boolean>(false);
   const [errorAnulacion, setErrorAnulacion] = useState<string | null>(null);
@@ -90,30 +91,27 @@ export function useAdminDashboard() {
         adminApi.getTecnicos(),
       ]);
 
-      if (ordenesRes.status === 'fulfilled' && ordenesRes.value.length > 0) {
-        setOrdenes(ordenesRes.value);
-      } else if (ordenes.length === 0) {
-        setOrdenes(MOCK_ORDENES_FIGMA);
+      if (ordenesRes.status === 'fulfilled') {
+        setOrdenes(ordenesRes.value || []);
       }
 
       if (afiliadosRes.status === 'fulfilled') {
-        setAfiliados(afiliadosRes.value);
-        if (afiliadosRes.value.length > 0) {
+        setAfiliados(afiliadosRes.value || []);
+        if ((afiliadosRes.value || []).length > 0) {
           setNuevaOrden((prev) => ({ ...prev, afiliadoId: prev.afiliadoId || afiliadosRes.value[0].id }));
         }
       }
 
       if (tecnicosRes.status === 'fulfilled') {
-        setTecnicos(tecnicosRes.value);
-        if (tecnicosRes.value.length > 0) {
+        setTecnicos(tecnicosRes.value || []);
+        if ((tecnicosRes.value || []).length > 0) {
           setNuevaOrden((prev) => ({ ...prev, tecnicoId: prev.tecnicoId || tecnicosRes.value[0].id }));
         }
       }
 
       recargarEspecialidades();
     } catch (err) {
-      console.warn('Error cargando datos de administración, usando datos locales:', err);
-      if (ordenes.length === 0) setOrdenes(MOCK_ORDENES_FIGMA);
+      console.warn('Error cargando datos de administración:', err);
     } finally {
       setLoading(false);
       setIsFetching(false);
@@ -159,10 +157,37 @@ export function useAdminDashboard() {
       setAfiliados((prev) => [creado, ...prev]);
       setNuevaOrden((prev) => ({ ...prev, afiliadoId: creado.id }));
       setModalNuevoAfiliado(false);
+      setAfiliadoAEditar(null);
     } catch (err: any) {
       setFormError(err?.response?.data?.message || 'Error al registrar el afiliado.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGuardarEditarAfiliado = async (id: number, datos: ActualizarAfiliadoRequest) => {
+    setFormError(null);
+    setSubmitting(true);
+    try {
+      const actualizado = await adminApi.actualizarAfiliado(id, datos);
+      setAfiliados((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, ...actualizado } : a))
+      );
+      setModalNuevoAfiliado(false);
+      setAfiliadoAEditar(null);
+    } catch (err: any) {
+      setFormError(err?.response?.data?.message || 'Error al actualizar el afiliado.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEliminarAfiliado = async (id: number) => {
+    try {
+      await adminApi.eliminarAfiliado(id);
+      setAfiliados((prev) => prev.filter((a) => a.id !== id));
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Error al dar de baja al afiliado.');
     }
   };
 
@@ -302,6 +327,8 @@ export function useAdminDashboard() {
     setModalPerfilAdmin,
     modalNuevoAfiliado,
     setModalNuevoAfiliado,
+    afiliadoAEditar,
+    setAfiliadoAEditar,
     modalAnularOrden,
     setModalAnularOrden,
     anulando,
@@ -321,6 +348,8 @@ export function useAdminDashboard() {
     setModalGestionMateriales,
     handleCrearOrden,
     handleCrearAfiliado,
+    handleGuardarEditarAfiliado,
+    handleEliminarAfiliado,
     handleConfirmarAnulacion,
     handleCrearTecnico,
     handleToggleEstadoTecnico,

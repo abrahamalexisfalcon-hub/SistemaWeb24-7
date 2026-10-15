@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { AdminBottomNav } from '../../components/admin';
+import { AdminBottomNav, AdminSidebar } from '../../components/admin';
 import { useAdminDashboard } from './useAdminDashboard';
 import { OrdenesTab, TecnicosTab, NuevaOrdenTab, ClientesTab, ReportesTab } from './tabs';
 import { AdminModals } from './modals';
@@ -11,10 +11,19 @@ export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const d = useAdminDashboard();
 
-  return (
-    <div className="min-h-screen bg-[#f1f5f9] flex flex-col justify-between">
-      <div className="w-full max-w-md mx-auto min-h-screen bg-[#f1f5f9] pb-24 relative shadow-xl flex flex-col">
-        {d.activeTab === 'ordenes' && (
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const ordenesPendientesCount = (d.ordenes || []).filter(
+    (o) => o && (o.estado === 'PENDIENTE' || o.estado === 'EN_DOMICILIO')
+  ).length;
+
+  const renderActiveTab = () => {
+    switch (d.activeTab) {
+      case 'ordenes':
+        return (
           <OrdenesTab
             ordenes={d.ordenes}
             loading={d.loading}
@@ -26,9 +35,9 @@ export const AdminDashboard: React.FC = () => {
             onSelectOrden={d.setOrdenSeleccionada}
             onOpenPerfil={() => d.setModalPerfilAdmin(true)}
           />
-        )}
-
-        {d.activeTab === 'tecnicos' && (
+        );
+      case 'tecnicos':
+        return (
           <TecnicosTab
             tecnicos={d.tecnicos}
             ordenes={d.ordenes}
@@ -42,9 +51,9 @@ export const AdminDashboard: React.FC = () => {
               d.setModalEditarTecnico(true);
             }}
           />
-        )}
-
-        {d.activeTab === 'nuevo' && (
+        );
+      case 'nuevo':
+        return (
           <NuevaOrdenTab
             nuevaOrden={d.nuevaOrden}
             onNuevaOrdenChange={d.setNuevaOrden}
@@ -56,32 +65,70 @@ export const AdminDashboard: React.FC = () => {
             formError={d.formError}
             formExito={d.formExito}
             onSubmit={d.handleCrearOrden}
-            onAbrirNuevoAfiliado={() => d.setModalNuevoAfiliado(true)}
+            onAbrirNuevoAfiliado={() => {
+              d.setAfiliadoAEditar(null);
+              d.setFormError(null);
+              d.setModalNuevoAfiliado(true);
+            }}
             onAbrirMateriales={() => d.setModalGestionMateriales(true)}
             onAbrirEspecialidades={() => d.setModalNuevaEspecialidad(true)}
           />
-        )}
-
-        {d.activeTab === 'clientes' && (
+        );
+      case 'clientes':
+        return (
           <ClientesTab
             afiliados={d.afiliados}
-            onNuevoAfiliado={() => d.setModalNuevoAfiliado(true)}
+            onNuevoAfiliado={() => {
+              d.setAfiliadoAEditar(null);
+              d.setFormError(null);
+              d.setModalNuevoAfiliado(true);
+            }}
+            onEditarAfiliado={(afiliado) => {
+              d.setAfiliadoAEditar(afiliado);
+              d.setFormError(null);
+              d.setModalNuevoAfiliado(true);
+            }}
+            onEliminarAfiliado={d.handleEliminarAfiliado}
           />
-        )}
+        );
+      case 'reportes':
+        return <ReportesTab ordenes={d.ordenes} />;
+      default:
+        return null;
+    }
+  };
 
-        {d.activeTab === 'reportes' && <ReportesTab ordenes={d.ordenes} />}
+  return (
+    <div className="min-h-screen bg-slate-50 w-full flex">
+      {/* 1. Sidebar lateral fijo a la izquierda: visible únicamente en escritorio (>= lg) */}
+      <AdminSidebar
+        activeTab={d.activeTab}
+        onTabChange={d.setActiveTab}
+        user={user}
+        onLogout={handleLogout}
+        onOpenPerfil={() => d.setModalPerfilAdmin(true)}
+        ordenesPendientesCount={ordenesPendientesCount}
+      />
 
-        <AdminBottomNav activeTab={d.activeTab} onTabChange={d.setActiveTab} />
+      {/* 2. Área de contenido principal */}
+      <div className="flex-1 min-w-0 min-h-screen flex flex-col justify-between w-full">
+        {/* En móvil: max-w-md mx-auto px-4 pt-6 pb-24. En escritorio: p-8 lg:p-10 max-w-7xl mx-auto w-full */}
+        <main className="w-full max-w-md mx-auto px-4 pt-6 pb-24 lg:max-w-7xl lg:p-10 flex-1 flex flex-col min-w-0">
+          {renderActiveTab()}
+        </main>
 
-        <AdminModals
-          d={d}
-          user={user}
-          onLogout={() => {
-            logout();
-            navigate('/login');
-          }}
-        />
+        {/* 3. Navegación inferior fija: visible únicamente en móvil (< lg) */}
+        <div className="block lg:hidden">
+          <AdminBottomNav activeTab={d.activeTab} onTabChange={d.setActiveTab} />
+        </div>
       </div>
+
+      {/* 4. Modales del panel de administración */}
+      <AdminModals
+        d={d}
+        user={user}
+        onLogout={handleLogout}
+      />
     </div>
   );
 };

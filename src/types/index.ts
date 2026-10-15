@@ -76,6 +76,8 @@ export interface CierreHojaServicioRequest {
   fotoDespuesUrl?: string;
   firmaDigitalUrl?: string;
   firmaAfiliadoUrl?: string;
+  firmaTecnicoUrl?: string;
+  tecnicoFirmaUrl?: string;
   materiales: MaterialConsumido[];
 }
 
@@ -130,11 +132,17 @@ export interface HojaServicioDetalleAdmin {
   evaluacionAveria: string;
   detalleSolucion: string;
   sugerencias?: string;
+  calificacion?: number;
   calificacionAfiliado?: number;
   fotoAntesUrl?: string;
   fotoDespuesUrl?: string;
+  fotoInicialUrl?: string;
+  fotoFinalUrl?: string;
   firmaDigitalUrl?: string;
   firmaAfiliadoUrl?: string;
+  firmaTecnico?: string;
+  firmaTecnicoUrl?: string;
+  firma_tecnico?: string;
   costoManoObra?: number;
   costoMateriales?: number;
   costoTotal?: number;
@@ -173,12 +181,19 @@ export interface OrdenDetalleAdmin {
   tecnicoNombre?: string;
   nombreTecnico?: string;
   tecnicoFirmaUrl?: string;
+  firmaTecnico?: string;
+  firmaTecnicoUrl?: string;
+  tecnicoFirma?: string;
   tecnico?: {
     id?: number;
     nombre?: string;
     nombreCompleto?: string;
     email?: string;
     telefono?: string;
+    firmaUrl?: string;
+    firmaDigitalUrl?: string;
+    firmaDigital?: string;
+    firmaTecnico?: string;
   };
   hojaServicio?: HojaServicioDetalleAdmin;
   motivoCancelacion?: string;
@@ -199,11 +214,14 @@ export interface CrearOrdenRequest {
 export interface Afiliado {
   id: number;
   nombreCompleto: string;
+  nombre?: string;
   dni: string;
   telefono: string;
   direccion: string;
   referencia?: string;
   distrito: string;
+  numeroCuenta?: string;
+  activo?: boolean;
 }
 
 export interface CrearAfiliadoRequest {
@@ -213,6 +231,16 @@ export interface CrearAfiliadoRequest {
   direccion: string;
   referencia?: string;
   distrito: string;
+  numeroCuenta?: string;
+}
+
+export interface ActualizarAfiliadoRequest {
+  nombreCompleto: string;
+  dni?: string;
+  telefono: string;
+  direccion: string;
+  referencia?: string;
+  distrito?: string;
 }
 
 export interface TecnicoResumen {

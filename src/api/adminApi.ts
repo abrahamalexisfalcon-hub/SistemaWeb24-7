@@ -4,6 +4,7 @@ import type {
   CrearOrdenRequest,
   Afiliado,
   CrearAfiliadoRequest,
+  ActualizarAfiliadoRequest,
   TecnicoResumen,
   CrearTecnicoRequest,
   ActualizarTecnicoRequest,
@@ -52,6 +53,15 @@ export const adminApi = {
   crearAfiliado: async (data: CrearAfiliadoRequest): Promise<Afiliado> => {
     const response = await api.post<Afiliado>('/admin/afiliados', data);
     return response.data;
+  },
+
+  actualizarAfiliado: async (id: number, data: ActualizarAfiliadoRequest): Promise<Afiliado> => {
+    const response = await api.put<Afiliado>(`/clientes/${id}`, data);
+    return response.data;
+  },
+
+  eliminarAfiliado: async (id: number): Promise<void> => {
+    await api.delete(`/clientes/${id}`);
   },
 
   // Técnicos

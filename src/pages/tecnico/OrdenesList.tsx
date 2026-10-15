@@ -35,16 +35,22 @@ export const OrdenesList: React.FC = () => {
     }
   }, [location.state, actualizarOrdenLocal]);
 
-  // Filtrado reactivo
-  const ordenesFiltradas = ordenes.filter((orden) => {
-    // Filtro por texto
-    const coincideTexto =
-      orden.codigoOrden.toLowerCase().includes(busqueda.toLowerCase()) ||
-      orden.nombreAfiliado.toLowerCase().includes(busqueda.toLowerCase()) ||
-      orden.tipoServicio.toLowerCase().includes(busqueda.toLowerCase()) ||
-      orden.distrito.toLowerCase().includes(busqueda.toLowerCase());
+  // Filtrado reactivo 100% tolerante a nulos
+  const ordenesFiltradas = (ordenes || []).filter((orden) => {
+    if (!orden) return false;
 
-    if (!coincideTexto) return false;
+    // Filtro por texto
+    const termino = busqueda.toLowerCase().trim();
+    if (termino) {
+      const coincideTexto =
+        (orden.codigoOrden || '').toLowerCase().includes(termino) ||
+        (orden.nombreAfiliado || '').toLowerCase().includes(termino) ||
+        (orden.tipoServicio || '').toLowerCase().includes(termino) ||
+        (orden.distrito || '').toLowerCase().includes(termino) ||
+        (orden.direccion || '').toLowerCase().includes(termino);
+
+      if (!coincideTexto) return false;
+    }
 
     // Filtro por pestaña
     if (filtroActivo === 'Todas') return true;

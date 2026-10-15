@@ -20,7 +20,7 @@ export const Historial: React.FC = () => {
     cargarOrdenes(false);
   }, [cargarOrdenes]);
 
-  const ordenesFinalizadas = ordenes.filter((o) => o.estado === 'FINALIZADA');
+  const ordenesFinalizadas = (ordenes || []).filter((o) => o && o.estado === 'FINALIZADA');
 
   return (
     <TecnicoLayout activeTab="historial">

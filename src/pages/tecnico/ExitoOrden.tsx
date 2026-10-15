@@ -333,7 +333,7 @@ export const ExitoOrden: React.FC = () => {
                 <div className="text-[10px] space-y-1 text-gray-900">
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <span className="font-bold">APELLIDOS Y NOMBRES: </span>
+                      <span className="font-bold">NOMBRES Y APELLIDOS: </span>
                       <span className="border-b border-gray-300 pb-0.5">{nombreAfiliado}</span>
                     </div>
                     <div>
