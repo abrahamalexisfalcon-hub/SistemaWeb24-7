@@ -104,6 +104,7 @@ export interface OrdenResumenTecnico {
   calificacion?: number | null;
   fotoInicialUrl?: string | null;
   fotoFinalUrl?: string | null;
+  fotosEvidencia?: string[];
   hojaServicioId?: number | null;
   materiales?: MaterialConsumido[];
   hojaServicio?: any;
@@ -120,6 +121,7 @@ export interface CierreHojaServicioResponse {
   firmaClienteUrl?: string;
   fotoInicialUrl?: string;
   fotoFinalUrl?: string;
+  fotosEvidencia?: string[];
   evaluacionAveria?: string;
   detalleSolucion?: string;
   sugerencias?: string;
@@ -138,6 +140,7 @@ export interface HojaServicioDetalleAdmin {
   fotoDespuesUrl?: string;
   fotoInicialUrl?: string;
   fotoFinalUrl?: string;
+  fotosEvidencia?: string[];
   firmaDigitalUrl?: string;
   firmaAfiliadoUrl?: string;
   firmaTecnico?: string;
@@ -197,6 +200,9 @@ export interface OrdenDetalleAdmin {
     firmaTecnico?: string;
   };
   hojaServicio?: HojaServicioDetalleAdmin;
+  fotoInicialUrl?: string;
+  fotoFinalUrl?: string;
+  fotosEvidencia?: string[];
   motivoCancelacion?: string;
   fechaCancelacion?: string;
 }

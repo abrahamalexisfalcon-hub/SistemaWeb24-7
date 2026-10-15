@@ -4,6 +4,7 @@ import logo247 from '../assets/Logo_negro.png';
 import { tecnicoApi } from '../api';
 import { useEspecialidades } from '../hooks';
 import type { OrdenDetalleAdmin, OrdenResumenTecnico, MaterialConsumido } from '../types';
+import { EvidenciasGaleria } from './EvidenciasGaleria';
 
 /* ─────────────── Props ─────────────── */
 export interface HojaServicioModalProps {
@@ -212,6 +213,20 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
   const colIzq = materiales.slice(0, mitad);
   const colDer = materiales.slice(mitad);
   const filasMat = Math.max(colIzq.length, colDer.length, 1);
+
+  const fotosEvidencia: string[] = [
+    ...(orden?.fotosEvidencia || []),
+    ...(orden?.hojaServicio?.fotosEvidencia || []),
+    ...(detalleExtra?.fotosEvidencia || []),
+    orden?.fotoInicialUrl,
+    orden?.fotoFinalUrl,
+    orden?.hojaServicio?.fotoInicialUrl,
+    orden?.hojaServicio?.fotoFinalUrl,
+    orden?.hojaServicio?.fotoAntesUrl,
+    orden?.hojaServicio?.fotoDespuesUrl,
+    detalleExtra?.fotoInicialUrl,
+    detalleExtra?.fotoFinalUrl,
+  ].filter((url, index, arr): url is string => Boolean(url && url.trim() && arr.indexOf(url) === index));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-2 print:p-0 print:bg-white animate-in fade-in">
@@ -482,8 +497,16 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
         </div>
         {/* FIN HOJA IMPRIMIBLE */}
 
+        {/* Evidencias fotográficas complementarias */}
+        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 print:hidden">
+          <EvidenciasGaleria
+            fotos={fotosEvidencia}
+            titulo="EVIDENCIAS DEL SERVICIO (FOTOS)"
+          />
+        </div>
+
         {/* Botones de acción (ocultos en impresión) */}
-        <div className="flex gap-2 px-4 pb-4 pt-1 print:hidden sticky bottom-0 bg-white rounded-b-2xl border-t border-slate-100">
+        <div className="flex gap-2 px-4 pb-4 pt-2 print:hidden sticky bottom-0 bg-white rounded-b-2xl border-t border-slate-100">
           <button
             onClick={() => window.print()}
             className="flex-1 py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20 transition-all"

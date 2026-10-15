@@ -2,6 +2,7 @@ import React from 'react';
 import type { OrdenDetalleAdmin } from '../../../types';
 import { X, Phone, Clock, AlertCircle, FileText } from 'lucide-react';
 import { formatearFechaHora, getBadgeConfig } from '../utils';
+import { EvidenciasGaleria } from '../../../components';
 
 interface OrdenDetalleModalProps {
   orden: OrdenDetalleAdmin | null;
@@ -31,6 +32,11 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
     orden.cliente?.distrito ||
     (orden as any).distritoAfiliado ||
     '';
+  const referencia =
+    (orden as any).referencia ||
+    orden.cliente?.referencia ||
+    (orden as any).referenciaAfiliado ||
+    '';
   const fechaTexto = formatearFechaHora(
     orden.fechaProgramada || orden.fechaAsignacion || orden.fechaCreacion
   );
@@ -40,9 +46,20 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
     orden.nombreTecnico ||
     orden.tecnico?.nombreCompleto;
 
+  const fotosEvidencia: string[] = [
+    ...(orden.fotosEvidencia || []),
+    ...(orden.hojaServicio?.fotosEvidencia || []),
+    orden.fotoInicialUrl,
+    orden.fotoFinalUrl,
+    orden.hojaServicio?.fotoInicialUrl,
+    orden.hojaServicio?.fotoFinalUrl,
+    orden.hojaServicio?.fotoAntesUrl,
+    orden.hojaServicio?.fotoDespuesUrl,
+  ].filter((url, index, arr): url is string => Boolean(url && url.trim() && arr.indexOf(url) === index));
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto border border-slate-100">
+      <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[88vh] overflow-y-auto border border-slate-100">
         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
           <span className="font-black text-lg text-slate-900">
             #{orden.codigoOrden}
@@ -87,6 +104,11 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
               {direccion}
               {distrito ? ` - ${distrito}` : ''}
             </p>
+            {referencia && (
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Ref: {referencia}
+              </p>
+            )}
           </div>
 
           <div>
@@ -108,6 +130,14 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
                 </span>
               )}
             </p>
+          </div>
+
+          {/* Bloque: EVIDENCIAS DEL SERVICIO (FOTOS) */}
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              EVIDENCIAS DEL SERVICIO (FOTOS)
+            </span>
+            <EvidenciasGaleria fotos={fotosEvidencia} />
           </div>
         </div>
 

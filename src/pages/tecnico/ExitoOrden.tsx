@@ -6,6 +6,7 @@ import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import type { OrdenResumenTecnico, MaterialConsumido } from '../../types';
 import { ChevronLeft, Check, Star, FileText, Download } from 'lucide-react';
 import logo247 from '../../assets/Logo_negro.png';
+import { EvidenciasGaleria } from '../../components/EvidenciasGaleria';
 
 /* ─────────────── Tipos del state recibido desde ValidacionCierre ─────────────── */
 interface HojaServicioData {
@@ -170,6 +171,17 @@ export const ExitoOrden: React.FC = () => {
     localStorage.getItem('tecnico_firma_url') ||
     '';
 
+  const fotosEvidencia: string[] = [
+    ...(hojaServicio as any)?.fotosEvidencia || [],
+    ...(orden as any)?.fotosEvidencia || [],
+    ...(ordenDetalle as any)?.fotosEvidencia || [],
+    (hojaServicio as any)?.fotoInicialUrl,
+    (hojaServicio as any)?.fotoFinalUrl,
+    orden?.fotoInicialUrl,
+    orden?.fotoFinalUrl,
+    ordenDetalle?.fotoInicialUrl,
+    ordenDetalle?.fotoFinalUrl,
+  ].filter((url, index, arr): url is string => Boolean(url && url.trim() && arr.indexOf(url) === index));
 
   /* ─── Detecta especialidad activa ─── */
   const tipoNorm = tipoServicio.toLowerCase();
@@ -254,8 +266,16 @@ export const ExitoOrden: React.FC = () => {
           </div>
         </div>
 
+        {/* Tarjeta de Evidencias Fotográficas */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3 text-left">
+          <EvidenciasGaleria
+            fotos={fotosEvidencia}
+            titulo="Evidencias Fotográficas del Servicio"
+          />
+        </div>
+
         {/* Botones de Acción */}
-        <div className="space-y-3 pt-2">
+        <div className="space-y-3 pt-1">
           <button
             type="button"
             onClick={navToOrdenes}
@@ -514,8 +534,16 @@ export const ExitoOrden: React.FC = () => {
             </div>
             {/* FIN HOJA IMPRIMIBLE */}
 
+            {/* Evidencias fotográficas complementarias */}
+            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 print:hidden text-left">
+              <EvidenciasGaleria
+                fotos={fotosEvidencia}
+                titulo="EVIDENCIAS DEL SERVICIO (FOTOS)"
+              />
+            </div>
+
             {/* Botones de acción (ocultos en impresión) */}
-            <div className="flex gap-2 px-4 pb-4 pt-1 print:hidden sticky bottom-0 bg-white rounded-b-2xl">
+            <div className="flex gap-2 px-4 pb-4 pt-2 print:hidden sticky bottom-0 bg-white rounded-b-2xl border-t border-slate-100">
               <button
                 onClick={() => window.print()}
                 className="flex-1 py-2.5 bg-[#0ea5e9] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20"
