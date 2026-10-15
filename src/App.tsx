@@ -3,9 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OrdenesProvider } from './context/OrdenesContext';
 import { ProtectedRoute } from './components';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
 import {
   Login,
-  AdminDashboard,
   OrdenesList,
   OrdenDetalle,
   AtencionTecnica,

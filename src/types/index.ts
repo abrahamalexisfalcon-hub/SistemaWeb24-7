@@ -253,3 +253,26 @@ export interface Especialidad {
 export interface CrearEspecialidadRequest {
   nombre: string;
 }
+
+export interface Material {
+  id: number;
+  nombre: string;
+  unidad: string;
+  activo?: boolean;
+  especialidadId: number;
+  especialidadNombre?: string;
+}
+
+export interface CrearMaterialRequest {
+  nombre: string;
+  unidad: string;
+  especialidadId: number;
+}
+
+export interface ActualizarMaterialRequest {
+  nombre: string;
+  unidad: string;
+  especialidadId: number;
+  activo?: boolean;
+}
+

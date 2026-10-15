@@ -107,4 +107,9 @@ export const adminApi = {
     const response = await api.put<Especialidad>(`/admin/especialidades/${id}`, { nombre });
     return response.data;
   },
+
+  eliminarEspecialidad: async (id: number): Promise<{ mensaje: string }> => {
+    const response = await api.delete<{ mensaje: string }>(`/admin/especialidades/${id}`);
+    return response.data;
+  },
 };

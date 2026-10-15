@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { catalogoApi } from '../../api';
+import { catalogoApi, materialApi } from '../../api';
 import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import type { OrdenResumenTecnico, MaterialCatalogo, MaterialConsumido } from '../../types';
 import { ChevronLeft, Plus, Trash2, Minus } from 'lucide-react';
@@ -175,23 +175,44 @@ export const AtencionTecnica: React.FC = () => {
   }, [evaluacion, solucion, sugerencias, materialesSeleccionados, DRAFT_KEY]);
 
   useEffect(() => {
-    catalogoApi
-      .getMaterialesActivos()
-      .then((data) => {
-        setCatalogo(data);
-      })
-      .catch((err) => {
-        console.warn('Usando catálogo inicial local:', err);
-        setCatalogo([
-          { id: 1, nombre: 'Cable eléctrico 2.5mm (metro)' },
-          { id: 2, nombre: 'Interruptor termomagnético 20A' },
-          { id: 3, nombre: 'Cinta aislante 3M' },
-          { id: 4, nombre: 'Toma corriente doble' },
-          { id: 5, nombre: 'Tubo conduit 1/2' },
-          { id: 6, nombre: 'Empaque de jebe para grifería' },
-        ]);
-      });
-  }, []);
+    const fetchMateriales = async () => {
+      try {
+        const data = await materialApi.getMateriales(undefined, orden?.tipoServicio);
+        if (data && data.length > 0) {
+          setCatalogo(
+            data.map((m) => ({
+              id: m.id,
+              nombre: `${m.nombre} (${m.unidad || 'Unidad'})`,
+              activo: m.activo,
+            }))
+          );
+          return;
+        }
+      } catch (err) {
+        console.warn('Error al obtener materiales por especialidad:', err);
+      }
+
+      // Fallback a catalogo general
+      catalogoApi
+        .getMaterialesActivos()
+        .then((data) => {
+          setCatalogo(data);
+        })
+        .catch((err) => {
+          console.warn('Usando catálogo inicial local:', err);
+          setCatalogo([
+            { id: 1, nombre: 'Cable eléctrico 2.5mm (metro)' },
+            { id: 2, nombre: 'Interruptor termomagnético 20A' },
+            { id: 3, nombre: 'Cinta aislante 3M' },
+            { id: 4, nombre: 'Toma corriente doble' },
+            { id: 5, nombre: 'Tubo conduit 1/2' },
+            { id: 6, nombre: 'Empaque de jebe para grifería' },
+          ]);
+        });
+    };
+
+    fetchMateriales();
+  }, [orden?.tipoServicio]);
 
   const getCatalogoNombre = (materialId: number | null): string => {
     if (materialId === null) return '';

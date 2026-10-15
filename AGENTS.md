@@ -64,3 +64,10 @@ Al generar o modificar componentes en el frontend (`React + Tailwind CSS`), debe
 
 6. **Manejo de Estados:**
    - Siempre contempla: estado cargando (`loading spinner` o `skeleton`), estado vacío (`EmptyState` ilustrado/icono con mensaje claro) y estado de error contextual.
+
+## Reglas de Arquitectura Frontend y Modularización (ESTRICTO)
+1. **Límite de tamaño por archivo:** Ningún archivo React/TypeScript (`.tsx`, `.ts`) debe superar las **1000 líneas de código**.
+2. **Descomposición por Pantallas:** Cada pestaña o vista del panel de administración DEBE residir en su propia carpeta bajo `src/pages/admin/` (ej. `OrdenesTab.tsx`, `TecnicosTab.tsx`, `NuevaOrdenTab.tsx`, `ClientesTab.tsx`, `ReportesTab.tsx`).
+3. **Modales independientes:** Todo modal (Hoja de servicio, Detalle de orden, Gestión de materiales, Gestión de especialidades, Editar/Crear técnico) DEBE extraerse como componente independiente en `src/components/admin/modals/`.
+4. **Tarjetas y UI repetitiva:** Componentes como `OrdenCard`, `TecnicoCard`, o chips de estado deben estar en `src/components/admin/cards/` o `src/components/common/`.
+5. **Prohibido el "God Component":** El componente principal del Dashboard (`AdminDashboard.tsx`) SOLO debe actuar como orquestador de navegación (Navbar inferior/superior, control de pestaña activa y renderizado del tab correspondiente).

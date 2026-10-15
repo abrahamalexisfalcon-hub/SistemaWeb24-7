@@ -1,4 +1,4 @@
 export * from './Login';
-export * from './AdminDashboard';
+export * from './admin';
 export * from './TecnicoView';
 export * from './tecnico';
