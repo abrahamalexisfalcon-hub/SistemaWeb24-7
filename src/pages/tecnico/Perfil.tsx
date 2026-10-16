@@ -204,7 +204,7 @@ export const Perfil: React.FC = () => {
           </div>
         </div>
 
-        {/* Módulo: Switch de Notificaciones Inmediatas en Tiempo Real (SSE + Sonido + Push) */}
+        {/* Módulo: Switch de Notificaciones Push en Tiempo Real (OneSignal) */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-0.5">

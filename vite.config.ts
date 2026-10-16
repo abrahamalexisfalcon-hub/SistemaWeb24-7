@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon-dark.png', 'favicon-light.png', 'logo-192.png', 'logo-512.png'],
+      includeAssets: ['favicon-dark.png', 'favicon-light.png', 'logo-192.png', 'logo-512.png', 'OneSignalSDKWorker.js'],
       manifest: {
         name: '24/7 Asistencias Generales',
         short_name: '24/7 Asistencias',
@@ -36,7 +36,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        importScripts: ['/sw-push.js']
+        importScripts: ['https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js']
       },
       devOptions: {
         enabled: true

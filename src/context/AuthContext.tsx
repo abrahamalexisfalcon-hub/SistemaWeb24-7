@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Usuario, LoginRequest, AuthResponse, RolUsuario } from '../types';
 import { authApi } from '../api';
+import { logoutOneSignal } from '../services/oneSignalService';
 
 interface AuthContextType {
   user: Usuario | null;
@@ -86,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem('tecnico_firma_url');
     localStorage.removeItem('ordenes_finalizadas_ids');
+    logoutOneSignal();
     setToken(null);
     setUser(null);
   };
