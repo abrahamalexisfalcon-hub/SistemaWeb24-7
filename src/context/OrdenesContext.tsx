@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAuth } from './AuthContext';
 import { tecnicoApi } from '../api';
 import type { OrdenResumenTecnico, PerfilTecnico } from '../types';
-import { notificarNuevaOrden } from '../utils/notifications';
+import { notificarNuevaOrden, playChime } from '../utils/notifications';
 import { toast } from 'sonner';
 
 interface OrdenesContextType {
@@ -13,6 +13,8 @@ interface OrdenesContextType {
   hasError: boolean;
   errorMessage: string | null;
   lastFetched: number | null;
+  notificacionesActivas: boolean;
+  toggleNotificaciones: (activar?: boolean) => Promise<boolean>;
   cargarOrdenes: (force?: boolean) => Promise<void>;
   refrescar: () => Promise<void>;
   invalidarCache: () => void;
@@ -223,7 +225,129 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [user, cargarOrdenes]);
 
-  // Sondeo en segundo plano (polling cada 35 segundos si la pestaña está activa)
+  // Estado y preferencia persistente de notificaciones en tiempo real
+  const [notificacionesActivas, setNotificacionesActivas] = useState<boolean>(() => {
+    return localStorage.getItem('notificaciones_activas') !== 'false';
+  });
+
+  const toggleNotificaciones = useCallback(async (activar?: boolean) => {
+    const nuevoValor = activar !== undefined ? activar : !notificacionesActivas;
+    if (nuevoValor) {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+        try {
+          const res = await Notification.requestPermission();
+          if (res === 'denied') {
+            toast.warning('Permiso denegado por el navegador. Las notificaciones se mostrarán dentro de la app.');
+          }
+        } catch {}
+      }
+      localStorage.setItem('notificaciones_activas', 'true');
+      setNotificacionesActivas(true);
+      toast.success('Notificaciones en tiempo real activadas');
+      return true;
+    } else {
+      localStorage.setItem('notificaciones_activas', 'false');
+      setNotificacionesActivas(false);
+      toast.info('Notificaciones pausadas');
+      return false;
+    }
+  }, [notificacionesActivas]);
+
+  // Conexión en tiempo real instantánea vía Server-Sent Events (SSE) (0 a 1s)
+  useEffect(() => {
+    if (!user?.usuarioId || !notificacionesActivas) return;
+
+    const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+    const sseUrl = `${apiBase}/notificaciones/stream/${user.usuarioId}`;
+
+    let eventSource: EventSource | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const conectar = () => {
+      try {
+        eventSource = new EventSource(sseUrl);
+
+        eventSource.addEventListener('NUEVA_ORDEN', (event: MessageEvent) => {
+          try {
+            const rawData = JSON.parse(event.data);
+
+            // 1. Sonido melódico inmediato sin retardo
+            playChime();
+
+            const codigo = rawData.codigoOrden || rawData.numeroOrden || `ORD-${rawData.id}`;
+            const servicio = rawData.tipoServicio || rawData.servicio || 'Servicio Técnico';
+            const direccion = rawData.direccion || rawData.direccionAfiliado || '';
+
+            // 2. Notificación en pantalla (Toast prominente)
+            toast.success(`¡Nueva orden asignada! #${codigo}`, {
+              description: `${servicio}${direccion ? ' - ' + direccion : ''}`,
+              duration: 6000,
+            });
+
+            // 3. Notificación nativa del sistema operativo (si tiene permisos concedidos)
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              try {
+                new Notification('¡Nueva Orden Asignada! - 24/7 Asistencias', {
+                  body: `Orden #${codigo} lista para atender. ${servicio}`,
+                  icon: '/logo-192.png',
+                });
+              } catch {}
+            }
+
+            // 4. Actualizar lista de órdenes en memoria al instante (0 recarga)
+            const nuevaOrden: OrdenResumenTecnico = {
+              id: rawData.id,
+              codigoOrden: codigo,
+              tipoServicio: servicio,
+              estado: rawData.estado || 'PENDIENTE',
+              nombreAfiliado: rawData.nombreAfiliado || rawData.afiliadoNombre || 'Cliente 24/7',
+              direccion: direccion || 'Dirección no especificada',
+              referencia: rawData.referencia || rawData.referenciaAfiliado || '',
+              distrito: rawData.distrito || rawData.distritoAfiliado || 'Lima',
+              dniAfiliado: rawData.dniAfiliado || '',
+              codigoCuenta: rawData.codigoCuenta || '',
+              fechaProgramada: rawData.fechaProgramada || rawData.fechaAsignacion || new Date().toISOString(),
+              fechaCreacion: rawData.fechaCreacion || rawData.fechaAsignacion || new Date().toISOString(),
+              fechaAsignacion: rawData.fechaAsignacion || new Date().toISOString(),
+            };
+
+            setOrdenes((prev) => {
+              const filtradas = prev.filter((o) => o.id !== nuevaOrden.id);
+              return [nuevaOrden, ...filtradas];
+            });
+            knownOrderIdsRef.current.add(nuevaOrden.id);
+          } catch (err) {
+            console.warn('Error al procesar evento SSE:', err);
+            cargarOrdenes(true);
+          }
+        });
+
+        eventSource.onerror = () => {
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          // Reintento automático a los 6 segundos si se interrumpe la red
+          retryTimer = setTimeout(() => {
+            if (notificacionesActivas && user?.usuarioId) {
+              conectar();
+            }
+          }, 6000);
+        };
+      } catch (err) {
+        console.warn('No se pudo establecer conexión SSE:', err);
+      }
+    };
+
+    conectar();
+
+    return () => {
+      if (eventSource) eventSource.close();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [user?.usuarioId, notificacionesActivas, cargarOrdenes]);
+
+  // Sondeo pasivo en segundo plano de respaldo (cada 45s)
   useEffect(() => {
     if (!user) return;
 
@@ -231,7 +355,7 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (document.visibilityState === 'visible') {
         cargarOrdenes(true);
       }
-    }, 35000);
+    }, 45000);
 
     return () => clearInterval(interval);
   }, [user, cargarOrdenes]);
@@ -246,6 +370,8 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
         hasError,
         errorMessage,
         lastFetched,
+        notificacionesActivas,
+        toggleNotificaciones,
         cargarOrdenes,
         refrescar,
         invalidarCache,

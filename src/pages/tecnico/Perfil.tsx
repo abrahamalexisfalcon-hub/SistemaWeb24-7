@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useOrdenes } from '../../context/OrdenesContext';
 import { tecnicoApi } from '../../api';
 import { TecnicoLayout, SignaturePad, type SignaturePadRef } from '../../components/tecnico';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -16,15 +17,13 @@ import {
   Check,
   Edit3,
   AlertCircle,
-  Bell,
-  BellRing
+  Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { usePushNotifications } from '../../hooks';
 
 export const Perfil: React.FC = () => {
   const { user, logout } = useAuth();
-  const { soportado, permiso, suscrito, cargando: pushCargando, solicitarPermisoYSuscribir } = usePushNotifications();
+  const { notificacionesActivas, toggleNotificaciones } = useOrdenes();
 
   const [perfil, setPerfil] = useState<PerfilTecnico | null>(null);
   const [disponible, setDisponible] = useState<boolean>(user?.disponible ?? true);
@@ -205,41 +204,46 @@ export const Perfil: React.FC = () => {
           </div>
         </div>
 
-        {/* Módulo: Notificaciones con Pantalla Bloqueada (Web Push Nativas) */}
+        {/* Módulo: Switch de Notificaciones Inmediatas en Tiempo Real (SSE + Sonido + Push) */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <Bell className={`w-4 h-4 ${permiso === 'granted' && suscrito ? 'text-emerald-500' : 'text-slate-400'}`} />
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    notificacionesActivas
+                      ? 'bg-emerald-500 animate-pulse'
+                      : 'bg-slate-300'
+                  }`}
+                />
+                <Bell className={`w-4 h-4 ${notificacionesActivas ? 'text-[#0ea5e9]' : 'text-slate-400'}`} />
                 <h3 className="font-extrabold text-slate-900 text-sm">
-                  Notificaciones con pantalla bloqueada
+                  Notificaciones de nuevas órdenes
                 </h3>
               </div>
-              <p className="text-xs text-slate-500 pl-6">
-                Recibe alertas sonoras incluso con el teléfono apagado
+              <p className="text-xs text-slate-500 pl-4.5">
+                {notificacionesActivas
+                  ? 'Alertas sonoras y visuales instantáneas al recibir asignaciones'
+                  : 'Notificaciones pausadas temporalmente'}
               </p>
             </div>
 
-            {/* Estado o Botón de activación */}
-            {permiso === 'granted' && suscrito ? (
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 flex-shrink-0">
-                <Check className="w-3.5 h-3.5 stroke-[3]" /> Activo
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => solicitarPermisoYSuscribir(user?.usuarioId)}
-                disabled={pushCargando || !soportado}
-                className="py-2 px-3.5 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-95 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 flex-shrink-0"
-              >
-                {pushCargando ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <BellRing className="w-3.5 h-3.5" />
-                )}
-                <span>{permiso === 'denied' ? 'Bloqueado en SO' : 'Activar'}</span>
-              </button>
-            )}
+            {/* Toggle interactivo */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={notificacionesActivas}
+              onClick={() => toggleNotificaciones()}
+              className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                notificacionesActivas ? 'bg-[#0ea5e9]' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                  notificacionesActivas ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
         </div>
 
