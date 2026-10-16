@@ -171,17 +171,32 @@ export const ExitoOrden: React.FC = () => {
     localStorage.getItem('tecnico_firma_url') ||
     '';
 
-  const fotosEvidencia: string[] = [
-    ...(hojaServicio as any)?.fotosEvidencia || [],
-    ...(orden as any)?.fotosEvidencia || [],
-    ...(ordenDetalle as any)?.fotosEvidencia || [],
-    (hojaServicio as any)?.fotoInicialUrl,
-    (hojaServicio as any)?.fotoFinalUrl,
-    orden?.fotoInicialUrl,
-    orden?.fotoFinalUrl,
-    ordenDetalle?.fotoInicialUrl,
-    ordenDetalle?.fotoFinalUrl,
-  ].filter((url, index, arr): url is string => Boolean(url && url.trim() && arr.indexOf(url) === index));
+  const fotosEvidencia: string[] = useMemo(() => {
+    // 1. Prioridad: Evidencias devueltas directamente por el servidor (ordenDetalle)
+    if (ordenDetalle?.fotosEvidencia && ordenDetalle.fotosEvidencia.length > 0) {
+      return Array.from(new Set(ordenDetalle.fotosEvidencia.filter(Boolean)));
+    }
+    if (ordenDetalle?.fotoInicialUrl || ordenDetalle?.fotoFinalUrl) {
+      return Array.from(
+        new Set([ordenDetalle.fotoInicialUrl, ordenDetalle.fotoFinalUrl].filter(Boolean) as string[])
+      );
+    }
+
+    // 2. Respaldo: Estado devuelto por el servidor durante el cierre (hojaServicio u orden)
+    if ((hojaServicio as any)?.fotosEvidencia && (hojaServicio as any).fotosEvidencia.length > 0) {
+      return Array.from(new Set(((hojaServicio as any).fotosEvidencia as string[]).filter(Boolean)));
+    }
+    if ((orden as any)?.fotosEvidencia && (orden as any).fotosEvidencia.length > 0) {
+      return Array.from(new Set(((orden as any).fotosEvidencia as string[]).filter(Boolean)));
+    }
+
+    const fallbackFotos = [
+      (hojaServicio as any)?.fotoInicialUrl || orden?.fotoInicialUrl,
+      (hojaServicio as any)?.fotoFinalUrl || orden?.fotoFinalUrl,
+    ].filter(Boolean) as string[];
+
+    return Array.from(new Set(fallbackFotos));
+  }, [ordenDetalle, hojaServicio, orden]);
 
   /* ─── Detecta especialidad activa ─── */
   const tipoNorm = tipoServicio.toLowerCase();

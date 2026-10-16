@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useOrdenes } from '../../context/OrdenesContext';
 import { TecnicoLayout } from '../../components/tecnico';
 import frame26 from '../../assets/Frame 26.svg';
 import type { OrdenResumenTecnico, EstadoOrden } from '../../types';
 import { Search, MapPin, Clock, User, RefreshCw } from 'lucide-react';
 
+export type TabTecnico = 'todas' | 'asignadas' | 'en_proceso';
+
+interface TabItem {
+  id: TabTecnico;
+  label: string;
+  count: number;
+}
+
 export const OrdenesList: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const {
     ordenes,
@@ -20,7 +29,29 @@ export const OrdenesList: React.FC = () => {
   } = useOrdenes();
 
   const [busqueda, setBusqueda] = useState('');
-  const [filtroActivo, setFiltroActivo] = useState<'Todas' | 'En proceso' | 'Pendientes' | 'Finalizadas'>('Todas');
+
+  // Sincronización instantánea de pestaña vía URL SearchParams (permite compartir y recordar estado)
+  const rawTab = (searchParams.get('tab') || 'todas').toLowerCase();
+  const tabActiva: TabTecnico = useMemo(() => {
+    if (rawTab === 'en_proceso' || rawTab === 'en-proceso' || rawTab === 'proceso') return 'en_proceso';
+    if (rawTab === 'asignadas' || rawTab === 'pendientes') return 'asignadas';
+    return 'todas';
+  }, [rawTab]);
+
+  const cambiarTab = (nuevaTab: TabTecnico) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (nuevaTab === 'todas') {
+          next.delete('tab');
+        } else {
+          next.set('tab', nuevaTab);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   // Cargar órdenes respetando el staleTime en memoria (0 ms si ya está en caché)
   useEffect(() => {
@@ -35,31 +66,50 @@ export const OrdenesList: React.FC = () => {
     }
   }, [location.state, actualizarOrdenLocal]);
 
-  // Filtrado reactivo 100% tolerante a nulos
-  const ordenesFiltradas = (ordenes || []).filter((orden) => {
-    if (!orden) return false;
+  // Contadores reactivos en memoria para cada pestaña
+  const counts = useMemo(() => {
+    const list = ordenes || [];
+    return {
+      todas: list.length,
+      asignadas: list.filter((o) => o?.estado === 'PENDIENTE').length,
+      en_proceso: list.filter((o) => o?.estado === 'EN_DOMICILIO').length,
+    };
+  }, [ordenes]);
 
-    // Filtro por texto
-    const termino = busqueda.toLowerCase().trim();
-    if (termino) {
-      const coincideTexto =
-        (orden.codigoOrden || '').toLowerCase().includes(termino) ||
-        (orden.nombreAfiliado || '').toLowerCase().includes(termino) ||
-        (orden.tipoServicio || '').toLowerCase().includes(termino) ||
-        (orden.distrito || '').toLowerCase().includes(termino) ||
-        (orden.referencia || '').toLowerCase().includes(termino) ||
-        (orden.direccion || '').toLowerCase().includes(termino);
+  const tabs: TabItem[] = useMemo(
+    () => [
+      { id: 'todas', label: 'Todas', count: counts.todas },
+      { id: 'asignadas', label: 'Asignadas', count: counts.asignadas },
+      { id: 'en_proceso', label: 'En Proceso', count: counts.en_proceso },
+    ],
+    [counts]
+  );
 
-      if (!coincideTexto) return false;
-    }
+  // Filtrado reactivo en memoria (0 ms, sin peticiones de red ni desmontado de layout)
+  const ordenesFiltradas = useMemo(() => {
+    return (ordenes || []).filter((orden) => {
+      if (!orden) return false;
 
-    // Filtro por pestaña
-    if (filtroActivo === 'Todas') return true;
-    if (filtroActivo === 'En proceso') return orden.estado === 'EN_DOMICILIO';
-    if (filtroActivo === 'Pendientes') return orden.estado === 'PENDIENTE';
-    if (filtroActivo === 'Finalizadas') return orden.estado === 'FINALIZADA';
-    return true;
-  });
+      // Filtro por texto
+      const termino = busqueda.toLowerCase().trim();
+      if (termino) {
+        const coincideTexto =
+          (orden.codigoOrden || '').toLowerCase().includes(termino) ||
+          (orden.nombreAfiliado || '').toLowerCase().includes(termino) ||
+          (orden.tipoServicio || '').toLowerCase().includes(termino) ||
+          (orden.distrito || '').toLowerCase().includes(termino) ||
+          (orden.referencia || '').toLowerCase().includes(termino) ||
+          (orden.direccion || '').toLowerCase().includes(termino);
+
+        if (!coincideTexto) return false;
+      }
+
+      // Filtro por pestaña activa
+      if (tabActiva === 'asignadas') return orden.estado === 'PENDIENTE';
+      if (tabActiva === 'en_proceso') return orden.estado === 'EN_DOMICILIO';
+      return true;
+    });
+  }, [ordenes, busqueda, tabActiva]);
 
   const getBadgeConfig = (estado: EstadoOrden) => {
     switch (estado) {
@@ -143,21 +193,29 @@ export const OrdenesList: React.FC = () => {
           />
         </div>
 
-        {/* Filtros horizontales en pastillas */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {(['Todas', 'En proceso', 'Pendientes', 'Finalizadas'] as const).map((filtro) => {
-            const activo = filtroActivo === filtro;
+        {/* Pestañas de filtrado fijas y responsivas sin scroll horizontal */}
+        <div className="grid grid-cols-3 gap-2 w-full">
+          {tabs.map((tab) => {
+            const activo = tabActiva === tab.id;
             return (
               <button
-                key={filtro}
-                onClick={() => setFiltroActivo(filtro)}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all shadow-sm ${
+                key={tab.id}
+                type="button"
+                onClick={() => cambiarTab(tab.id)}
+                className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-colors duration-200 flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${
                   activo
                     ? 'bg-[#0ea5e9] text-white shadow-sky-500/20'
-                    : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50'
+                    : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                {filtro}
+                <span className="truncate">{tab.label}</span>
+                <span
+                  className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full transition-colors duration-200 flex-shrink-0 ${
+                    activo ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {tab.count}
+                </span>
               </button>
             );
           })}
@@ -165,7 +223,7 @@ export const OrdenesList: React.FC = () => {
 
         {/* Contenedor de Órdenes */}
         <div className="space-y-3 pb-6">
-          {loading ? (
+          {loading && ordenes.length === 0 ? (
             /* Solo se muestra en la primera carga inicial cuando no hay datos en memoria */
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
               <RefreshCw className="w-8 h-8 animate-spin text-[#0ea5e9]" />

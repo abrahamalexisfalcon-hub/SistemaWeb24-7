@@ -183,6 +183,12 @@ export const ValidacionCierre: React.FC = () => {
         return orden?.tecnicoNombre || 'Técnico Asistencias 24/7';
       })();
 
+      const fotoInicialServidor = cierreRes?.fotoInicialUrl || requestPayload.fotoInicialUrl;
+      const fotoFinalServidor = cierreRes?.fotoFinalUrl || requestPayload.fotoFinalUrl;
+      const fotosServidor: string[] = (cierreRes?.fotosEvidencia && cierreRes.fotosEvidencia.length > 0)
+        ? Array.from(new Set(cierreRes.fotosEvidencia.filter(Boolean)))
+        : Array.from(new Set([fotoInicialServidor, fotoFinalServidor].filter(Boolean) as string[]));
+
       navigate(`/tecnico/ordenes/${ordenId}/exito`, {
         state: {
           orden: {
@@ -199,9 +205,9 @@ export const ValidacionCierre: React.FC = () => {
             tecnicoFirmaUrl,
             firmaDigitalUrl: firmaClienteUrl,
             firmaAfiliadoUrl: firmaClienteUrl,
-            fotoInicialUrl: requestPayload.fotoInicialUrl,
-            fotoFinalUrl: requestPayload.fotoFinalUrl,
-            fotosEvidencia: [requestPayload.fotoInicialUrl, requestPayload.fotoFinalUrl].filter(Boolean) as string[],
+            fotoInicialUrl: fotoInicialServidor,
+            fotoFinalUrl: fotoFinalServidor,
+            fotosEvidencia: fotosServidor,
             estado: 'FINALIZADA',
           },
           duracion: '37 min',
@@ -213,9 +219,9 @@ export const ValidacionCierre: React.FC = () => {
             detalleSolucion: requestPayload.detalleSolucion,
             sugerencias: requestPayload.sugerencias || '',
             materiales: requestPayload.materiales,
-            fotoInicialUrl: requestPayload.fotoInicialUrl,
-            fotoFinalUrl: requestPayload.fotoFinalUrl,
-            fotosEvidencia: [requestPayload.fotoInicialUrl, requestPayload.fotoFinalUrl].filter(Boolean) as string[],
+            fotoInicialUrl: fotoInicialServidor,
+            fotoFinalUrl: fotoFinalServidor,
+            fotosEvidencia: fotosServidor,
             firmaDigitalUrl: firmaClienteUrl,
             firmaAfiliadoUrl: firmaClienteUrl,
           },

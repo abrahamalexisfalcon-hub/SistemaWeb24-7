@@ -101,7 +101,7 @@ export const Historial: React.FC = () => {
             Servicios Finalizados
           </h3>
           <div className="space-y-3 pb-6">
-            {loading ? (
+            {loading && ordenesFinalizadas.length === 0 && (!ordenes || ordenes.length === 0) ? (
               /* Solo se muestra en la primera carga inicial cuando no hay datos en memoria */
               <div className="py-12 text-center text-slate-400 text-sm flex flex-col items-center justify-center gap-2">
                 <RefreshCw className="w-6 h-6 animate-spin text-[#0ea5e9]" />

@@ -214,19 +214,25 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
   const colDer = materiales.slice(mitad);
   const filasMat = Math.max(colIzq.length, colDer.length, 1);
 
-  const fotosEvidencia: string[] = [
-    ...(orden?.fotosEvidencia || []),
-    ...(orden?.hojaServicio?.fotosEvidencia || []),
-    ...(detalleExtra?.fotosEvidencia || []),
-    orden?.fotoInicialUrl,
-    orden?.fotoFinalUrl,
-    orden?.hojaServicio?.fotoInicialUrl,
-    orden?.hojaServicio?.fotoFinalUrl,
-    orden?.hojaServicio?.fotoAntesUrl,
-    orden?.hojaServicio?.fotoDespuesUrl,
-    detalleExtra?.fotoInicialUrl,
-    detalleExtra?.fotoFinalUrl,
-  ].filter((url, index, arr): url is string => Boolean(url && url.trim() && arr.indexOf(url) === index));
+  const fotosEvidencia: string[] = useMemo(() => {
+    // 1. Evidencias del servidor (detalleExtra o orden)
+    if (detalleExtra?.fotosEvidencia && detalleExtra.fotosEvidencia.length > 0) {
+      return Array.from(new Set(detalleExtra.fotosEvidencia.filter(Boolean)));
+    }
+    if (orden?.hojaServicio?.fotosEvidencia && orden.hojaServicio.fotosEvidencia.length > 0) {
+      return Array.from(new Set(orden.hojaServicio.fotosEvidencia.filter(Boolean)));
+    }
+    if (orden?.fotosEvidencia && orden.fotosEvidencia.length > 0) {
+      return Array.from(new Set(orden.fotosEvidencia.filter(Boolean)));
+    }
+
+    const fallback = [
+      detalleExtra?.fotoInicialUrl || orden?.hojaServicio?.fotoInicialUrl || orden?.fotoInicialUrl,
+      detalleExtra?.fotoFinalUrl || orden?.hojaServicio?.fotoFinalUrl || orden?.fotoFinalUrl,
+    ].filter(Boolean) as string[];
+
+    return Array.from(new Set(fallback));
+  }, [detalleExtra, orden]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-2 print:p-0 print:bg-white animate-in fade-in">
