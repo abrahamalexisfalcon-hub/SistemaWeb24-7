@@ -58,6 +58,13 @@ export const initOneSignal = (usuarioId?: number | string) => {
 
       if (usuarioId && OneSignal.Notifications?.permission) {
         await safeLogin(OneSignal, usuarioId);
+        if (
+          localStorage.getItem('notificaciones_activas') !== 'false' &&
+          OneSignal.User?.PushSubscription?.optIn &&
+          !OneSignal.User?.PushSubscription?.optedIn
+        ) {
+          await OneSignal.User.PushSubscription.optIn();
+        }
       }
     } catch (err) {
       console.error("[OneSignal] Error al inicializar:", err);
