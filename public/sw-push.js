@@ -24,7 +24,7 @@ self.addEventListener('push', function (event) {
     body: data.body || 'Tienes un nuevo servicio pendiente de atención.',
     icon: '/logo-192.png',
     badge: '/logo-192.png',
-    vibrate: [200, 100, 200, 100, 400], // Patrón de vibración táctil
+    vibrate: [300, 100, 300, 100, 400], // Patrón de vibración táctil
     tag: data.tag || 'orden-servicio',
     renotify: true,
     requireInteraction: true, // Se mantiene visible hasta que el usuario interactúe

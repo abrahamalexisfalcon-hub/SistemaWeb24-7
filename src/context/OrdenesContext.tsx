@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { tecnicoApi } from '../api';
 import type { OrdenResumenTecnico, PerfilTecnico } from '../types';
 import { notificarNuevaOrden, playChime } from '../utils/notifications';
+import { suscribirDispositivoPush, desuscribirDispositivoPush } from '../services/pushService';
 import { toast } from 'sonner';
 
 interface OrdenesContextType {
@@ -237,21 +238,51 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
         try {
           const res = await Notification.requestPermission();
           if (res === 'denied') {
-            toast.warning('Permiso denegado por el navegador. Las notificaciones se mostrarán dentro de la app.');
+            toast.warning('Permiso del navegador denegado. Las notificaciones se mostrarán dentro de la app.');
           }
         } catch {}
       }
       localStorage.setItem('notificaciones_activas', 'true');
       setNotificacionesActivas(true);
-      toast.success('Notificaciones en tiempo real activadas');
+
+      let pushSuscrito = false;
+      try {
+        pushSuscrito = await suscribirDispositivoPush(user?.usuarioId);
+      } catch (err) {
+        console.warn('Registro Web Push omitido o no compatible:', err);
+      }
+
+      if (pushSuscrito) {
+        toast.success('Notificaciones en tiempo real y segundo plano activadas');
+      } else {
+        toast.success('Notificaciones en tiempo real activadas');
+      }
       return true;
     } else {
       localStorage.setItem('notificaciones_activas', 'false');
       setNotificacionesActivas(false);
+      try {
+        await desuscribirDispositivoPush(user?.usuarioId);
+      } catch (err) {
+        console.warn('Desuscripción Web Push omitida:', err);
+      }
       toast.info('Notificaciones pausadas');
       return false;
     }
-  }, [notificacionesActivas]);
+  }, [notificacionesActivas, user?.usuarioId]);
+
+  // Sincronización silenciosa de Web Push en segundo plano si los permisos ya están concedidos
+  useEffect(() => {
+    if (
+      user?.usuarioId &&
+      notificacionesActivas &&
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission === 'granted'
+    ) {
+      suscribirDispositivoPush(user.usuarioId).catch(() => {});
+    }
+  }, [user?.usuarioId, notificacionesActivas]);
 
   // Conexión en tiempo real instantánea vía Server-Sent Events (SSE) (0 a 1s)
   useEffect(() => {
