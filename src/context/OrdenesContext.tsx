@@ -2,12 +2,16 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAuth } from './AuthContext';
 import { tecnicoApi } from '../api';
 import type { OrdenResumenTecnico, PerfilTecnico } from '../types';
+import { notificarNuevaOrden } from '../utils/notifications';
+import { toast } from 'sonner';
 
 interface OrdenesContextType {
   ordenes: OrdenResumenTecnico[];
   perfil: PerfilTecnico | null;
   loading: boolean;
   isFetching: boolean;
+  hasError: boolean;
+  errorMessage: string | null;
   lastFetched: number | null;
   cargarOrdenes: (force?: boolean) => Promise<void>;
   refrescar: () => Promise<void>;
@@ -28,12 +32,16 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [perfil, setPerfil] = useState<PerfilTecnico | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isFetching, setIsFetching] = useState<boolean>(false);
+  const [hasError, setHasError] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
 
   // Referencias para evitar condiciones de carrera en peticiones concurrentes
   const fetchingRef = useRef(false);
   const lastFetchedRef = useRef<number | null>(null);
   const lastUserIdRef = useRef<number | null>(null);
+  const knownOrderIdsRef = useRef<Set<number>>(new Set());
+  const isFirstLoadRef = useRef(true);
   const ordenesRef = useRef<OrdenResumenTecnico[]>([]);
   ordenesRef.current = ordenes;
 
@@ -64,6 +72,10 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setPerfil(null);
         lastFetchedRef.current = null;
         setLastFetched(null);
+        knownOrderIdsRef.current = new Set();
+        isFirstLoadRef.current = true;
+        setHasError(false);
+        setErrorMessage(null);
         force = true;
       }
 
@@ -81,7 +93,7 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (fetchingRef.current) return;
       fetchingRef.current = true;
 
-      // 4. Solo mostrar spinner en la carga inicial cuando no existen datos previos en memoria
+      // 4. Solo mostrar loading inicial cuando no existen datos previos en memoria
       if (!yaCargado) {
         setLoading(true);
       } else {
@@ -98,14 +110,43 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ]);
 
         if (resOrdenes.status === 'fulfilled' && Array.isArray(resOrdenes.value)) {
-          // Asignar fielmente las órdenes del técnico autenticado (incluso si la lista viene vacía)
-          const mapeadas = resOrdenes.value.map((o) =>
+          const nuevasOrdenes = resOrdenes.value;
+          // Asignar fielmente las órdenes del técnico autenticado
+          const mapeadas = nuevasOrdenes.map((o) =>
             finalizadasIds.includes(o.id) ? { ...o, estado: 'FINALIZADA' as const } : o
           );
+
+          // Detectar nuevas órdenes asignadas para emitir toast visible + chime
+          if (!isFirstLoadRef.current) {
+            nuevasOrdenes.forEach((orden) => {
+              if (
+                !knownOrderIdsRef.current.has(orden.id) &&
+                (orden.estado === 'PENDIENTE' || (orden.estado as string) === 'ASIGNADA')
+              ) {
+                notificarNuevaOrden(orden.codigoOrden, orden.tipoServicio);
+              }
+            });
+          } else {
+            isFirstLoadRef.current = false;
+          }
+
+          // Registrar identificadores conocidos
+          nuevasOrdenes.forEach((o) => knownOrderIdsRef.current.add(o.id));
+
           setOrdenes(mapeadas);
-        } else if (resOrdenes.status === 'rejected' && !yaCargado) {
-          // Si falló la petición de red y no había datos, dejar lista vacía (sin contaminar con datos mock de otro técnico)
-          setOrdenes([]);
+          setHasError(false);
+          setErrorMessage(null);
+        } else if (resOrdenes.status === 'rejected') {
+          setHasError(true);
+          setErrorMessage('No pudimos sincronizar la información');
+          if (yaCargado) {
+            toast.warning('Modo fuera de línea: Mostrando órdenes guardadas en memoria.', {
+              id: 'offline-warning',
+              duration: 3500,
+            });
+          } else {
+            setOrdenes([]);
+          }
         }
 
         if (resPerfil.status === 'fulfilled' && resPerfil.value) {
@@ -114,8 +155,10 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         lastFetchedRef.current = Date.now();
         setLastFetched(lastFetchedRef.current);
-      } catch (err) {
+      } catch (err: unknown) {
         console.warn('Carga de órdenes en segundo plano:', err);
+        setHasError(true);
+        setErrorMessage('No pudimos sincronizar la información');
         if (!yaCargado) {
           setOrdenes([]);
         }
@@ -180,6 +223,19 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [user, cargarOrdenes]);
 
+  // Sondeo en segundo plano (polling cada 35 segundos si la pestaña está activa)
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        cargarOrdenes(true);
+      }
+    }, 35000);
+
+    return () => clearInterval(interval);
+  }, [user, cargarOrdenes]);
+
   return (
     <OrdenesContext.Provider
       value={{
@@ -187,6 +243,8 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
         perfil,
         loading,
         isFetching,
+        hasError,
+        errorMessage,
         lastFetched,
         cargarOrdenes,
         refrescar,

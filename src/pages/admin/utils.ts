@@ -1,45 +1,8 @@
 import type { OrdenDetalleAdmin, EstadoOrden } from '../../types';
+import { formatearFechaOrden } from '../../utils/dateFormatter';
 
 export function formatearFechaHora(fechaRaw?: string | null): string {
-  if (!fechaRaw) return 'Hoy, 10:30 AM';
-  try {
-    const rawLower = fechaRaw.toLowerCase();
-    if (rawLower.includes('hoy') || rawLower.includes('ayer')) {
-      return fechaRaw;
-    }
-    const fecha = new Date(fechaRaw);
-    if (isNaN(fecha.getTime())) return fechaRaw;
-
-    const ahora = new Date();
-    const esHoy =
-      fecha.getDate() === ahora.getDate() &&
-      fecha.getMonth() === ahora.getMonth() &&
-      fecha.getFullYear() === ahora.getFullYear();
-
-    const ayer = new Date();
-    ayer.setDate(ahora.getDate() - 1);
-    const esAyer =
-      fecha.getDate() === ayer.getDate() &&
-      fecha.getMonth() === ayer.getMonth() &&
-      fecha.getFullYear() === ayer.getFullYear();
-
-    const hora = fecha.toLocaleTimeString('es-PE', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-
-    if (esHoy) return `Hoy, ${hora}`;
-    if (esAyer) return `Ayer, ${hora}`;
-
-    const fechaCorta = fecha.toLocaleDateString('es-PE', {
-      day: '2-digit',
-      month: 'short',
-    });
-    return `${fechaCorta}, ${hora}`;
-  } catch {
-    return fechaRaw;
-  }
+  return formatearFechaOrden(fechaRaw);
 }
 
 export const getBadgeConfig = (estado: EstadoOrden) => {

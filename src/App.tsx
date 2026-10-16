@@ -14,6 +14,7 @@ import {
   Historial,
   Perfil,
 } from './pages';
+import { Toaster } from 'sonner';
 import './App.css';
 
 const HomeRedirect: React.FC = () => {
@@ -43,6 +44,15 @@ export const App: React.FC = () => {
     <AuthProvider>
       <OrdenesProvider>
         <BrowserRouter>
+          <Toaster
+            position="top-right"
+            richColors
+            closeButton
+            duration={3500}
+            toastOptions={{
+              className: 'font-sans text-xs shadow-lg rounded-xl',
+            }}
+          />
           <Routes>
           {/* Ruta pública de Login con diseño Figma */}
           <Route path="/login" element={<Login />} />

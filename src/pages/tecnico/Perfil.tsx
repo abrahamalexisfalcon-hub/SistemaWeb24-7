@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { tecnicoApi } from '../../api';
 import { TecnicoLayout, SignaturePad, type SignaturePadRef } from '../../components/tecnico';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import type { PerfilTecnico } from '../../types';
 import {
   User,
@@ -14,11 +15,16 @@ import {
   PenTool,
   Check,
   Edit3,
-  AlertCircle
+  AlertCircle,
+  Bell,
+  BellRing
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { usePushNotifications } from '../../hooks';
 
 export const Perfil: React.FC = () => {
   const { user, logout } = useAuth();
+  const { soportado, permiso, suscrito, cargando: pushCargando, solicitarPermisoYSuscribir } = usePushNotifications();
 
   const [perfil, setPerfil] = useState<PerfilTecnico | null>(null);
   const [disponible, setDisponible] = useState<boolean>(user?.disponible ?? true);
@@ -31,6 +37,7 @@ export const Perfil: React.FC = () => {
   const [guardandoFirma, setGuardandoFirma] = useState<boolean>(false);
   const [errorFirma, setErrorFirma] = useState<string | null>(null);
   const [exitoFirma, setExitoFirma] = useState<string | null>(null);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState<boolean>(false);
 
   // Cargar datos del perfil operativo al montar o al cambiar de usuario
   useEffect(() => {
@@ -77,8 +84,14 @@ export const Perfil: React.FC = () => {
         setDisponible(data.disponible);
         setPerfil((prev) => (prev ? { ...prev, disponible: data.disponible } : null));
       }
+      toast.success(
+        nuevoEstado
+          ? 'Disponibilidad activada: Listo para recibir órdenes'
+          : 'Disponibilidad pausada: No recibirás nuevas asignaciones'
+      );
     } catch (error) {
       console.error('Error al actualizar disponibilidad con el backend:', error);
+      toast.error('No se pudo sincronizar la disponibilidad con el servidor');
     } finally {
       setActualizando(false);
     }
@@ -89,6 +102,7 @@ export const Perfil: React.FC = () => {
     const dataUrl = sigPadRef.current?.getSignature();
     if (!dataUrl || sigPadRef.current?.isEmpty()) {
       setErrorFirma('Por favor dibuja tu firma en el recuadro antes de guardar.');
+      toast.error('Dibuja tu firma antes de guardar');
       return;
     }
 
@@ -117,11 +131,13 @@ export const Perfil: React.FC = () => {
 
       setEditandoFirma(false);
       setExitoFirma('Firma digital guardada correctamente.');
+      toast.success('Firma digital guardada y sincronizada correctamente');
       setTimeout(() => setExitoFirma(null), 4000);
     } catch (err: any) {
       console.error('Error guardando firma:', err);
       const msg = err?.response?.data?.message || err?.message || 'No se pudo guardar la firma. Verifica tu conexión.';
       setErrorFirma(msg);
+      toast.error(msg);
     } finally {
       setGuardandoFirma(false);
     }
@@ -186,6 +202,44 @@ export const Perfil: React.FC = () => {
                 }`}
               />
             </button>
+          </div>
+        </div>
+
+        {/* Módulo: Notificaciones con Pantalla Bloqueada (Web Push Nativas) */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <Bell className={`w-4 h-4 ${permiso === 'granted' && suscrito ? 'text-emerald-500' : 'text-slate-400'}`} />
+                <h3 className="font-extrabold text-slate-900 text-sm">
+                  Notificaciones con pantalla bloqueada
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 pl-6">
+                Recibe alertas sonoras incluso con el teléfono apagado
+              </p>
+            </div>
+
+            {/* Estado o Botón de activación */}
+            {permiso === 'granted' && suscrito ? (
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 flex-shrink-0">
+                <Check className="w-3.5 h-3.5 stroke-[3]" /> Activo
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => solicitarPermisoYSuscribir(user?.usuarioId)}
+                disabled={pushCargando || !soportado}
+                className="py-2 px-3.5 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-95 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 flex-shrink-0"
+              >
+                {pushCargando ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <BellRing className="w-3.5 h-3.5" />
+                )}
+                <span>{permiso === 'denied' ? 'Bloqueado en SO' : 'Activar'}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -366,13 +420,26 @@ export const Perfil: React.FC = () => {
         {/* Botón Cerrar Sesión */}
         <div className="pt-1">
           <button
-            onClick={logout}
-            className="w-full py-4 px-4 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-2xl font-extrabold text-sm shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
+            type="button"
+            onClick={() => setLogoutDialogOpen(true)}
+            className="w-full min-h-[52px] py-4 px-4 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 active:scale-[0.99] rounded-2xl font-extrabold text-sm shadow-sm transition-all flex items-center justify-center gap-2 focus:outline-none"
           >
             <LogOut className="w-4 h-4" />
             <span>Cerrar Sesión</span>
           </button>
         </div>
+
+        {/* Modal de confirmación para cerrar sesión */}
+        <ConfirmDialog
+          isOpen={logoutDialogOpen}
+          title="¿Cerrar Sesión?"
+          message="Tendrás que ingresar tus credenciales nuevamente para acceder al panel técnico."
+          confirmLabel="Sí, Cerrar Sesión"
+          cancelLabel="Cancelar"
+          variant="danger"
+          onConfirm={logout}
+          onCancel={() => setLogoutDialogOpen(false)}
+        />
 
         {/* Versión discreta al pie */}
         <div className="text-center pt-1 pb-3">

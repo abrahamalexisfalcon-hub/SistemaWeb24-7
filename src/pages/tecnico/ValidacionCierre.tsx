@@ -4,8 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useOrdenes } from '../../context/OrdenesContext';
 import { tecnicoApi } from '../../api';
 import { TecnicoLayout, OrderStepper, SignaturePad, type SignaturePadRef } from '../../components/tecnico';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { comprimirImagen } from '../../utils/imageCompressor';
 import type { OrdenResumenTecnico, CierreHojaServicioRequest } from '../../types';
-import { ChevronLeft, Camera, Star, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Camera, Star, AlertCircle, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const ValidacionCierre: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,28 +35,43 @@ export const ValidacionCierre: React.FC = () => {
   // Evidencias fotográficas (captura / preview)
   const [fotoInicial, setFotoInicial] = useState<string | null>(null);
   const [fotoFinal, setFotoFinal] = useState<string | null>(null);
+  const [comprimiendoInicial, setComprimiendoInicial] = useState<boolean>(false);
+  const [comprimiendoFinal, setComprimiendoFinal] = useState<boolean>(false);
 
   // Calificaciones
   const [califPuntualidad, setCalifPuntualidad] = useState(5);
   const [califSolucion, setCalifSolucion] = useState(5);
 
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fileInputInicialRef = useRef<HTMLInputElement>(null);
   const fileInputFinalRef = useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = (
+  const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    setter: (url: string) => void
+    setter: (url: string) => void,
+    setLoadingState: (loading: boolean) => void,
+    tipo: 'inicial' | 'final'
   ) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setter(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setLoadingState(true);
+    try {
+      const { base64Url, pesoOriginalKB, pesoFinalKB } = await comprimirImagen(file);
+      setter(base64Url);
+      toast.success(
+        `Foto ${tipo === 'inicial' ? 'inicial' : 'final'} optimizada (${pesoOriginalKB} KB → ${pesoFinalKB} KB)`,
+        { duration: 3000 }
+      );
+    } catch (err) {
+      console.warn('Error al procesar la imagen:', err);
+      toast.error('No se pudo procesar la imagen seleccionada');
+    } finally {
+      setLoadingState(false);
+      e.target.value = '';
     }
   };
 
@@ -96,8 +114,16 @@ export const ValidacionCierre: React.FC = () => {
     return undefined;
   })();
 
-  const handleFinalizar = async (e: React.FormEvent) => {
+  const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (sigPadRef.current?.isEmpty()) {
+      toast.error('Por favor solicita la firma del afiliado antes de finalizar.');
+      return;
+    }
+    setConfirmDialogOpen(true);
+  };
+
+  const handleFinalizar = async () => {
     setError(null);
     setSubmitting(true);
 
@@ -227,6 +253,9 @@ export const ValidacionCierre: React.FC = () => {
           },
         },
       });
+
+      toast.success('¡Servicio finalizado con éxito!');
+      setConfirmDialogOpen(false);
     } catch (err: any) {
       console.error('Error al cerrar la orden en el servidor:', err);
       const errorMsg =
@@ -235,6 +264,7 @@ export const ValidacionCierre: React.FC = () => {
         err?.message ||
         'No se pudo completar el cierre en el servidor. Verifica tu conexión e inténtalo de nuevo.';
       setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -249,7 +279,8 @@ export const ValidacionCierre: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(`/tecnico/ordenes/${id}/atencion`, { state: { orden } })}
-            className="p-1 -ml-1 text-slate-800 hover:text-[#0ea5e9] transition-colors"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 text-slate-800 hover:text-[#0ea5e9] transition-colors rounded-full focus:outline-none"
+            aria-label="Volver"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -262,7 +293,7 @@ export const ValidacionCierre: React.FC = () => {
         <OrderStepper currentStep={3} />
 
         {/* Tarjeta de Validación y Cierre */}
-        <form onSubmit={handleFinalizar} className="space-y-4">
+        <form onSubmit={handlePreSubmit} className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-5">
             {error && (
               <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
@@ -293,25 +324,32 @@ export const ValidacionCierre: React.FC = () => {
               <input
                 type="file"
                 accept="image/*"
+                capture="environment"
                 ref={fileInputInicialRef}
                 className="hidden"
-                onChange={(e) => handleImageUpload(e, setFotoInicial)}
+                onChange={(e) => handleImageUpload(e, setFotoInicial, setComprimiendoInicial, 'inicial')}
               />
               <input
                 type="file"
                 accept="image/*"
+                capture="environment"
                 ref={fileInputFinalRef}
                 className="hidden"
-                onChange={(e) => handleImageUpload(e, setFotoFinal)}
+                onChange={(e) => handleImageUpload(e, setFotoFinal, setComprimiendoFinal, 'final')}
               />
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Cuadro Foto Inicial */}
                 <div
-                  onClick={() => fileInputInicialRef.current?.click()}
-                  className="h-28 rounded-2xl border border-dashed border-slate-300 hover:border-[#0ea5e9] bg-slate-50/70 hover:bg-sky-50/40 flex flex-col items-center justify-center p-3 cursor-pointer transition-all overflow-hidden relative"
+                  onClick={() => !comprimiendoInicial && fileInputInicialRef.current?.click()}
+                  className="min-h-[110px] h-28 rounded-2xl border border-dashed border-slate-300 hover:border-[#0ea5e9] bg-slate-50/70 hover:bg-sky-50/40 flex flex-col items-center justify-center p-3 cursor-pointer transition-all overflow-hidden relative"
                 >
-                  {fotoInicial ? (
+                  {comprimiendoInicial ? (
+                    <div className="flex flex-col items-center gap-1.5 text-[#0ea5e9]">
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span className="text-[11px] font-bold">Optimizando...</span>
+                    </div>
+                  ) : fotoInicial ? (
                     <img src={fotoInicial} alt="Foto inicial" className="w-full h-full object-cover rounded-xl" />
                   ) : (
                     <>
@@ -325,10 +363,15 @@ export const ValidacionCierre: React.FC = () => {
 
                 {/* Cuadro Foto Final */}
                 <div
-                  onClick={() => fileInputFinalRef.current?.click()}
-                  className="h-28 rounded-2xl border border-dashed border-slate-300 hover:border-[#0ea5e9] bg-slate-50/70 hover:bg-sky-50/40 flex flex-col items-center justify-center p-3 cursor-pointer transition-all overflow-hidden relative"
+                  onClick={() => !comprimiendoFinal && fileInputFinalRef.current?.click()}
+                  className="min-h-[110px] h-28 rounded-2xl border border-dashed border-slate-300 hover:border-[#0ea5e9] bg-slate-50/70 hover:bg-sky-50/40 flex flex-col items-center justify-center p-3 cursor-pointer transition-all overflow-hidden relative"
                 >
-                  {fotoFinal ? (
+                  {comprimiendoFinal ? (
+                    <div className="flex flex-col items-center gap-1.5 text-[#0ea5e9]">
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span className="text-[11px] font-bold">Optimizando...</span>
+                    </div>
+                  ) : fotoFinal ? (
                     <img src={fotoFinal} alt="Foto final" className="w-full h-full object-cover rounded-xl" />
                   ) : (
                     <>
@@ -351,16 +394,17 @@ export const ValidacionCierre: React.FC = () => {
               {/* Fila 1: Presentación y puntualidad */}
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-slate-700">Presentación y puntualidad</span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       type="button"
                       onClick={() => setCalifPuntualidad(star)}
-                      className="p-0.5 text-amber-400 hover:scale-110 transition-transform"
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 text-amber-400 hover:scale-110 active:scale-90 transition-transform focus:outline-none"
+                      aria-label={`Calificar puntualidad con ${star} estrellas`}
                     >
                       <Star
-                        className={`w-4 h-4 ${
+                        className={`w-5 h-5 ${
                           star <= califPuntualidad ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
                         }`}
                       />
@@ -372,16 +416,17 @@ export const ValidacionCierre: React.FC = () => {
               {/* Fila 2: Trabajo y solución brindada */}
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-slate-700">Trabajo y solución brindada</span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       type="button"
                       onClick={() => setCalifSolucion(star)}
-                      className="p-0.5 text-amber-400 hover:scale-110 transition-transform"
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 text-amber-400 hover:scale-110 active:scale-90 transition-transform focus:outline-none"
+                      aria-label={`Calificar solución con ${star} estrellas`}
                     >
                       <Star
-                        className={`w-4 h-4 ${
+                        className={`w-5 h-5 ${
                           star <= califSolucion ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
                         }`}
                       />
@@ -405,21 +450,38 @@ export const ValidacionCierre: React.FC = () => {
             </div>
           </div>
 
-          {/* Botón Primario: Finalizar Orden */}
+          {/* Botón Primario: Finalizar y Cerrar Orden */}
           <div className="pt-2">
             <button
               type="submit"
-              disabled={submitting}
-              className="w-full py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all disabled:opacity-50 flex items-center justify-center"
+              disabled={submitting || comprimiendoInicial || comprimiendoFinal}
+              className="w-full min-h-[52px] py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none"
             >
               {submitting ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin text-white" />
+                  <span>Procesando cierre...</span>
+                </>
               ) : (
-                'Finalizar Orden'
+                'Finalizar y Cerrar Orden'
               )}
             </button>
           </div>
         </form>
+
+        {/* Modal de confirmación para acción crítica */}
+        <ConfirmDialog
+          isOpen={confirmDialogOpen}
+          title="¿Finalizar y cerrar orden de trabajo?"
+          message="Se generará la hoja de servicio oficial con las firmas y evidencias fotográficas registradas. Esta acción concluirá el servicio formalmente."
+          confirmLabel="Sí, Finalizar Orden"
+          cancelLabel="Cancelar"
+          variant="primary"
+          isLoading={submitting}
+          loadingLabel="Procesando cierre..."
+          onConfirm={handleFinalizar}
+          onCancel={() => !submitting && setConfirmDialogOpen(false)}
+        />
       </div>
     </TecnicoLayout>
   );

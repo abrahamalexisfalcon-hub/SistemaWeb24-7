@@ -6,6 +6,8 @@ import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import wazeColorSvg from '../../assets/thesvg-color_waze.svg';
 import type { OrdenResumenTecnico } from '../../types';
 import { ChevronLeft, MapPin, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import { formatearFechaOrden } from '../../utils/dateFormatter';
 
 export const OrdenDetalle: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,7 +42,7 @@ export const OrdenDetalle: React.FC = () => {
               direccion: 'Av. Central 120',
               referencia: 'Altura del Parque El Huerto',
               distrito: 'Villa El Salvador',
-              fechaProgramada: 'Hoy, 10:30 AM',
+              fechaProgramada: new Date().toISOString(),
             });
           }
         })
@@ -56,7 +58,7 @@ export const OrdenDetalle: React.FC = () => {
             direccion: 'Av. Central 120',
             referencia: 'Altura del Parque El Huerto',
             distrito: 'Villa El Salvador',
-            fechaProgramada: 'Hoy, 10:30 AM',
+            fechaProgramada: new Date().toISOString(),
           });
         })
         .finally(() => setLoading(false));
@@ -68,8 +70,10 @@ export const OrdenDetalle: React.FC = () => {
     setConfirming(true);
     try {
       await tecnicoApi.marcarLlegada(orden.id);
+      toast.success('Llegada confirmada con éxito');
     } catch (err) {
       console.warn('Registro de llegada simulado (backend en pruebas o local):', err);
+      toast.info('Llegada registrada localmente');
     } finally {
       setConfirming(false);
       // Navegar a la pantalla 4: Formulario de Atención Técnica
@@ -111,7 +115,8 @@ export const OrdenDetalle: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/tecnico/ordenes')}
-            className="p-1 -ml-1 text-slate-800 hover:text-[#0ea5e9] transition-colors"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 text-slate-800 hover:text-[#0ea5e9] transition-colors rounded-full focus:outline-none"
+            aria-label="Volver al listado"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -134,7 +139,7 @@ export const OrdenDetalle: React.FC = () => {
               {orden?.tipoServicio || 'Mantenimiento Eléctrico Preventivo'}
             </h2>
             <p className="text-xs text-slate-500 mt-1">
-              Servicio: Electricidad | {orden?.fechaProgramada || 'Hoy, 10:30 AM'}
+              Servicio: Electricidad | {formatearFechaOrden(orden?.fechaProgramada || orden?.fechaCreacion || orden?.fechaAsignacion)}
             </p>
           </div>
 
@@ -176,7 +181,7 @@ export const OrdenDetalle: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenWaze}
-              className="w-full py-3 px-4 border border-sky-200 text-[#0ea5e9] bg-sky-50/50 hover:bg-sky-100/60 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+              className="w-full min-h-[48px] py-3 px-4 border border-sky-200 text-[#0ea5e9] bg-sky-50/50 hover:bg-sky-100/60 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99] focus:outline-none"
             >
               <img src={wazeColorSvg} alt="Waze" className="w-[18px] h-[18px] object-contain" />
               <span>Abrir ruta en Waze</span>
@@ -190,10 +195,13 @@ export const OrdenDetalle: React.FC = () => {
             type="button"
             onClick={handleConfirmarLlegada}
             disabled={confirming}
-            className="w-full py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all disabled:opacity-50 flex items-center justify-center"
+            className="w-full min-h-[52px] py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none"
           >
             {confirming ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <>
+                <RefreshCw className="w-5 h-5 animate-spin text-white" />
+                <span>Registrando llegada...</span>
+              </>
             ) : (
               'Confirmar Llegada al Domicilio'
             )}

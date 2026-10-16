@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Shield, LogOut } from 'lucide-react';
 
 interface PerfilAdminModalProps {
@@ -16,9 +17,19 @@ export const PerfilAdminModal: React.FC<PerfilAdminModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 border border-slate-100">
+  const modalElement = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+      {/* Backdrop anclado al viewport */}
+      <div
+        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs animate-in fade-in"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <div
+        className="relative z-[101] bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 border border-slate-100 my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
           <span className="font-black text-lg text-slate-900">Perfil Administrador</span>
           <button
@@ -57,4 +68,8 @@ export const PerfilAdminModal: React.FC<PerfilAdminModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalElement, document.body)
+    : modalElement;
 };

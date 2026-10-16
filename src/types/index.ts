@@ -93,6 +93,8 @@ export interface OrdenResumenTecnico {
   dniAfiliado?: string;
   codigoCuenta?: string;
   fechaProgramada?: string;
+  fechaCreacion?: string;
+  fechaAsignacion?: string;
   horaLlegada?: string;
   tecnicoNombre?: string;
   tecnicoFirmaUrl?: string | null;

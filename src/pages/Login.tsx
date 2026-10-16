@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logoBlanco from '../assets/Logo_blanco.png';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
@@ -240,8 +241,8 @@ export const Login: React.FC = () => {
                 </label>
                 <button
                   type="button"
-                  onClick={() => alert('Por favor, contacte al área de soporte o administración para restablecer sus accesos.')}
-                  className="text-sky-400 hover:text-sky-300 hover:underline cursor-pointer"
+                  onClick={() => toast.info('Por favor, contacte al área de soporte o administración para restablecer sus accesos.')}
+                  className="text-sky-400 hover:text-sky-300 hover:underline cursor-pointer focus:outline-none"
                 >
                   ¿Olvidaste tu contraseña?
                 </button>
@@ -251,10 +252,13 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-sky-500/20 transition-all text-sm flex items-center justify-center cursor-pointer disabled:opacity-50 active:scale-[0.99]"
+                className="w-full min-h-[48px] mt-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-sky-500/20 transition-all text-sm flex items-center justify-center cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed active:scale-[0.99] focus:outline-none"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>Iniciando sesión...</span>
+                  </div>
                 ) : (
                   'Login'
                 )}

@@ -4,7 +4,8 @@ import { useOrdenes } from '../../context/OrdenesContext';
 import { TecnicoLayout } from '../../components/tecnico';
 import frame26 from '../../assets/Frame 26.svg';
 import type { OrdenResumenTecnico, EstadoOrden } from '../../types';
-import { Search, MapPin, Clock, User, RefreshCw } from 'lucide-react';
+import { Search, MapPin, Clock, User, RefreshCw, WifiOff } from 'lucide-react';
+import { formatearFechaOrden } from '../../utils/dateFormatter';
 
 export type TabTecnico = 'todas' | 'asignadas' | 'en_proceso';
 
@@ -23,6 +24,8 @@ export const OrdenesList: React.FC = () => {
     ordenes,
     loading,
     isFetching,
+    hasError,
+    errorMessage,
     cargarOrdenes,
     refrescar,
     actualizarOrdenLocal,
@@ -164,14 +167,14 @@ export const OrdenesList: React.FC = () => {
             <button
               onClick={() => refrescar()}
               disabled={isFetching}
-              className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-600 transition-all"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-600 transition-all focus:outline-none"
               title="Recargar órdenes"
             >
               <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin text-[#0ea5e9]' : ''}`} />
             </button>
             <button
               onClick={() => navigate('/tecnico/perfil')}
-              className="w-10 h-10 rounded-full bg-slate-200/80 flex items-center justify-center text-slate-800 hover:bg-slate-300 transition-colors"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-slate-200/80 flex items-center justify-center text-slate-800 hover:bg-slate-300 transition-colors focus:outline-none"
               title="Mi Perfil"
             >
               <User className="w-5 h-5 fill-slate-800 stroke-none" />
@@ -189,7 +192,7 @@ export const OrdenesList: React.FC = () => {
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar órden, cliente..."
-            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200/80 rounded-2xl text-sm text-slate-800 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0ea5e9]"
+            className="w-full min-h-[44px] pl-11 pr-4 py-3 bg-white border border-slate-200/80 rounded-2xl text-sm text-slate-800 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0ea5e9]"
           />
         </div>
 
@@ -202,7 +205,7 @@ export const OrdenesList: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => cambiarTab(tab.id)}
-                className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-colors duration-200 flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${
+                className={`min-h-[44px] py-2.5 px-2 rounded-xl text-xs font-bold transition-colors duration-200 flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${
                   activo
                     ? 'bg-[#0ea5e9] text-white shadow-sky-500/20'
                     : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
@@ -224,10 +227,52 @@ export const OrdenesList: React.FC = () => {
         {/* Contenedor de Órdenes */}
         <div className="space-y-3 pb-6">
           {loading && ordenes.length === 0 ? (
-            /* Solo se muestra en la primera carga inicial cuando no hay datos en memoria */
-            <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
-              <RefreshCw className="w-8 h-8 animate-spin text-[#0ea5e9]" />
-              <p className="text-xs font-semibold">Cargando órdenes de trabajo...</p>
+            /* Skeletons pulsantes en primera carga para eliminar parpadeos */
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3 animate-pulse"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-28 bg-slate-200 rounded-md" />
+                    <div className="h-5 w-20 bg-slate-200 rounded-full" />
+                  </div>
+                  <div className="h-5 w-3/4 bg-slate-200 rounded-md" />
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="h-4 w-1/2 bg-slate-200 rounded-md" />
+                    <div className="h-6 w-6 bg-slate-200 rounded-full" />
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div className="h-3.5 w-24 bg-slate-200 rounded-md" />
+                    <div className="h-3.5 w-32 bg-slate-200 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : hasError && ordenes.length === 0 ? (
+            /* Degradación elegante ante fallos de conexión sin datos en memoria */
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center space-y-4 shadow-sm my-2">
+              <div className="w-14 h-14 mx-auto rounded-full bg-rose-50 flex items-center justify-center text-rose-500 ring-8 ring-rose-50/50">
+                <WifiOff className="w-7 h-7" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-slate-800 text-base">
+                  No pudimos sincronizar la información
+                </h3>
+                <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                  {errorMessage || 'Verifica tu conexión a internet o cobertura móvil en la zona.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => refrescar()}
+                disabled={isFetching}
+                className="inline-flex items-center justify-center gap-2 min-h-[48px] px-6 py-3 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-95 text-white font-bold text-sm rounded-xl shadow-md shadow-sky-500/20 transition-all disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                <span>Reintentar conexión</span>
+              </button>
             </div>
           ) : ordenesFiltradas.length === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-400 space-y-2">
@@ -287,7 +332,7 @@ export const OrdenesList: React.FC = () => {
                       onClick={(e) => handleOpenWaze(e, orden)}
                       title="Abrir ruta en Waze"
                       aria-label="Abrir ruta en Waze"
-                      className="flex-shrink-0 rounded-full hover:scale-110 active:scale-90 transition-transform focus:outline-none"
+                      className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:scale-110 active:scale-90 transition-transform focus:outline-none"
                     >
                       <img src={frame26} alt="Waze" className="w-[26px] h-[26px] object-contain" />
                     </button>
@@ -297,7 +342,7 @@ export const OrdenesList: React.FC = () => {
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span>{orden.fechaProgramada || 'Hoy, 10:30 AM'}</span>
+                      <span>{formatearFechaOrden(orden.fechaProgramada || orden.fechaCreacion || orden.fechaAsignacion)}</span>
                     </div>
                     <span
                       className="font-semibold text-[#0ea5e9] truncate max-w-[180px] text-right"

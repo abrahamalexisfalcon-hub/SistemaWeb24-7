@@ -19,16 +19,17 @@ function calificacionLabel(value: number): 'Excelente' | 'Regular' | 'Malo' {
 }
 
 function formatFecha(fechaStr?: string): string {
-  if (!fechaStr) {
-    const d = new Date();
-    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-  }
   try {
-    const d = new Date(fechaStr);
-    if (isNaN(d.getTime())) return fechaStr;
-    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    const d = fechaStr ? new Date(fechaStr) : new Date();
+    if (isNaN(d.getTime())) return fechaStr || '';
+    return new Intl.DateTimeFormat('es-PE', {
+      timeZone: 'America/Lima',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(d);
   } catch {
-    return fechaStr;
+    return fechaStr || '';
   }
 }
 

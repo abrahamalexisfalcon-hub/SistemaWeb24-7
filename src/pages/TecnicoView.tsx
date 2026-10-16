@@ -20,6 +20,7 @@ import {
   Star,
   FileCheck
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const TecnicoView: React.FC = () => {
   const { user } = useAuth();
@@ -67,9 +68,10 @@ export const TecnicoView: React.FC = () => {
     try {
       await tecnicoApi.marcarLlegada(ordenId);
       await fetchTecnicoData();
+      toast.success('Llegada registrada exitosamente');
     } catch (error) {
       console.error('Error al marcar llegada:', error);
-      alert('No se pudo registrar la llegada. Intente nuevamente.');
+      toast.error('No se pudo registrar la llegada. Intente nuevamente.');
     } finally {
       setUpdatingId(null);
     }

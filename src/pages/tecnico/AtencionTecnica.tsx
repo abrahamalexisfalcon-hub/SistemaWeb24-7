@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { catalogoApi, materialApi } from '../../api';
 import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import type { OrdenResumenTecnico, MaterialCatalogo, MaterialConsumido } from '../../types';
-import { ChevronLeft, Plus, Trash2, Minus } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Minus, AlertCircle, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface BorradorAtencion {
   evaluacion: string;
@@ -87,7 +88,6 @@ export const AtencionTecnica: React.FC = () => {
   );
 
   const [catalogo, setCatalogo] = useState<MaterialCatalogo[]>([]);
-  const [toastMensaje, setToastMensaje] = useState<string | null>(null);
 
   // 1 & 2. Clave dinámica por orden y carga del estado inicial desde localStorage
   const ordenId = id || orden?.id || '1';
@@ -132,6 +132,24 @@ export const AtencionTecnica: React.FC = () => {
     return '';
   });
 
+  const [evaluacionTouched, setEvaluacionTouched] = useState<boolean>(false);
+  const [solucionTouched, setSolucionTouched] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+
+  const evaluacionError = useMemo(() => {
+    if (!evaluacionTouched) return null;
+    if (!evaluacion.trim()) return 'La evaluación de la avería es obligatoria.';
+    if (evaluacion.trim().length < 8) return 'Ingresa una descripción más detallada (mínimo 8 caracteres).';
+    return null;
+  }, [evaluacion, evaluacionTouched]);
+
+  const solucionError = useMemo(() => {
+    if (!solucionTouched) return null;
+    if (!solucion.trim()) return 'El detalle de la solución aplicada es obligatorio.';
+    if (solucion.trim().length < 8) return 'Ingresa una descripción más detallada (mínimo 8 caracteres).';
+    return null;
+  }, [solucion, solucionTouched]);
+
   const [materialesSeleccionados, setMaterialesSeleccionados] = useState<
     Array<{ materialId: number | null; descripcion: string; cantidad: number; esPersonalizado: boolean }>
   >(() => {
@@ -149,15 +167,6 @@ export const AtencionTecnica: React.FC = () => {
     return [];
   });
 
-  // Temporizador para ocultar notificación flotante
-  useEffect(() => {
-    if (toastMensaje) {
-      const timer = setTimeout(() => {
-        setToastMensaje(null);
-      }, 3500);
-      return () => clearTimeout(timer);
-    }
-  }, [toastMensaje]);
 
   // 3. Auto-guardado en tiempo real en localStorage (persiste array vacío [] sin cadenas fantasma)
   useEffect(() => {
@@ -276,7 +285,7 @@ export const AtencionTecnica: React.FC = () => {
         .filter((_, idx) => idx !== fromIndex);
     });
 
-    setToastMensaje(`Se sumaron ${cantASumar} unidad(es) a "${targetName}" para evitar duplicados.`);
+    toast.info(`Se sumaron ${cantASumar} unidad(es) a "${targetName}" para evitar duplicados.`);
   };
 
   const handleAddMaterial = () => {
@@ -365,7 +374,7 @@ export const AtencionTecnica: React.FC = () => {
       );
 
       if (!primerDisponible && catalogo.length > 0) {
-        setToastMensaje('Todos los ítems del catálogo ya están seleccionados en la lista.');
+        toast.info('Todos los ítems del catálogo ya están seleccionados en la lista.');
         return;
       }
 
@@ -392,6 +401,21 @@ export const AtencionTecnica: React.FC = () => {
   // 4. Navegación a la siguiente pantalla (Firma y Validación)
   const handleContinuar = (e: React.FormEvent) => {
     e.preventDefault();
+
+    setEvaluacionTouched(true);
+    setSolucionTouched(true);
+
+    if (!evaluacion.trim() || evaluacion.trim().length < 8) {
+      toast.error('Por favor completa la evaluación de la avería antes de continuar.');
+      return;
+    }
+
+    if (!solucion.trim() || solucion.trim().length < 8) {
+      toast.error('Por favor completa el detalle de la solución aplicada antes de continuar.');
+      return;
+    }
+
+    setSubmitting(true);
 
     // Sanitizar cualquier duplicado residual antes de procesar
     const materialesLimpios = sanitizarMateriales(materialesSeleccionados, catalogo);
@@ -442,29 +466,13 @@ export const AtencionTecnica: React.FC = () => {
 
   return (
     <TecnicoLayout activeTab="ordenes">
-      {/* Toast sutil de notificación ante fusiones automáticas */}
-      {toastMensaje && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[90%] bg-slate-900/95 text-white text-xs py-2.5 px-4 rounded-xl shadow-xl flex items-center justify-between gap-2 border border-slate-700 animate-in fade-in slide-in-from-top duration-200">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-emerald-400 font-bold">✓</span>
-            <span className="truncate">{toastMensaje}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setToastMensaje(null)}
-            className="text-slate-400 hover:text-white text-xs font-bold px-1"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       <div className="px-5 pt-5 space-y-4">
         {/* Cabecera con botón atrás y código (los datos no se borran al presionar atrás) */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(`/tecnico/ordenes/${id}`)}
-            className="p-1 -ml-1 text-slate-800 hover:text-[#0ea5e9] transition-colors"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 text-slate-800 hover:text-[#0ea5e9] transition-colors rounded-full focus:outline-none"
+            aria-label="Volver"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -494,32 +502,64 @@ export const AtencionTecnica: React.FC = () => {
 
             {/* EVALUACIÓN */}
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                EVALUACIÓN
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  EVALUACIÓN <span className="text-rose-500">*</span>
+                </label>
+                {evaluacionError && (
+                  <span className="text-[10px] text-rose-500 font-semibold">Obligatorio</span>
+                )}
+              </div>
               <textarea
                 required
                 rows={3}
                 value={evaluacion}
                 onChange={(e) => setEvaluacion(e.target.value)}
+                onBlur={() => setEvaluacionTouched(true)}
                 placeholder="Describe la avería ..."
-                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] resize-none"
+                className={`w-full p-3 bg-white border rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none transition-all ${
+                  evaluacionError
+                    ? 'border-rose-400 ring-1 ring-rose-400 focus:ring-rose-500'
+                    : 'border-slate-200 focus:ring-2 focus:ring-[#0ea5e9]'
+                }`}
               />
+              {evaluacionError && (
+                <p className="text-rose-500 text-xs mt-1 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{evaluacionError}</span>
+                </p>
+              )}
             </div>
 
             {/* DETALLE DE SOLUCIÓN */}
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                DETALLE DE SOLUCIÓN
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  DETALLE DE SOLUCIÓN <span className="text-rose-500">*</span>
+                </label>
+                {solucionError && (
+                  <span className="text-[10px] text-rose-500 font-semibold">Obligatorio</span>
+                )}
+              </div>
               <textarea
                 required
                 rows={3}
                 value={solucion}
                 onChange={(e) => setSolucion(e.target.value)}
+                onBlur={() => setSolucionTouched(true)}
                 placeholder="Detalla la solución aplicada ..."
-                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] resize-none"
+                className={`w-full p-3 bg-white border rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none transition-all ${
+                  solucionError
+                    ? 'border-rose-400 ring-1 ring-rose-400 focus:ring-rose-500'
+                    : 'border-slate-200 focus:ring-2 focus:ring-[#0ea5e9]'
+                }`}
               />
+              {solucionError && (
+                <p className="text-rose-500 text-xs mt-1 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{solucionError}</span>
+                </p>
+              )}
             </div>
 
             {/* MATERIALES EMPLEADOS */}
@@ -726,9 +766,17 @@ export const AtencionTecnica: React.FC = () => {
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center"
+              disabled={submitting}
+              className="w-full min-h-[52px] py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none"
             >
-              Completar Servicio e Ir a Firma
+              {submitting ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin text-white" />
+                  <span>Procesando...</span>
+                </>
+              ) : (
+                'Completar Servicio e Ir a Firma'
+              )}
             </button>
           </div>
         </form>

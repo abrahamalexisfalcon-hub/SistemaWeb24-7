@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Star
 } from 'lucide-react';
+import { formatearFechaOrden } from '../../utils/dateFormatter';
 
 export const Historial: React.FC = () => {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export const Historial: React.FC = () => {
           <button
             onClick={() => refrescar()}
             disabled={isFetching}
-            className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-600 transition-all"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-600 transition-all focus:outline-none"
             title="Recargar historial"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin text-[#0ea5e9]' : ''}`} />
@@ -102,10 +103,25 @@ export const Historial: React.FC = () => {
           </h3>
           <div className="space-y-3 pb-6">
             {loading && ordenesFinalizadas.length === 0 && (!ordenes || ordenes.length === 0) ? (
-              /* Solo se muestra en la primera carga inicial cuando no hay datos en memoria */
-              <div className="py-12 text-center text-slate-400 text-sm flex flex-col items-center justify-center gap-2">
-                <RefreshCw className="w-6 h-6 animate-spin text-[#0ea5e9]" />
-                <span>Cargando historial...</span>
+              /* Skeletons pulsantes en primera carga */
+              <div className="space-y-3">
+                {[1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3 animate-pulse"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 w-28 bg-slate-200 rounded-md" />
+                      <div className="h-5 w-20 bg-slate-200 rounded-full" />
+                    </div>
+                    <div className="h-5 w-3/4 bg-slate-200 rounded-md" />
+                    <div className="h-4 w-1/2 bg-slate-200 rounded-md pt-1" />
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <div className="h-3.5 w-24 bg-slate-200 rounded-md" />
+                      <div className="h-3.5 w-28 bg-slate-200 rounded-md" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : ordenesFinalizadas.length === 0 ? (
               <div className="py-12 text-center bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
@@ -167,7 +183,7 @@ export const Historial: React.FC = () => {
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
                     <div className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{orden.fechaProgramada || 'Hoy, 10:30 AM'}</span>
+                      <span>{formatearFechaOrden(orden.fechaProgramada || orden.fechaCreacion || orden.fechaAsignacion)}</span>
                     </div>
                     <span className="font-semibold text-emerald-600">Completada (100%)</span>
                   </div>

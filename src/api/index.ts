@@ -4,3 +4,4 @@ export * from './tecnicoApi';
 export * from './adminApi';
 export * from './catalogoApi';
 export * from './materialApi';
+export * from './notificacionesApi';
