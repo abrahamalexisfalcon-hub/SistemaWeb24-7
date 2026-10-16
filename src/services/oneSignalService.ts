@@ -6,22 +6,58 @@ declare global {
 
 const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || "32237258-b02d-470e-a80c-9c57fadf03c2";
 let isInitialized = false;
+let foregroundListenerAttached = false;
+let onPushReceivedCallback: ((data: { title?: string; body?: string }) => void) | null = null;
+
+export const setOnPushReceivedCallback = (cb: ((data: { title?: string; body?: string }) => void) | null) => {
+  onPushReceivedCallback = cb;
+};
+
+const safeLogin = async (OneSignal: any, usuarioId?: number | string) => {
+  if (!usuarioId) return;
+  const targetId = String(usuarioId);
+  try {
+    const currentExternalId = OneSignal.User?.externalId;
+    if (currentExternalId !== targetId) {
+      await OneSignal.login(targetId);
+    }
+  } catch (err) {
+    // OneSignal SDK v16 puede lanzar o registrar 409 internamente cuando resuelve un external_id existente
+    console.debug("[OneSignal] Vinculación de external_id procesada:", err);
+  }
+};
 
 export const initOneSignal = (usuarioId?: number | string) => {
-  if (typeof window === 'undefined' || isInitialized) return;
-  isInitialized = true;
+  if (typeof window === 'undefined') return;
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async (OneSignal: any) => {
     try {
-      await OneSignal.init({
-        appId: ONESIGNAL_APP_ID,
-        allowLocalhostAsSecureOrigin: true,
-        notifyButton: { enable: false }
-      });
+      if (!isInitialized) {
+        isInitialized = true;
+        await OneSignal.init({
+          appId: ONESIGNAL_APP_ID,
+          allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: 'OneSignalSDKWorker.js',
+          notifyButton: { enable: false }
+        });
+      }
+
+      if (!foregroundListenerAttached && OneSignal.Notifications?.addEventListener) {
+        foregroundListenerAttached = true;
+        OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event: any) => {
+          const notif = event?.notification;
+          if (onPushReceivedCallback) {
+            onPushReceivedCallback({
+              title: notif?.title,
+              body: notif?.body,
+            });
+          }
+        });
+      }
 
       if (usuarioId && OneSignal.Notifications?.permission) {
-        await OneSignal.login(String(usuarioId));
+        await safeLogin(OneSignal, usuarioId);
       }
     } catch (err) {
       console.error("[OneSignal] Error al inicializar:", err);
@@ -44,6 +80,7 @@ export const toggleNotificacionesPush = async (usuarioId: number | string, activ
           await OneSignal.init({
             appId: ONESIGNAL_APP_ID,
             allowLocalhostAsSecureOrigin: true,
+            serviceWorkerPath: 'OneSignalSDKWorker.js',
             notifyButton: { enable: false }
           });
         }
@@ -58,7 +95,7 @@ export const toggleNotificacionesPush = async (usuarioId: number | string, activ
           }
 
           if (usuarioId) {
-            await OneSignal.login(String(usuarioId));
+            await safeLogin(OneSignal, usuarioId);
           }
 
           if (OneSignal.User?.PushSubscription?.optIn) {
@@ -86,7 +123,7 @@ export const logoutOneSignal = () => {
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async (OneSignal: any) => {
     try {
-      if (OneSignal.logout) {
+      if (OneSignal.logout && OneSignal.User?.externalId) {
         await OneSignal.logout();
       }
     } catch (err) {

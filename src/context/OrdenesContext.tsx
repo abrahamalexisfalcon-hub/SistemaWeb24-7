@@ -2,8 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAuth } from './AuthContext';
 import { tecnicoApi } from '../api';
 import type { OrdenResumenTecnico, PerfilTecnico } from '../types';
-import { notificarNuevaOrden } from '../utils/notifications';
-import { initOneSignal, toggleNotificacionesPush } from '../services/oneSignalService';
+import { notificarNuevaOrden, playChime } from '../utils/notifications';
+import { initOneSignal, toggleNotificacionesPush, setOnPushReceivedCallback } from '../services/oneSignalService';
 import { toast } from 'sonner';
 
 interface OrdenesContextType {
@@ -268,12 +268,23 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [notificacionesActivas, user?.usuarioId]);
 
-  // Inicializar OneSignal con el ID del técnico al montar o autenticar
+  // Inicializar OneSignal con el ID del técnico y escuchar notificaciones en primer plano
   useEffect(() => {
     if (user?.usuarioId) {
       initOneSignal(user.usuarioId);
+      setOnPushReceivedCallback((data) => {
+        playChime();
+        toast.success(data.title || '¡Nueva orden asignada!', {
+          description: data.body || 'Tienes un nuevo servicio pendiente de atención.',
+          duration: 6000,
+        });
+        cargarOrdenes(true);
+      });
     }
-  }, [user?.usuarioId]);
+    return () => {
+      setOnPushReceivedCallback(null);
+    };
+  }, [user?.usuarioId, cargarOrdenes]);
 
 
   return (
