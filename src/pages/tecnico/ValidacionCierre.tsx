@@ -336,7 +336,7 @@ export const ValidacionCierre: React.FC = () => {
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
+                multiple={false}
                 ref={fileInputInicialRef}
                 className="hidden"
                 onChange={(e) => handleImageUpload(e, setFotoInicial, setComprimiendoInicial, 'inicial')}
@@ -344,7 +344,7 @@ export const ValidacionCierre: React.FC = () => {
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
+                multiple={false}
                 ref={fileInputFinalRef}
                 className="hidden"
                 onChange={(e) => handleImageUpload(e, setFotoFinal, setComprimiendoFinal, 'final')}
