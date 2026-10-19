@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logoBlanco from '../assets/Logo_blanco.png';
-import { Mail, Lock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Mail, Lock, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 const REMEMBER_EMAIL_KEY = 'asistencias247_remembered_email';
@@ -20,6 +20,7 @@ export const Login: React.FC = () => {
     }
   });
   const [pin, setPin] = useState('');
+  const [mostrarPassword, setMostrarPassword] = useState(false);
   const [recordarme, setRecordarme] = useState(() => {
     try {
       return Boolean(localStorage.getItem(REMEMBER_EMAIL_KEY));
@@ -232,13 +233,26 @@ export const Login: React.FC = () => {
                     <Lock className="w-4 h-4 stroke-[2]" />
                   </div>
                   <input
-                    type="password"
+                    type={mostrarPassword ? 'text' : 'password'}
                     required
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-[#161d2d] border border-slate-700/60 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none transition-all shadow-inner"
+                    className="w-full pl-10 pr-11 py-3 bg-[#161d2d] border border-slate-700/60 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none transition-all shadow-inner"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 focus:outline-none transition-colors cursor-pointer"
+                    title={mostrarPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  >
+                    {mostrarPassword ? (
+                      <EyeOff className="w-4 h-4 stroke-[2]" />
+                    ) : (
+                      <Eye className="w-4 h-4 stroke-[2]" />
+                    )}
+                  </button>
                 </div>
               </div>
 
