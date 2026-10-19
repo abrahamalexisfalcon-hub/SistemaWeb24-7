@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, ZoomIn, X, RotateCw, Download, ChevronLeft, ChevronRight, Share2, RefreshCw } from 'lucide-react';
 
 export interface EvidenciasGaleriaProps {
@@ -159,6 +160,16 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fotoActivaIndex, cerrarLightbox, fotoSiguiente, fotoAnterior]);
 
+  // Prevenir scroll en el fondo cuando el visor de evidencias está abierto
+  useEffect(() => {
+    if (!fotoActual) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [fotoActual]);
+
   const obtenerEtiquetaFoto = (index: number) => {
     if (fotosValidas.length === 2) {
       return index === 0 ? 'Foto Inicial' : 'Foto Final';
@@ -218,14 +229,16 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
       )}
 
       {/* ─── MODAL VISOR LIGHTBOX ─── */}
-      {fotoActual && (
+      {fotoActual && typeof document !== 'undefined' && createPortal(
         <div
           onClick={cerrarLightbox}
-          className="fixed inset-0 z-70 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150"
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-slate-950 border border-slate-800 rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
+            className="relative z-[101] bg-slate-950 border border-slate-800 rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
           >
             {/* Barra superior de herramientas */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-900/80 text-white">
@@ -355,7 +368,8 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

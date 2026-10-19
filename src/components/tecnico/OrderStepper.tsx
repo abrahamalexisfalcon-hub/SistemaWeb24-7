@@ -17,11 +17,11 @@ export const OrderStepper: React.FC<OrderStepperProps> = ({ currentStep }) => {
     <div className="w-full py-4 px-2">
       <div className="relative flex items-center justify-between max-w-xs mx-auto">
         {/* Línea conectora de fondo */}
-        <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-0.5 bg-slate-200 -z-0" />
+        <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-0.5 bg-slate-200" />
 
         {/* Línea conectora activa en cian */}
         <div
-          className="absolute left-4 top-1/2 -translate-y-1/2 h-0.5 bg-[#0ea5e9] transition-all duration-300 -z-0"
+          className="absolute left-4 top-1/2 -translate-y-1/2 h-0.5 bg-[#0ea5e9] transition-all duration-300"
           style={{
             width: `${((Math.min(currentStep, 4) - 1) / (steps.length - 1)) * 100}%`,
             maxWidth: 'calc(100% - 2rem)',
@@ -34,7 +34,7 @@ export const OrderStepper: React.FC<OrderStepperProps> = ({ currentStep }) => {
           const IconComponent = step.icon;
 
           return (
-            <div key={step.number} className="relative z-10 flex flex-col items-center">
+            <div key={step.number} className="relative z-0 flex flex-col items-center">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm ${
                   isCompleted
