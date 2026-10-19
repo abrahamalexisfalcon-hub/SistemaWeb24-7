@@ -39,6 +39,15 @@ export const adminApi = {
     return response.data;
   },
 
+  actualizarObservacionCancelacion: async (id: number, observacion: string): Promise<OrdenDetalleAdmin> => {
+    const response = await api.put<OrdenDetalleAdmin>(`/ordenes/${id}/observacion-cancelacion`, {
+      observacion,
+      motivo: observacion,
+      motivoCancelacion: observacion,
+    });
+    return response.data;
+  },
+
   // Afiliados
   getAfiliados: async (): Promise<Afiliado[]> => {
     const response = await api.get<Afiliado[]>('/admin/afiliados');

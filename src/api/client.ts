@@ -8,10 +8,10 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Interceptor de solicitud: Inyecta el token Bearer JWT
+// Interceptor de solicitud: Inyecta el token Bearer JWT desde sessionStorage
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token') || sessionStorage.getItem('auth_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -27,9 +27,12 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Limpia credenciales locales en caso de token inválido o expirado
+      // Limpia credenciales de sesión en caso de token inválido o expirado
+      sessionStorage.clear();
       localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
+      localStorage.removeItem('auth_user');
       // Si no estamos en la página de login, redirigir
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';

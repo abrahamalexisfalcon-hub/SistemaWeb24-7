@@ -121,21 +121,28 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
     detalleExtra?.distrito ||
     '';
 
+  const ordenExtendida = orden as (typeof orden & {
+    dni?: string;
+    numeroCuentaAfiliado?: string;
+    nombreTecnico?: string;
+    tecnico?: { firmaUrl?: string | null } | null;
+  }) | null;
+
   const dniAfiliado =
     orden?.dniAfiliado ||
-    (orden as any)?.dni ||
+    ordenExtendida?.dni ||
     detalleExtra?.dniAfiliado ||
     '';
 
   const codigoCuenta =
     orden?.codigoCuenta ||
-    (orden as any)?.numeroCuentaAfiliado ||
+    ordenExtendida?.numeroCuentaAfiliado ||
     detalleExtra?.codigoCuenta ||
     '';
 
   const tecnicoNombre =
     orden?.tecnicoNombre ||
-    (orden as any)?.nombreTecnico ||
+    ordenExtendida?.nombreTecnico ||
     detalleExtra?.tecnicoNombre ||
     'Técnico 24/7';
 
@@ -170,7 +177,15 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
     '';
 
   // Materiales consumidos unificados
-  const materialesCrudos: any[] =
+  const materialesCrudos: Array<{
+    id?: number;
+    materialId?: number | null;
+    materialCatalogoId?: number | null;
+    descripcion?: string;
+    materialNombre?: string | null;
+    nombreCatalogo?: string | null;
+    cantidad?: number;
+  }> =
     orden?.hojaServicio?.materiales ||
     orden?.materiales ||
     detalleExtra?.materiales ||
@@ -201,7 +216,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
 
   const tecnicoFirmaUrl =
     orden?.tecnicoFirmaUrl ||
-    (orden as any)?.tecnico?.firmaUrl ||
+    ordenExtendida?.tecnico?.firmaUrl ||
     detalleExtra?.tecnicoFirmaUrl ||
     '';
 
@@ -216,23 +231,38 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
   const filasMat = Math.max(colIzq.length, colDer.length, 1);
 
   const fotosEvidencia: string[] = useMemo(() => {
+    const isMockUrl = (url?: string | null) =>
+      !url ||
+      url.includes('images.unsplash.com') ||
+      url.includes('placeholder');
+
+    const lista: (string | null | undefined)[] = [];
+
     // 1. Evidencias del servidor (detalleExtra o orden)
     if (detalleExtra?.fotosEvidencia && detalleExtra.fotosEvidencia.length > 0) {
-      return Array.from(new Set(detalleExtra.fotosEvidencia.filter(Boolean)));
+      lista.push(...detalleExtra.fotosEvidencia);
     }
     if (orden?.hojaServicio?.fotosEvidencia && orden.hojaServicio.fotosEvidencia.length > 0) {
-      return Array.from(new Set(orden.hojaServicio.fotosEvidencia.filter(Boolean)));
+      lista.push(...orden.hojaServicio.fotosEvidencia);
     }
     if (orden?.fotosEvidencia && orden.fotosEvidencia.length > 0) {
-      return Array.from(new Set(orden.fotosEvidencia.filter(Boolean)));
+      lista.push(...orden.fotosEvidencia);
     }
 
-    const fallback = [
-      detalleExtra?.fotoInicialUrl || orden?.hojaServicio?.fotoInicialUrl || orden?.fotoInicialUrl,
-      detalleExtra?.fotoFinalUrl || orden?.hojaServicio?.fotoFinalUrl || orden?.fotoFinalUrl,
-    ].filter(Boolean) as string[];
+    lista.push(
+      detalleExtra?.fotoInicialUrl,
+      orden?.hojaServicio?.fotoInicialUrl,
+      orden?.fotoInicialUrl,
+      detalleExtra?.fotoFinalUrl,
+      orden?.hojaServicio?.fotoFinalUrl,
+      orden?.fotoFinalUrl
+    );
 
-    return Array.from(new Set(fallback));
+    return Array.from(
+      new Set(
+        lista.filter((f): f is string => Boolean(f && typeof f === 'string' && f.trim() && !isMockUrl(f)))
+      )
+    );
   }, [detalleExtra, orden]);
 
   return (

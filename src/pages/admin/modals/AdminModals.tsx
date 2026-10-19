@@ -25,6 +25,7 @@ export const AdminModals: React.FC<AdminModalsProps> = ({ d, user, onLogout }) =
           d.setErrorAnulacion(null);
           d.setModalAnularOrden(true);
         }}
+        onActualizarObservacion={d.handleActualizarObservacionCancelacion}
       />
 
       <AnularOrdenModal

@@ -221,6 +221,32 @@ export function useAdminDashboard() {
     }
   };
 
+  const handleActualizarObservacionCancelacion = async (ordenId: number, nuevaObservacion: string) => {
+    const observacionLimpia = nuevaObservacion.trim();
+    if (!observacionLimpia) return;
+    const actualizada = await adminApi.actualizarObservacionCancelacion(ordenId, observacionLimpia);
+    setOrdenes((prev) =>
+      prev.map((o) =>
+        o.id === ordenId
+          ? {
+              ...o,
+              ...actualizada,
+              motivoCancelacion: actualizada.motivoCancelacion || observacionLimpia,
+            }
+          : o
+      )
+    );
+    setOrdenSeleccionada((prev) =>
+      prev && prev.id === ordenId
+        ? {
+            ...prev,
+            ...actualizada,
+            motivoCancelacion: actualizada.motivoCancelacion || observacionLimpia,
+          }
+        : prev
+    );
+  };
+
   const handleCrearTecnico = async (nuevoTecnico: CrearTecnicoRequest) => {
     setFormError(null);
     setSubmitting(true);
@@ -351,9 +377,11 @@ export function useAdminDashboard() {
     handleGuardarEditarAfiliado,
     handleEliminarAfiliado,
     handleConfirmarAnulacion,
+    handleActualizarObservacionCancelacion,
     handleCrearTecnico,
     handleToggleEstadoTecnico,
     handleGuardarEditarTecnico,
     handleCrearEspecialidad,
   };
 }
+

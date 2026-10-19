@@ -1,6 +1,41 @@
+export interface OneSignalForegroundEvent {
+  notification?: {
+    title?: string;
+    body?: string;
+  };
+}
+
+export interface OneSignalSDKInstance {
+  init: (config: {
+    appId: string;
+    allowLocalhostAsSecureOrigin?: boolean;
+    serviceWorkerPath?: string;
+    notifyButton?: { enable: boolean };
+  }) => Promise<void>;
+  login: (externalId: string) => Promise<void>;
+  logout: () => Promise<void>;
+  User?: {
+    externalId?: string;
+    PushSubscription?: {
+      optedIn?: boolean;
+      optIn?: () => Promise<void>;
+      optOut?: () => Promise<void>;
+    };
+  };
+  Notifications: {
+    permission?: boolean;
+    requestPermission: () => Promise<void>;
+    addEventListener?: (
+      event: 'foregroundWillDisplay',
+      listener: (event: OneSignalForegroundEvent) => void
+    ) => void;
+  };
+}
+
 declare global {
   interface Window {
-    OneSignalDeferred?: any[];
+    OneSignal?: OneSignalSDKInstance;
+    OneSignalDeferred?: Array<(OneSignal: OneSignalSDKInstance) => void | Promise<void>>;
   }
 }
 
@@ -13,7 +48,7 @@ export const setOnPushReceivedCallback = (cb: ((data: { title?: string; body?: s
   onPushReceivedCallback = cb;
 };
 
-const safeLogin = async (OneSignal: any, usuarioId?: number | string) => {
+const safeLogin = async (OneSignal: OneSignalSDKInstance, usuarioId?: number | string) => {
   if (!usuarioId) return;
   const targetId = String(usuarioId);
   try {
@@ -22,7 +57,6 @@ const safeLogin = async (OneSignal: any, usuarioId?: number | string) => {
       await OneSignal.login(targetId);
     }
   } catch (err) {
-    // OneSignal SDK v16 puede lanzar o registrar 409 internamente cuando resuelve un external_id existente
     console.debug("[OneSignal] Vinculación de external_id procesada:", err);
   }
 };
@@ -30,8 +64,7 @@ const safeLogin = async (OneSignal: any, usuarioId?: number | string) => {
 export const initOneSignal = (usuarioId?: number | string) => {
   if (typeof window === 'undefined') return;
 
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  window.OneSignalDeferred.push(async (OneSignal: any) => {
+  const runInit = async (OneSignal: OneSignalSDKInstance) => {
     try {
       if (!isInitialized) {
         isInitialized = true;
@@ -45,7 +78,7 @@ export const initOneSignal = (usuarioId?: number | string) => {
 
       if (!foregroundListenerAttached && OneSignal.Notifications?.addEventListener) {
         foregroundListenerAttached = true;
-        OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event: any) => {
+        OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event: OneSignalForegroundEvent) => {
           const notif = event?.notification;
           if (onPushReceivedCallback) {
             onPushReceivedCallback({
@@ -67,20 +100,58 @@ export const initOneSignal = (usuarioId?: number | string) => {
         }
       }
     } catch (err) {
-      console.error("[OneSignal] Error al inicializar:", err);
+      console.warn("[OneSignal] Advertencia durante init:", err);
     }
-  });
+  };
+
+  if (window.OneSignal && typeof window.OneSignal.init === 'function') {
+    runInit(window.OneSignal);
+    return;
+  }
+
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  window.OneSignalDeferred.push(runInit);
 };
 
 export const toggleNotificacionesPush = async (usuarioId: number | string, activar: boolean): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined') {
-      resolve(false);
-      return;
-    }
+  if (typeof window === 'undefined') {
+    return false;
+  }
 
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async (OneSignal: any) => {
+  // 1. Manejo nativo directo en el contexto del click (User Gesture)
+  let permisoNativoConcedido = true;
+  if ('Notification' in window) {
+    if (activar) {
+      if (Notification.permission === 'denied') {
+        return false;
+      }
+      if (Notification.permission !== 'granted') {
+        try {
+          const resultado = await Notification.requestPermission();
+          permisoNativoConcedido = resultado === 'granted';
+          if (!permisoNativoConcedido) {
+            return false;
+          }
+        } catch {
+          permisoNativoConcedido = false;
+          return false;
+        }
+      }
+    }
+  }
+
+  // 2. Sincronización con OneSignal con timeout seguro de 4 segundos
+  return new Promise((resolve) => {
+    let finalizado = false;
+    const timeoutId = setTimeout(() => {
+      if (!finalizado) {
+        finalizado = true;
+        // Si el permiso nativo está concedido, no bloquear al usuario aunque OneSignal tarde
+        resolve(activar ? permisoNativoConcedido : true);
+      }
+    }, 4000);
+
+    const ejecutarSincronizacion = async (OneSignal: OneSignalSDKInstance) => {
       try {
         if (!isInitialized) {
           isInitialized = true;
@@ -93,44 +164,63 @@ export const toggleNotificacionesPush = async (usuarioId: number | string, activ
         }
 
         if (activar) {
-          await OneSignal.Notifications.requestPermission();
-          const permisoConcedido = OneSignal.Notifications.permission;
-          
-          if (!permisoConcedido) {
-            resolve(false);
-            return;
-          }
-
           if (usuarioId) {
             await safeLogin(OneSignal, usuarioId);
           }
-
           if (OneSignal.User?.PushSubscription?.optIn) {
             await OneSignal.User.PushSubscription.optIn();
           }
-
           const optedIn = OneSignal.User?.PushSubscription?.optedIn;
-          resolve(Boolean(optedIn ?? true));
+          if (!finalizado) {
+            finalizado = true;
+            clearTimeout(timeoutId);
+            resolve(Boolean(optedIn ?? permisoNativoConcedido));
+          }
         } else {
           if (OneSignal.User?.PushSubscription?.optOut) {
             await OneSignal.User.PushSubscription.optOut();
           }
-          resolve(false);
+          if (!finalizado) {
+            finalizado = true;
+            clearTimeout(timeoutId);
+            resolve(true);
+          }
         }
       } catch (err) {
-        console.error("[OneSignal] Error al alternar suscripción:", err);
-        resolve(false);
+        console.warn("[OneSignal] Error al alternar suscripción:", err);
+        if (!finalizado) {
+          finalizado = true;
+          clearTimeout(timeoutId);
+          resolve(activar ? permisoNativoConcedido : true);
+        }
       }
-    });
+    };
+
+    if (window.OneSignal && typeof window.OneSignal.init === 'function') {
+      ejecutarSincronizacion(window.OneSignal);
+      return;
+    }
+
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(ejecutarSincronizacion);
   });
 };
 
-export const logoutOneSignal = () => {
+export const logoutOneSignal = async () => {
   if (typeof window === 'undefined') return;
+  try {
+    if (window.OneSignal && typeof window.OneSignal.logout === 'function') {
+      await window.OneSignal.logout();
+      return;
+    }
+  } catch (err) {
+    console.debug("[OneSignal] Error directo al cerrar sesión:", err);
+  }
+
   window.OneSignalDeferred = window.OneSignalDeferred || [];
-  window.OneSignalDeferred.push(async (OneSignal: any) => {
+  window.OneSignalDeferred.push(async (OneSignal: OneSignalSDKInstance) => {
     try {
-      if (OneSignal.logout && OneSignal.User?.externalId) {
+      if (OneSignal && typeof OneSignal.logout === 'function') {
         await OneSignal.logout();
       }
     } catch (err) {

@@ -109,7 +109,9 @@ export interface OrdenResumenTecnico {
   fotosEvidencia?: string[];
   hojaServicioId?: number | null;
   materiales?: MaterialConsumido[];
-  hojaServicio?: any;
+  hojaServicio?: Partial<HojaServicioDetalleAdmin> | null;
+  motivoCancelacion?: string | null;
+  fechaCancelacion?: string | null;
   // Notar: teléfono NUNCA se incluye para técnicos por regla de negocio
 }
 

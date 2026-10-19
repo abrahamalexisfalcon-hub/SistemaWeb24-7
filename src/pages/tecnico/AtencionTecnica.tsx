@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { catalogoApi, materialApi } from '../../api';
+import { catalogoApi, materialApi, tecnicoApi } from '../../api';
+import { useOrdenes } from '../../context/OrdenesContext';
 import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import type { OrdenResumenTecnico, MaterialCatalogo, MaterialConsumido } from '../../types';
-import { ChevronLeft, Plus, Trash2, Minus, AlertCircle, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Minus, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BorradorAtencion {
@@ -82,12 +83,16 @@ export const AtencionTecnica: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { actualizarOrdenLocal, invalidarCache } = useOrdenes();
 
   const [orden] = useState<OrdenResumenTecnico | null>(
     (location.state as { orden?: OrdenResumenTecnico })?.orden || null
   );
 
   const [catalogo, setCatalogo] = useState<MaterialCatalogo[]>([]);
+  const [modalAnulacionOpen, setModalAnulacionOpen] = useState(false);
+  const [motivoAnulacion, setMotivoAnulacion] = useState('');
+  const [anulando, setAnulando] = useState(false);
 
   // 1 & 2. Clave dinámica por orden y carga del estado inicial desde localStorage
   const ordenId = id || orden?.id || '1';
@@ -461,6 +466,41 @@ export const AtencionTecnica: React.FC = () => {
     });
   };
 
+  const handleConfirmarAsistidoNoRealizado = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const motivoLimpio = motivoAnulacion.trim();
+    if (!motivoLimpio) {
+      toast.error('Por favor indica el motivo por el cual no se concretó el servicio.');
+      return;
+    }
+
+    const numericId = Number(id || orden?.id || 1);
+    setAnulando(true);
+    try {
+      const cancelada = await tecnicoApi.registrarAsistidoNoRealizado(numericId, motivoLimpio);
+      actualizarOrdenLocal({
+        id: numericId,
+        estado: 'CANCELADA',
+        motivoCancelacion: cancelada?.motivoCancelacion || motivoLimpio,
+        fechaCancelacion: cancelada?.fechaCancelacion || new Date().toISOString(),
+      });
+      invalidarCache();
+      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(`borrador_atencion_${numericId}`);
+      setModalAnulacionOpen(false);
+      toast.success('Servicio registrado como Asistido No Realizado');
+      navigate('/tecnico/ordenes', { replace: true });
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.mensaje ||
+        'No se pudo anular la orden. Inténtalo nuevamente.';
+      toast.error(msg);
+    } finally {
+      setAnulando(false);
+    }
+  };
+
   const codigo = orden ? `#${orden.codigoOrden}` : '#ORD-2026-001';
   const horaLlegada = orden?.horaLlegada || '10:48 AM';
 
@@ -762,11 +802,20 @@ export const AtencionTecnica: React.FC = () => {
             </div>
           </div>
 
-          {/* Botón Primario: Completar Servicio e Ir a Firma */}
+          {/* Acciones de Atención: Asistido No Realizado y Completar Servicio */}
           <div className="pt-2">
             <button
+              type="button"
+              disabled={submitting || anulando}
+              onClick={() => setModalAnulacionOpen(true)}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-4 rounded-xl w-full mb-3 shadow-sm transition-all active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed focus:outline-none"
+            >
+              ASISTIDO NO REALIZADO
+            </button>
+
+            <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || anulando}
               className="w-full min-h-[52px] py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none"
             >
               {submitting ? (
@@ -781,8 +830,68 @@ export const AtencionTecnica: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* Modal: Registrar Servicio Asistido No Realizado */}
+      {modalAnulacionOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-base leading-snug">
+                  Registrar Servicio Asistido No Realizado
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Indica el motivo por el cual no se concretó el servicio:
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmarAsistidoNoRealizado} className="space-y-4">
+              <div>
+                <textarea
+                  required
+                  rows={4}
+                  value={motivoAnulacion}
+                  onChange={(e) => setMotivoAnulacion(e.target.value)}
+                  placeholder="Describe la razón (ej. Cliente desistió, problema estructural fuera de alcance, etc.)"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white resize-none transition-all"
+                />
+              </div>
+
+              <div className="flex items-center gap-2.5 pt-1">
+                <button
+                  type="button"
+                  disabled={anulando}
+                  onClick={() => setModalAnulacionOpen(false)}
+                  className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Volver
+                </button>
+                <button
+                  type="submit"
+                  disabled={anulando || !motivoAnulacion.trim()}
+                  className="flex-1 py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {anulando ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Anulando...</span>
+                    </>
+                  ) : (
+                    'Confirmar Anulación'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </TecnicoLayout>
   );
 };
 
 export const EnAtencionScreen = AtencionTecnica;
+

@@ -1,18 +1,40 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logoBlanco from '../assets/Logo_blanco.png';
 import { Mail, Lock, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
+const REMEMBER_EMAIL_KEY = 'asistencias247_remembered_email';
+
 export const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [identificador, setIdentificador] = useState('');
+  const [identificador, setIdentificador] = useState(() => {
+    try {
+      return localStorage.getItem(REMEMBER_EMAIL_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
   const [pin, setPin] = useState('');
+  const [recordarme, setRecordarme] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem(REMEMBER_EMAIL_KEY));
+    } catch {
+      return false;
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get('motivo') === 'inactividad') {
+      setError('Tu sesión expiró por inactividad (30 minutos). Por favor, vuelve a ingresar.');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,20 +42,22 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      // Normalización de correo o identificador de prueba
-      let correoPayload = identificador.trim();
-      if (!correoPayload.includes('@')) {
-        if (correoPayload.toLowerCase() === 'tecnico' || correoPayload === '999888777') {
-          correoPayload = 'tecnico@asistencias247.com';
-        } else if (correoPayload.toLowerCase() === 'admin') {
-          correoPayload = 'admin@asistencias247.com';
-        }
-      }
+      const correoPayload = identificador.trim();
 
       const response = await login({
         correo: correoPayload,
         password: pin,
       });
+
+      try {
+        if (recordarme) {
+          localStorage.setItem(REMEMBER_EMAIL_KEY, correoPayload);
+        } else {
+          localStorage.removeItem(REMEMBER_EMAIL_KEY);
+        }
+      } catch {
+        // Ignorar si el almacenamiento está restringido
+      }
 
       if (response.rol === 'ADMINISTRADOR') {
         navigate('/admin', { replace: true });
@@ -50,17 +74,6 @@ export const Login: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFillDemo = (type: 'tecnico' | 'admin') => {
-    if (type === 'tecnico') {
-      setIdentificador('tecnico@asistencias247.com');
-      setPin('tecnico123');
-    } else {
-      setIdentificador('admin@asistencias247.com');
-      setPin('admin123');
-    }
-    setError(null);
   };
 
   return (
@@ -234,7 +247,8 @@ export const Login: React.FC = () => {
                 <label className="flex items-center gap-2 cursor-pointer select-none hover:text-slate-300">
                   <input
                     type="checkbox"
-                    defaultChecked
+                    checked={recordarme}
+                    onChange={(e) => setRecordarme(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-sky-500"
                   />
                   <span>Recordarme</span>
@@ -264,25 +278,6 @@ export const Login: React.FC = () => {
                 )}
               </button>
             </form>
-
-            {/* Accesos rápidos de desarrollo */}
-            <div className="pt-4 border-t border-slate-800/80 flex items-center justify-center gap-2.5 text-xs text-slate-400">
-              <span className="text-[11px] text-slate-500">Acceso rápido:</span>
-              <button
-                type="button"
-                onClick={() => handleFillDemo('tecnico')}
-                className="text-[11px] font-semibold text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
-              >
-                Técnico Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFillDemo('admin')}
-                className="text-[11px] font-semibold text-slate-300 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
-              >
-                Admin Demo
-              </button>
-            </div>
           </div>
         </div>
 

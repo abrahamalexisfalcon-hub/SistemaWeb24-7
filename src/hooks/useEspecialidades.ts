@@ -13,9 +13,10 @@ export function useEspecialidades() {
     try {
       const data = await adminApi.getEspecialidades();
       setEspecialidades(Array.isArray(data) ? data : []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al cargar especialidades:', err);
-      setError(err?.response?.data?.message || 'Error al cargar especialidades.');
+      const axiosErr = err as { response?: { data?: { message?: string } } } | null;
+      setError(axiosErr?.response?.data?.message || 'Error al cargar especialidades.');
       setEspecialidades([]);
     } finally {
       setCargando(false);

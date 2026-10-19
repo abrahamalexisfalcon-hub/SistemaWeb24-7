@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAuth } from './AuthContext';
 import { tecnicoApi } from '../api';
 import type { OrdenResumenTecnico, PerfilTecnico } from '../types';
-import { notificarNuevaOrden, playChime } from '../utils/notifications';
 import { initOneSignal, toggleNotificacionesPush, setOnPushReceivedCallback } from '../services/oneSignalService';
 import { toast } from 'sonner';
 
@@ -43,8 +42,6 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const fetchingRef = useRef(false);
   const lastFetchedRef = useRef<number | null>(null);
   const lastUserIdRef = useRef<number | null>(null);
-  const knownOrderIdsRef = useRef<Set<number>>(new Set());
-  const isFirstLoadRef = useRef(true);
   const ordenesRef = useRef<OrdenResumenTecnico[]>([]);
   ordenesRef.current = ordenes;
 
@@ -75,8 +72,6 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setPerfil(null);
         lastFetchedRef.current = null;
         setLastFetched(null);
-        knownOrderIdsRef.current = new Set();
-        isFirstLoadRef.current = true;
         setHasError(false);
         setErrorMessage(null);
         force = true;
@@ -118,23 +113,6 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const mapeadas = nuevasOrdenes.map((o) =>
             finalizadasIds.includes(o.id) ? { ...o, estado: 'FINALIZADA' as const } : o
           );
-
-          // Detectar nuevas órdenes asignadas para emitir toast visible + chime
-          if (!isFirstLoadRef.current) {
-            nuevasOrdenes.forEach((orden) => {
-              if (
-                !knownOrderIdsRef.current.has(orden.id) &&
-                (orden.estado === 'PENDIENTE' || (orden.estado as string) === 'ASIGNADA')
-              ) {
-                notificarNuevaOrden(orden.codigoOrden, orden.tipoServicio);
-              }
-            });
-          } else {
-            isFirstLoadRef.current = false;
-          }
-
-          // Registrar identificadores conocidos
-          nuevasOrdenes.forEach((o) => knownOrderIdsRef.current.add(o.id));
 
           setOrdenes(mapeadas);
           setHasError(false);
@@ -228,56 +206,59 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Inicializar el estado visual del switch verificando si el permiso del navegador ya está concedido
   const [notificacionesActivas, setNotificacionesActivas] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      return Notification.permission === 'granted' && localStorage.getItem('notificaciones_activas') !== 'false';
+    try {
+      const stored = localStorage.getItem('notificaciones_activas');
+      if (stored === 'false') return false;
+      if (stored === 'true') return true;
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        return Notification.permission === 'granted';
+      }
+      return false;
+    } catch {
+      return false;
     }
-    return false;
   });
 
-  const toggleNotificaciones = useCallback(async (activar?: boolean) => {
+  const toggleNotificaciones = useCallback(async (activar?: boolean): Promise<boolean> => {
     const nuevoValor = activar !== undefined ? activar : !notificacionesActivas;
-    if (nuevoValor) {
-      let suscrito = false;
-      try {
-        suscrito = await toggleNotificacionesPush(user?.usuarioId || '', true);
-      } catch (err) {
-        console.warn('Error al activar notificaciones OneSignal:', err);
-      }
 
-      if (suscrito) {
-        localStorage.setItem('notificaciones_activas', 'true');
-        setNotificacionesActivas(true);
-        toast.success('Notificaciones push activadas correctamente');
-        return true;
+    // Actualización inmediata para que el switch se mueva en 0 ms
+    setNotificacionesActivas(nuevoValor);
+
+    try {
+      const exito = await toggleNotificacionesPush(user?.usuarioId || '', nuevoValor);
+      if (exito) {
+        localStorage.setItem('notificaciones_activas', nuevoValor ? 'true' : 'false');
+        setNotificacionesActivas(nuevoValor);
+        if (nuevoValor) {
+          toast.success('Notificaciones push activadas correctamente');
+        } else {
+          toast.info('Notificaciones pausadas');
+        }
+        return nuevoValor;
       } else {
-        localStorage.setItem('notificaciones_activas', 'false');
-        setNotificacionesActivas(false);
-        toast.warning('Debes autorizar los permisos de notificación en tu navegador.');
-        return false;
+        // Revertir estado si el permiso fue denegado
+        setNotificacionesActivas(!nuevoValor);
+        localStorage.setItem('notificaciones_activas', !nuevoValor ? 'true' : 'false');
+        if (nuevoValor) {
+          toast.warning('Debes permitir las notificaciones en los permisos de tu navegador.');
+        }
+        return !nuevoValor;
       }
-    } else {
-      localStorage.setItem('notificaciones_activas', 'false');
-      setNotificacionesActivas(false);
-      try {
-        await toggleNotificacionesPush(user?.usuarioId || '', false);
-      } catch (err) {
-        console.warn('Error al pausar notificaciones OneSignal:', err);
-      }
-      toast.info('Notificaciones pausadas');
-      return false;
+    } catch (err) {
+      console.warn('Error al cambiar notificaciones:', err);
+      setNotificacionesActivas(!nuevoValor);
+      localStorage.setItem('notificaciones_activas', !nuevoValor ? 'true' : 'false');
+      toast.error('No se pudo modificar la suscripción de notificaciones');
+      return !nuevoValor;
     }
   }, [notificacionesActivas, user?.usuarioId]);
 
-  // Inicializar OneSignal con el ID del técnico y escuchar notificaciones en primer plano
+  // Inicializar OneSignal con el ID del técnico y sincronizar órdenes al recibir push externo
   useEffect(() => {
     if (user?.usuarioId) {
       initOneSignal(user.usuarioId);
-      setOnPushReceivedCallback((data) => {
-        playChime();
-        toast.success(data.title || '¡Nueva orden asignada!', {
-          description: data.body || 'Tienes un nuevo servicio pendiente de atención.',
-          duration: 6000,
-        });
+      setOnPushReceivedCallback(() => {
         cargarOrdenes(true);
       });
     }

@@ -69,5 +69,14 @@ export const tecnicoApi = {
     const response = await api.get<OrdenResumenTecnico>(`/tecnico/ordenes/detalle/${ordenId}`);
     return response.data;
   },
+
+  // Registra la orden como Asistido No Realizado (CANCELADA) con motivo sin requerir firma ni evidencias
+  registrarAsistidoNoRealizado: async (ordenId: number, motivo: string): Promise<OrdenResumenTecnico> => {
+    const response = await api.post<OrdenResumenTecnico>(`/ordenes/${ordenId}/asistido-no-realizado`, {
+      motivo,
+    });
+    return response.data;
+  },
 };
+
 

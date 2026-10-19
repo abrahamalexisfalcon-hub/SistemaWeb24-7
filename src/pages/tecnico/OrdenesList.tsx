@@ -4,8 +4,10 @@ import { useOrdenes } from '../../context/OrdenesContext';
 import { TecnicoLayout } from '../../components/tecnico';
 import frame26 from '../../assets/Frame 26.svg';
 import type { OrdenResumenTecnico, EstadoOrden } from '../../types';
-import { Search, MapPin, Clock, User, RefreshCw, WifiOff } from 'lucide-react';
+import { Search, MapPin, Clock, User, RefreshCw, WifiOff, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatearFechaOrden } from '../../utils/dateFormatter';
+
+const ITEMS_POR_PAGINA = 5;
 
 export type TabTecnico = 'todas' | 'asignadas' | 'en_proceso';
 
@@ -32,6 +34,7 @@ export const OrdenesList: React.FC = () => {
   } = useOrdenes();
 
   const [busqueda, setBusqueda] = useState('');
+  const [paginaActual, setPaginaActual] = useState(1);
 
   // Sincronización instantánea de pestaña vía URL SearchParams (permite compartir y recordar estado)
   const rawTab = (searchParams.get('tab') || 'todas').toLowerCase();
@@ -40,6 +43,11 @@ export const OrdenesList: React.FC = () => {
     if (rawTab === 'asignadas' || rawTab === 'pendientes') return 'asignadas';
     return 'todas';
   }, [rawTab]);
+
+  // Reiniciar siempre a la página 1 cuando cambie el filtro de pestaña o término de búsqueda
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [tabActiva, busqueda]);
 
   const cambiarTab = (nuevaTab: TabTecnico) => {
     setSearchParams(
@@ -114,6 +122,17 @@ export const OrdenesList: React.FC = () => {
     });
   }, [ordenes, busqueda, tabActiva]);
 
+  const totalPaginas = Math.ceil(ordenesFiltradas.length / ITEMS_POR_PAGINA) || 1;
+  const paginaSegura = Math.min(paginaActual, totalPaginas);
+  const indiceInicio = (paginaSegura - 1) * ITEMS_POR_PAGINA;
+  const ordenesVisibles = ordenesFiltradas.slice(indiceInicio, indiceInicio + ITEMS_POR_PAGINA);
+
+  const irAPagina = (nuevaPagina: number) => {
+    const destino = Math.max(1, Math.min(nuevaPagina, totalPaginas));
+    setPaginaActual(destino);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const getBadgeConfig = (estado: EstadoOrden) => {
     switch (estado) {
       case 'EN_DOMICILIO':
@@ -130,6 +149,11 @@ export const OrdenesList: React.FC = () => {
         return {
           label: 'Finalizadas',
           className: 'bg-emerald-100/90 text-emerald-800 border border-emerald-200/60',
+        };
+      case 'CANCELADA':
+        return {
+          label: 'Cancelada',
+          className: 'bg-rose-100/90 text-rose-800 border border-rose-200/60',
         };
       default:
         return {
@@ -280,80 +304,128 @@ export const OrdenesList: React.FC = () => {
               <p className="text-xs">No hay resultados para el filtro o término de búsqueda seleccionado.</p>
             </div>
           ) : (
-            ordenesFiltradas.map((orden) => {
-              const badge = getBadgeConfig(orden.estado);
-              return (
-                <div
-                  key={orden.id}
-                  onClick={() => {
-                    // Si ya está finalizada, ir a éxito/detalle; si está en camino, ir a detalle
-                    if (orden.estado === 'FINALIZADA') {
-                      navigate(`/tecnico/ordenes/${orden.id}/exito`, { state: { orden } });
-                    } else if (orden.estado === 'EN_DOMICILIO') {
-                      navigate(`/tecnico/ordenes/${orden.id}/atencion`, { state: { orden } });
-                    } else {
-                      navigate(`/tecnico/ordenes/${orden.id}`, { state: { orden } });
-                    }
-                  }}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-2.5 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all"
-                >
-                  {/* Fila superior: Código y Badge */}
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-slate-900 text-base tracking-tight">
-                      #{orden.codigoOrden}
-                    </span>
-                    <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${badge.className}`}>
-                      {badge.label}
-                    </span>
-                  </div>
-
-                  {/* Nombre del Servicio */}
-                  <h3 className="font-bold text-slate-900 text-sm leading-snug">
-                    {orden.tipoServicio}
-                  </h3>
-
-                  {/* Dirección, Distrito y Referencia */}
-                  <div className="flex items-start justify-between text-xs text-slate-500 pt-0.5">
-                    <div className="flex items-start gap-1.5 min-w-0 pr-2">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-slate-700">
-                          {orden.direccion} - {orden.distrito}
-                        </p>
-                        {orden.referencia && (
-                          <p className="text-[11px] text-slate-400 truncate mt-0.5" title={orden.referencia}>
-                            Ref: {orden.referencia}
-                          </p>
-                        )}
-                      </div>
+            <>
+              {ordenesVisibles.map((orden) => {
+                const badge = getBadgeConfig(orden.estado);
+                return (
+                  <div
+                    key={orden.id}
+                    onClick={() => {
+                      if (orden.estado === 'CANCELADA') return;
+                      if (orden.estado === 'FINALIZADA') {
+                        navigate(`/tecnico/ordenes/${orden.id}/exito`, { state: { orden } });
+                      } else if (orden.estado === 'EN_DOMICILIO') {
+                        navigate(`/tecnico/ordenes/${orden.id}/atencion`, { state: { orden } });
+                      } else {
+                        navigate(`/tecnico/ordenes/${orden.id}`, { state: { orden } });
+                      }
+                    }}
+                    className={`bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-2.5 transition-all ${
+                      orden.estado === 'CANCELADA'
+                        ? 'opacity-85 cursor-default'
+                        : 'cursor-pointer hover:shadow-md active:scale-[0.99]'
+                    }`}
+                  >
+                    {/* Fila superior: Código y Badge */}
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-slate-900 text-base tracking-tight">
+                        #{orden.codigoOrden}
+                      </span>
+                      <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${badge.className}`}>
+                        {badge.label}
+                      </span>
                     </div>
+
+                    {/* Nombre del Servicio */}
+                    <h3 className="font-bold text-slate-900 text-sm leading-snug">
+                      {orden.tipoServicio}
+                    </h3>
+
+                    {orden.estado === 'CANCELADA' && orden.motivoCancelacion && (
+                      <p className="text-xs text-rose-700 bg-rose-50/70 border border-rose-200/60 rounded-lg px-2.5 py-1.5 font-medium">
+                        Motivo: {orden.motivoCancelacion}
+                      </p>
+                    )}
+
+                    {/* Dirección, Distrito y Referencia */}
+                    <div className="flex items-start justify-between text-xs text-slate-500 pt-0.5">
+                      <div className="flex items-start gap-1.5 min-w-0 pr-2">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-slate-700">
+                            {orden.direccion} - {orden.distrito}
+                          </p>
+                          {orden.referencia && (
+                            <p className="text-[11px] text-slate-400 truncate mt-0.5" title={orden.referencia}>
+                              Ref: {orden.referencia}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenWaze(e, orden)}
+                        title="Abrir ruta en Waze"
+                        aria-label="Abrir ruta en Waze"
+                        className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:scale-110 active:scale-90 transition-transform focus:outline-none"
+                      >
+                        <img src={frame26} alt="Waze" className="w-[26px] h-[26px] object-contain" />
+                      </button>
+                    </div>
+
+                    {/* Fecha y Cliente */}
+                    <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        <span>{formatearFechaOrden(orden.fechaProgramada || orden.fechaCreacion || orden.fechaAsignacion)}</span>
+                      </div>
+                      <span
+                        className="font-semibold text-[#0ea5e9] truncate max-w-[180px] text-right"
+                        title={orden.nombreAfiliado}
+                      >
+                        {orden.nombreAfiliado || 'Cliente'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Control de Paginación Inferior */}
+              {ordenesFiltradas.length > ITEMS_POR_PAGINA && (
+                <div className="pt-2">
+                  <div className="bg-white rounded-2xl border border-slate-200/80 px-3.5 py-3 shadow-sm flex items-center justify-between gap-2">
                     <button
                       type="button"
-                      onClick={(e) => handleOpenWaze(e, orden)}
-                      title="Abrir ruta en Waze"
-                      aria-label="Abrir ruta en Waze"
-                      className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:scale-110 active:scale-90 transition-transform focus:outline-none"
+                      onClick={() => irAPagina(paginaSegura - 1)}
+                      disabled={paginaSegura <= 1}
+                      className="min-h-[40px] px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 active:scale-95 text-xs font-bold text-slate-700 flex items-center gap-1 transition-all disabled:opacity-40 disabled:pointer-events-none"
                     >
-                      <img src={frame26} alt="Waze" className="w-[26px] h-[26px] object-contain" />
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Anterior</span>
+                    </button>
+
+                    <div className="text-center">
+                      <p className="text-xs font-extrabold text-slate-800">
+                        Página {paginaSegura} de {totalPaginas}
+                      </p>
+                      <p className="text-[11px] font-medium text-slate-400">
+                        Mostrando {indiceInicio + 1}–{Math.min(indiceInicio + ITEMS_POR_PAGINA, ordenesFiltradas.length)} de {ordenesFiltradas.length}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => irAPagina(paginaSegura + 1)}
+                      disabled={paginaSegura >= totalPaginas}
+                      className="min-h-[40px] px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 active:scale-95 text-xs font-bold text-slate-700 flex items-center gap-1 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <span>Siguiente</span>
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
-
-                  {/* Fecha y Cliente */}
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span>{formatearFechaOrden(orden.fechaProgramada || orden.fechaCreacion || orden.fechaAsignacion)}</span>
-                    </div>
-                    <span
-                      className="font-semibold text-[#0ea5e9] truncate max-w-[180px] text-right"
-                      title={orden.nombreAfiliado}
-                    >
-                      {orden.nombreAfiliado || 'Cliente'}
-                    </span>
-                  </div>
                 </div>
-              );
-            })
+              )}
+            </>
           )}
         </div>
       </div>

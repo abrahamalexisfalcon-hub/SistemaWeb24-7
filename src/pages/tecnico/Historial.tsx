@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrdenes } from '../../context/OrdenesContext';
 import { TecnicoLayout } from '../../components/tecnico';
@@ -8,13 +8,18 @@ import {
   CheckCircle,
   RefreshCw,
   CheckCircle2,
-  Star
+  Star,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { formatearFechaOrden } from '../../utils/dateFormatter';
+
+const ITEMS_POR_PAGINA = 5;
 
 export const Historial: React.FC = () => {
   const navigate = useNavigate();
   const { ordenes, perfil, loading, isFetching, refrescar, cargarOrdenes } = useOrdenes();
+  const [paginaActual, setPaginaActual] = useState(1);
 
   // Revalida de forma silenciosa en segundo plano solo si los datos están obsoletos
   useEffect(() => {
@@ -22,6 +27,17 @@ export const Historial: React.FC = () => {
   }, [cargarOrdenes]);
 
   const ordenesFinalizadas = (ordenes || []).filter((o) => o && o.estado === 'FINALIZADA');
+
+  const totalPaginas = Math.ceil(ordenesFinalizadas.length / ITEMS_POR_PAGINA) || 1;
+  const paginaSegura = Math.min(paginaActual, totalPaginas);
+  const indiceInicio = (paginaSegura - 1) * ITEMS_POR_PAGINA;
+  const ordenesVisibles = ordenesFinalizadas.slice(indiceInicio, indiceInicio + ITEMS_POR_PAGINA);
+
+  const irAPagina = (nuevaPagina: number) => {
+    const destino = Math.max(1, Math.min(nuevaPagina, totalPaginas));
+    setPaginaActual(destino);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <TecnicoLayout activeTab="historial">
@@ -130,65 +146,103 @@ export const Historial: React.FC = () => {
                 <p className="text-xs text-slate-400 mt-1">Los servicios completados se mostrarán aquí.</p>
               </div>
             ) : (
-              ordenesFinalizadas.map((orden) => (
-                <div
-                  key={orden.id}
-                  onClick={() =>
-                    navigate(`/tecnico/ordenes/${orden.id}/exito`, {
-                      state: {
-                        orden,
-                        hojaServicio: {
-                          evaluacionAveria: orden.evaluacionAveria || '',
-                          detalleSolucion: orden.detalleSolucion || '',
-                          sugerencias: orden.sugerencias || '',
-                          materiales: orden.materiales || [],
-                          firmaDigitalUrl:
-                            orden.firmaDigitalUrl ||
-                            orden.firmaAfiliadoUrl ||
-                            localStorage.getItem(`orden_${orden.id}_firma_cliente`) ||
-                            '',
-                          firmaAfiliadoUrl:
-                            orden.firmaDigitalUrl ||
-                            orden.firmaAfiliadoUrl ||
-                            localStorage.getItem(`orden_${orden.id}_firma_cliente`) ||
-                            '',
+              <>
+                {ordenesVisibles.map((orden) => (
+                  <div
+                    key={orden.id}
+                    onClick={() =>
+                      navigate(`/tecnico/ordenes/${orden.id}/exito`, {
+                        state: {
+                          orden,
+                          hojaServicio: {
+                            evaluacionAveria: orden.evaluacionAveria || '',
+                            detalleSolucion: orden.detalleSolucion || '',
+                            sugerencias: orden.sugerencias || '',
+                            materiales: orden.materiales || [],
+                            firmaDigitalUrl:
+                              orden.firmaDigitalUrl ||
+                              orden.firmaAfiliadoUrl ||
+                              localStorage.getItem(`orden_${orden.id}_firma_cliente`) ||
+                              '',
+                            firmaAfiliadoUrl:
+                              orden.firmaDigitalUrl ||
+                              orden.firmaAfiliadoUrl ||
+                              localStorage.getItem(`orden_${orden.id}_firma_cliente`) ||
+                              '',
+                          },
                         },
-                      },
-                    })
-                  }
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-2.5 cursor-pointer hover:shadow-md transition-all active:scale-[0.99]"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-slate-900 text-base">
-                      #{orden.codigoOrden}
-                    </span>
-                    <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/60">
-                      Finalizada
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-slate-900 text-sm">{orden.tipoServicio}</h3>
-                  <div className="flex items-start gap-1.5 text-xs text-slate-500">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-700">
-                        {orden.direccion} - {orden.distrito}
-                      </p>
-                      {orden.referencia && (
-                        <p className="text-[11px] text-slate-400 truncate mt-0.5" title={orden.referencia}>
-                          Ref: {orden.referencia}
+                      })
+                    }
+                    className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-2.5 cursor-pointer hover:shadow-md transition-all active:scale-[0.99]"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-slate-900 text-base">
+                        #{orden.codigoOrden}
+                      </span>
+                      <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/60">
+                        Finalizada
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm">{orden.tipoServicio}</h3>
+                    <div className="flex items-start gap-1.5 text-xs text-slate-500">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-slate-700">
+                          {orden.direccion} - {orden.distrito}
                         </p>
-                      )}
+                        {orden.referencia && (
+                          <p className="text-[11px] text-slate-400 truncate mt-0.5" title={orden.referencia}>
+                            Ref: {orden.referencia}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{formatearFechaOrden(orden.fechaProgramada || orden.fechaCreacion || orden.fechaAsignacion)}</span>
+                      </div>
+                      <span className="font-semibold text-emerald-600">Completada (100%)</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatearFechaOrden(orden.fechaProgramada || orden.fechaCreacion || orden.fechaAsignacion)}</span>
+                ))}
+
+                {/* Control de Paginación Inferior */}
+                {ordenesFinalizadas.length > ITEMS_POR_PAGINA && (
+                  <div className="pt-2">
+                    <div className="bg-white rounded-2xl border border-slate-200/80 px-3.5 py-3 shadow-sm flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => irAPagina(paginaSegura - 1)}
+                        disabled={paginaSegura <= 1}
+                        className="min-h-[40px] px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 active:scale-95 text-xs font-bold text-slate-700 flex items-center gap-1 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>Anterior</span>
+                      </button>
+
+                      <div className="text-center">
+                        <p className="text-xs font-extrabold text-slate-800">
+                          Página {paginaSegura} de {totalPaginas}
+                        </p>
+                        <p className="text-[11px] font-medium text-slate-400">
+                          Mostrando {indiceInicio + 1}–{Math.min(indiceInicio + ITEMS_POR_PAGINA, ordenesFinalizadas.length)} de {ordenesFinalizadas.length}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => irAPagina(paginaSegura + 1)}
+                        disabled={paginaSegura >= totalPaginas}
+                        className="min-h-[40px] px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 active:scale-95 text-xs font-bold text-slate-700 flex items-center gap-1 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                      >
+                        <span>Siguiente</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                     </div>
-                    <span className="font-semibold text-emerald-600">Completada (100%)</span>
                   </div>
-                </div>
-              ))
+                )}
+              </>
             )}
           </div>
         </div>

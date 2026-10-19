@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Camera, ZoomIn, X, RotateCw, Download, ChevronLeft, ChevronRight, Image as ImageIcon, Share2, RefreshCw } from 'lucide-react';
+import { Camera, ZoomIn, X, RotateCw, Download, ChevronLeft, ChevronRight, Share2, RefreshCw } from 'lucide-react';
 
 export interface EvidenciasGaleriaProps {
   fotos?: (string | null | undefined)[];
@@ -11,12 +11,21 @@ export interface EvidenciasGaleriaProps {
 export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
   fotos = [],
   titulo,
-  emptyMessage = 'Sin fotografías de evidencia adjuntas',
+  emptyMessage = 'No se adjuntaron evidencias del trabajo',
   className = '',
 }) => {
-  // Filtrar URLs válidas (no nulas, no vacías)
+  const esUrlMock = (url: string) => {
+    return (
+      url.includes('images.unsplash.com') ||
+      url.includes('placeholder') ||
+      url.includes('via.placeholder') ||
+      url.includes('picsum.photos')
+    );
+  };
+
+  // Filtrar URLs válidas (no nulas, no vacías y sin fotos mock/placeholder)
   const fotosValidas = (fotos || []).filter(
-    (f): f is string => typeof f === 'string' && f.trim().length > 0
+    (f): f is string => typeof f === 'string' && f.trim().length > 0 && !esUrlMock(f)
   );
 
   const [fotoActivaIndex, setFotoActivaIndex] = useState<number | null>(null);
@@ -122,8 +131,9 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
           : encodeURIComponent(`Hola, aquí te comparto la evidencia del servicio: ${imageUrl}`);
         window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
       }
-    } catch (error: any) {
-      if (error?.name !== 'AbortError') {
+    } catch (error: unknown) {
+      const errObj = error as { name?: string } | null;
+      if (errObj?.name !== 'AbortError') {
         console.error('Error al compartir la imagen:', error);
       }
     } finally {
@@ -167,9 +177,10 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
       )}
 
       {fotosValidas.length === 0 ? (
-        <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-slate-400 text-xs font-medium">
-          <ImageIcon className="w-4 h-4 text-slate-300 flex-shrink-0" />
-          <span>{emptyMessage}</span>
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
+          <p className="text-sm font-medium text-slate-500">
+            {emptyMessage}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

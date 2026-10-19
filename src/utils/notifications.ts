@@ -1,5 +1,3 @@
-import { toast } from 'sonner';
-
 /**
  * Emite un sonido suave tipo chime melódico utilizando Web Audio API.
  * No depende de archivos externos ni genera errores de carga de assets.
@@ -41,13 +39,9 @@ export function playChime(): void {
 }
 
 /**
- * Notifica al técnico con un toast elegante y sonido sobre una nueva orden asignada.
+ * Las alertas de nuevas órdenes se canalizan exclusivamente por notificaciones push del sistema operativo (OneSignal).
  */
-export function notificarNuevaOrden(codigo: string, servicio?: string): void {
-  playChime();
-  toast.success(`¡Nueva orden asignada! #${codigo}`, {
-    description: servicio || 'Tienes una nueva orden de servicio lista para atender.',
-    duration: 4500,
-    className: 'border border-emerald-500/20 font-medium',
-  });
+export function notificarNuevaOrden(_codigo: string, _servicio?: string): void {
+  // No-op in-app: sin toasts flotantes sobre la interfaz
 }
+

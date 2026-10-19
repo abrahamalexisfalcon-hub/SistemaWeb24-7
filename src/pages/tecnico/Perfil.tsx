@@ -28,6 +28,7 @@ export const Perfil: React.FC = () => {
   const [perfil, setPerfil] = useState<PerfilTecnico | null>(null);
   const [disponible, setDisponible] = useState<boolean>(user?.disponible ?? true);
   const [actualizando, setActualizando] = useState<boolean>(false);
+  const [actualizandoNotif, setActualizandoNotif] = useState<boolean>(false);
   const [cargando, setCargando] = useState<boolean>(true);
 
   // Estados para Firma Digital del Técnico
@@ -37,6 +38,16 @@ export const Perfil: React.FC = () => {
   const [errorFirma, setErrorFirma] = useState<string | null>(null);
   const [exitoFirma, setExitoFirma] = useState<string | null>(null);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState<boolean>(false);
+
+  const handleToggleNotificaciones = async () => {
+    if (actualizandoNotif) return;
+    setActualizandoNotif(true);
+    try {
+      await toggleNotificaciones();
+    } finally {
+      setActualizandoNotif(false);
+    }
+  };
 
   // Cargar datos del perfil operativo al montar o al cambiar de usuario
   useEffect(() => {
@@ -118,13 +129,13 @@ export const Perfil: React.FC = () => {
       }
       localStorage.setItem('tecnico_firma_url', nuevaUrl);
 
-      // Actualizar sesión almacenada en localStorage
+      // Actualizar sesión almacenada en sessionStorage
       try {
-        const stored = localStorage.getItem('user');
+        const stored = sessionStorage.getItem('user');
         if (stored) {
           const parsed = JSON.parse(stored);
           parsed.firmaUrl = nuevaUrl;
-          localStorage.setItem('user', JSON.stringify(parsed));
+          sessionStorage.setItem('user', JSON.stringify(parsed));
         }
       } catch {}
 
@@ -205,7 +216,10 @@ export const Perfil: React.FC = () => {
         </div>
 
         {/* Módulo: Switch de Notificaciones Push en Tiempo Real (OneSignal) */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm">
+        <div
+          onClick={handleToggleNotificaciones}
+          className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm cursor-pointer hover:border-slate-300 transition-all select-none active:scale-[0.99]"
+        >
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
@@ -233,10 +247,14 @@ export const Perfil: React.FC = () => {
               type="button"
               role="switch"
               aria-checked={notificacionesActivas}
-              onClick={() => toggleNotificaciones()}
+              disabled={actualizandoNotif}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleNotificaciones();
+              }}
               className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                 notificacionesActivas ? 'bg-[#0ea5e9]' : 'bg-slate-300'
-              }`}
+              } ${actualizandoNotif ? 'opacity-70 cursor-wait' : ''}`}
             >
               <span
                 className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${

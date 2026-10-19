@@ -139,7 +139,7 @@ export const ValidacionCierre: React.FC = () => {
 
           const storedFirma = localStorage.getItem('tecnico_firma_url');
           if (storedFirma) return storedFirma;
-          const raw = localStorage.getItem('auth_user') || localStorage.getItem('user');
+          const raw = sessionStorage.getItem('auth_user') || sessionStorage.getItem('user');
           if (raw) return JSON.parse(raw).firmaUrl || null;
         } catch {}
         return orden?.tecnicoFirmaUrl || null;
@@ -151,10 +151,10 @@ export const ValidacionCierre: React.FC = () => {
         sugerencias: formularioEfectivo?.sugerencias || 'Revisión técnica periódica recomendada.',
         calificacion: promedioCalificacion,
         calificacionAfiliado: promedioCalificacion,
-        fotoInicialUrl: fotoInicial || 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=400',
-        fotoAntesUrl: fotoInicial || 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=400',
-        fotoFinalUrl: fotoFinal || 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400',
-        fotoDespuesUrl: fotoFinal || 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400',
+        fotoInicialUrl: fotoInicial || undefined,
+        fotoAntesUrl: fotoInicial || undefined,
+        fotoFinalUrl: fotoFinal || undefined,
+        fotoDespuesUrl: fotoFinal || undefined,
         firmaDigitalUrl: signatureDataUrl,
         firmaAfiliadoUrl: signatureDataUrl,
         firmaTecnicoUrl: tecnicoFirmaUrl || undefined,
@@ -203,17 +203,29 @@ export const ValidacionCierre: React.FC = () => {
       const tecnicoNombre = (() => {
         if (user?.nombreCompleto) return user.nombreCompleto;
         try {
-          const raw = localStorage.getItem('auth_user') || localStorage.getItem('user');
+          const raw = sessionStorage.getItem('auth_user') || sessionStorage.getItem('user');
           if (raw) return JSON.parse(raw).nombreCompleto || 'Técnico';
         } catch { /* ignore */ }
         return orden?.tecnicoNombre || 'Técnico Asistencias 24/7';
       })();
 
-      const fotoInicialServidor = cierreRes?.fotoInicialUrl || requestPayload.fotoInicialUrl;
-      const fotoFinalServidor = cierreRes?.fotoFinalUrl || requestPayload.fotoFinalUrl;
-      const fotosServidor: string[] = (cierreRes?.fotosEvidencia && cierreRes.fotosEvidencia.length > 0)
-        ? Array.from(new Set(cierreRes.fotosEvidencia.filter(Boolean)))
-        : Array.from(new Set([fotoInicialServidor, fotoFinalServidor].filter(Boolean) as string[]));
+      const isMockUrl = (url?: string | null) =>
+        !url ||
+        url.includes('images.unsplash.com') ||
+        url.includes('placeholder');
+
+      const fotoInicialServidor = (!isMockUrl(cierreRes?.fotoInicialUrl) ? cierreRes?.fotoInicialUrl : undefined) ||
+        (!isMockUrl(requestPayload.fotoInicialUrl) ? requestPayload.fotoInicialUrl : undefined);
+      const fotoFinalServidor = (!isMockUrl(cierreRes?.fotoFinalUrl) ? cierreRes?.fotoFinalUrl : undefined) ||
+        (!isMockUrl(requestPayload.fotoFinalUrl) ? requestPayload.fotoFinalUrl : undefined);
+
+      const rawEvidencias = (cierreRes?.fotosEvidencia && cierreRes.fotosEvidencia.length > 0)
+        ? cierreRes.fotosEvidencia
+        : [fotoInicialServidor, fotoFinalServidor];
+
+      const fotosServidor: string[] = Array.from(
+        new Set(rawEvidencias.filter((f): f is string => Boolean(f && typeof f === 'string' && f.trim() && !isMockUrl(f))))
+      );
 
       navigate(`/tecnico/ordenes/${ordenId}/exito`, {
         state: {

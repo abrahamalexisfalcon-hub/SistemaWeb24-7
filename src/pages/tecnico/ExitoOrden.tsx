@@ -157,7 +157,7 @@ export const ExitoOrden: React.FC = () => {
     (orden as any)?.tecnicoFirma ||
     (() => {
       try {
-        const u = localStorage.getItem('user');
+        const u = sessionStorage.getItem('user');
         if (u) {
           const parsed = JSON.parse(u);
           const userKey = `tecnico_${parsed.usuarioId}_firma_url`;
@@ -172,30 +172,40 @@ export const ExitoOrden: React.FC = () => {
     '';
 
   const fotosEvidencia: string[] = useMemo(() => {
+    const isMockUrl = (url?: string | null) =>
+      !url ||
+      url.includes('images.unsplash.com') ||
+      url.includes('placeholder');
+
+    const lista: (string | null | undefined)[] = [];
+
     // 1. Prioridad: Evidencias devueltas directamente por el servidor (ordenDetalle)
     if (ordenDetalle?.fotosEvidencia && ordenDetalle.fotosEvidencia.length > 0) {
-      return Array.from(new Set(ordenDetalle.fotosEvidencia.filter(Boolean)));
-    }
-    if (ordenDetalle?.fotoInicialUrl || ordenDetalle?.fotoFinalUrl) {
-      return Array.from(
-        new Set([ordenDetalle.fotoInicialUrl, ordenDetalle.fotoFinalUrl].filter(Boolean) as string[])
-      );
+      lista.push(...ordenDetalle.fotosEvidencia);
+    } else if (ordenDetalle?.fotoInicialUrl || ordenDetalle?.fotoFinalUrl) {
+      lista.push(ordenDetalle.fotoInicialUrl, ordenDetalle.fotoFinalUrl);
     }
 
     // 2. Respaldo: Estado devuelto por el servidor durante el cierre (hojaServicio u orden)
     if ((hojaServicio as any)?.fotosEvidencia && (hojaServicio as any).fotosEvidencia.length > 0) {
-      return Array.from(new Set(((hojaServicio as any).fotosEvidencia as string[]).filter(Boolean)));
+      lista.push(...((hojaServicio as any).fotosEvidencia as string[]));
     }
     if ((orden as any)?.fotosEvidencia && (orden as any).fotosEvidencia.length > 0) {
-      return Array.from(new Set(((orden as any).fotosEvidencia as string[]).filter(Boolean)));
+      lista.push(...((orden as any).fotosEvidencia as string[]));
     }
 
-    const fallbackFotos = [
-      (hojaServicio as any)?.fotoInicialUrl || orden?.fotoInicialUrl,
-      (hojaServicio as any)?.fotoFinalUrl || orden?.fotoFinalUrl,
-    ].filter(Boolean) as string[];
+    lista.push(
+      (hojaServicio as any)?.fotoInicialUrl,
+      orden?.fotoInicialUrl,
+      (hojaServicio as any)?.fotoFinalUrl,
+      orden?.fotoFinalUrl
+    );
 
-    return Array.from(new Set(fallbackFotos));
+    return Array.from(
+      new Set(
+        lista.filter((f): f is string => Boolean(f && typeof f === 'string' && f.trim() && !isMockUrl(f)))
+      )
+    );
   }, [ordenDetalle, hojaServicio, orden]);
 
   /* ─── Detecta especialidad activa ─── */
