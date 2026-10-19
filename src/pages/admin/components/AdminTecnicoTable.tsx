@@ -70,7 +70,6 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
                         </div>
                         <div>
                           <div className="font-bold text-slate-900 text-xs">{tecnico.nombreCompleto}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">ID: #{tecnico.id}</div>
                         </div>
                       </div>
                     </td>

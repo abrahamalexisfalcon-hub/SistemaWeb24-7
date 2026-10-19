@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrdenes } from '../../context/OrdenesContext';
 import { TecnicoLayout } from '../../components/tecnico';
@@ -26,12 +26,18 @@ export const Historial: React.FC = () => {
     cargarOrdenes(false);
   }, [cargarOrdenes]);
 
-  const ordenesFinalizadas = (ordenes || []).filter((o) => o && o.estado === 'FINALIZADA');
+  const ordenesFinalizadas = useMemo(
+    () => (ordenes || []).filter((o) => o && o.estado === 'FINALIZADA'),
+    [ordenes]
+  );
 
   const totalPaginas = Math.ceil(ordenesFinalizadas.length / ITEMS_POR_PAGINA) || 1;
   const paginaSegura = Math.min(paginaActual, totalPaginas);
   const indiceInicio = (paginaSegura - 1) * ITEMS_POR_PAGINA;
-  const ordenesVisibles = ordenesFinalizadas.slice(indiceInicio, indiceInicio + ITEMS_POR_PAGINA);
+  const ordenesVisibles = useMemo(
+    () => ordenesFinalizadas.slice(indiceInicio, indiceInicio + ITEMS_POR_PAGINA),
+    [ordenesFinalizadas, indiceInicio]
+  );
 
   const irAPagina = (nuevaPagina: number) => {
     const destino = Math.max(1, Math.min(nuevaPagina, totalPaginas));

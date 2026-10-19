@@ -17,7 +17,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab }) => {
   const currentTab = isHistorial ? 'historial' : isPerfil ? 'perfil' : 'ordenes';
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 bg-[#111827] border-t border-slate-800/80 shadow-2xl pb-[env(safe-area-inset-bottom,0px)]">
+    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 bg-[#111827] border-t border-slate-800/80 shadow-2xl pb-[env(safe-area-inset-bottom,0px)]">
       <div className="grid grid-cols-3 h-16 items-center px-3">
         {/* Pestaña Órdenes */}
         <button

@@ -234,11 +234,11 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
           onClick={cerrarLightbox}
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150"
+          className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative z-[101] bg-slate-950 border border-slate-800 rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
+            className="relative z-[121] bg-slate-950 border border-slate-800 rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
           >
             {/* Barra superior de herramientas */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-900/80 text-white">

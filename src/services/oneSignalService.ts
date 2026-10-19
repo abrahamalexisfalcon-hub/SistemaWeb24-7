@@ -52,10 +52,8 @@ const safeLogin = async (OneSignal: OneSignalSDKInstance, usuarioId?: number | s
   if (!usuarioId) return;
   const targetId = String(usuarioId);
   try {
-    const currentExternalId = OneSignal.User?.externalId;
-    if (currentExternalId !== targetId) {
-      await OneSignal.login(targetId);
-    }
+    await OneSignal.login(targetId);
+    console.info(`[OneSignal-TRACE] OneSignal.login("${targetId}") vinculado correctamente.`);
   } catch (err) {
     console.debug("[OneSignal] Vinculación de external_id procesada:", err);
   }
@@ -89,14 +87,31 @@ export const initOneSignal = (usuarioId?: number | string) => {
         });
       }
 
-      if (usuarioId && OneSignal.Notifications?.permission) {
+      if (usuarioId) {
+        // Siempre vincular el external_id del técnico al iniciar sesión o restaurar contexto
         await safeLogin(OneSignal, usuarioId);
-        if (
-          localStorage.getItem('notificaciones_activas') !== 'false' &&
-          OneSignal.User?.PushSubscription?.optIn &&
-          !OneSignal.User?.PushSubscription?.optedIn
-        ) {
-          await OneSignal.User.PushSubscription.optIn();
+
+        const prefActiva = localStorage.getItem('notificaciones_activas') !== 'false';
+        if (prefActiva) {
+          if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+            try {
+              await OneSignal.Notifications?.requestPermission?.();
+            } catch {
+              // Ignorar si el navegador requiere gesto explícito del usuario
+            }
+          }
+
+          const tienePermiso =
+            Boolean(OneSignal.Notifications?.permission) ||
+            (typeof Notification !== 'undefined' && Notification.permission === 'granted');
+
+          if (
+            tienePermiso &&
+            OneSignal.User?.PushSubscription?.optIn &&
+            !OneSignal.User?.PushSubscription?.optedIn
+          ) {
+            await OneSignal.User.PushSubscription.optIn();
+          }
         }
       }
     } catch (err) {

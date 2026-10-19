@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { Usuario, LoginRequest, AuthResponse, RolUsuario } from '../types';
 import { authApi } from '../api';
-import { logoutOneSignal } from '../services/oneSignalService';
+import { initOneSignal, logoutOneSignal } from '../services/oneSignalService';
 import { toast } from 'sonner';
 
 interface AuthContextType {
@@ -52,9 +52,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sessionStorage.clear();
           void logoutOneSignal();
         } else {
+          const parsedUser: Usuario = JSON.parse(storedUser);
           setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+          setUser(parsedUser);
           sessionStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+          if (parsedUser.usuarioId && parsedUser.rol === 'TECNICO') {
+            initOneSignal(parsedUser.usuarioId);
+          }
         }
       }
     } catch (error) {
@@ -123,6 +127,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setToken(data.token);
     setUser(authenticatedUser);
+
+    if (authenticatedUser.usuarioId && authenticatedUser.rol === 'TECNICO') {
+      initOneSignal(authenticatedUser.usuarioId);
+    }
 
     return data;
   };

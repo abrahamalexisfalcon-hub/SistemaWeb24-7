@@ -266,7 +266,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
   }, [detalleExtra, orden]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-2 print:p-0 print:bg-white animate-in fade-in">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/60 p-2 print:p-0 print:bg-white animate-in fade-in">
       {/* Contenedor modal — en print ocupa toda la página */}
       <div className="bg-white rounded-2xl max-w-[540px] w-full max-h-[92vh] overflow-y-auto shadow-2xl print:max-w-none print:max-h-none print:rounded-none print:shadow-none print:overflow-visible no-print-hide">
         
