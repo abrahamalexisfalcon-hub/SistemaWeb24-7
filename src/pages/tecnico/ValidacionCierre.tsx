@@ -60,10 +60,10 @@ export const ValidacionCierre: React.FC = () => {
 
     setLoadingState(true);
     try {
-      const { base64Url, pesoOriginalKB, pesoFinalKB } = await comprimirImagen(file);
+      const { base64Url} = await comprimirImagen(file);
       setter(base64Url);
       toast.success(
-        `Foto ${tipo === 'inicial' ? 'inicial' : 'final'} optimizada (${pesoOriginalKB} KB → ${pesoFinalKB} KB)`,
+        `Foto ${tipo === 'inicial' ? 'inicial' : 'final'} subida correctamente`,
         { duration: 3000 }
       );
     } catch (err) {

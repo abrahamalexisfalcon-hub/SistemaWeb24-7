@@ -1,10 +1,10 @@
 # 24/7 Asistencias Generales — Frontend (PWA / Mobile-First)
 
-![React](https://img.shields.io/badge/React-18.x-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.x-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![OneSignal](https://img.shields.io/badge/OneSignal-Web%20Push-E72B47?style=for-the-badge&logo=onesignal&logoColor=white)
+* React
+* TypeScript
+* Tailwind CSS
+* Vite
+* OneSignal
 
 > Aplicación web progresiva (PWA) responsiva y orientada a dispositivos móviles para técnicos en campo y panel administrativo de control en tiempo real.
 
