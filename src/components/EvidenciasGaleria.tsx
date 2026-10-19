@@ -161,7 +161,7 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
 
   const obtenerEtiquetaFoto = (index: number) => {
     if (fotosValidas.length === 2) {
-      return index === 0 ? 'Foto Inicial (Antes)' : 'Foto Final (Después)';
+      return index === 0 ? 'Foto Inicial' : 'Foto Final';
     }
     return `Evidencia ${index + 1}`;
   };
