@@ -40,7 +40,7 @@ declare global {
 }
 
 const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || "32237258-b02d-470e-a80c-9c57fadf03c2";
-let isInitialized = false;
+let initPromise: Promise<void> | null = null;
 let foregroundListenerAttached = false;
 let onPushReceivedCallback: ((data: { title?: string; body?: string }) => void) | null = null;
 
@@ -48,9 +48,25 @@ export const setOnPushReceivedCallback = (cb: ((data: { title?: string; body?: s
   onPushReceivedCallback = cb;
 };
 
+const ensureInitialized = async (OneSignal: OneSignalSDKInstance): Promise<void> => {
+  if (!initPromise) {
+    initPromise = OneSignal.init({
+      appId: ONESIGNAL_APP_ID,
+      allowLocalhostAsSecureOrigin: true,
+      serviceWorkerPath: '/OneSignalSDKWorker.js',
+      notifyButton: { enable: false },
+    }).catch((err) => {
+      // Si ya estaba inicializado por el SDK, ignorar el error de doble init
+      console.debug('[OneSignal] Estado de inicialización:', err);
+    });
+  }
+  await initPromise;
+};
+
 const safeLogin = async (OneSignal: OneSignalSDKInstance, usuarioId?: number | string) => {
   if (!usuarioId) return;
-  const targetId = String(usuarioId);
+  const targetId = String(usuarioId).trim();
+  if (!targetId) return;
   try {
     await OneSignal.login(targetId);
     console.info(`[OneSignal-TRACE] OneSignal.login("${targetId}") vinculado correctamente.`);
@@ -64,15 +80,7 @@ export const initOneSignal = (usuarioId?: number | string) => {
 
   const runInit = async (OneSignal: OneSignalSDKInstance) => {
     try {
-      if (!isInitialized) {
-        isInitialized = true;
-        await OneSignal.init({
-          appId: ONESIGNAL_APP_ID,
-          allowLocalhostAsSecureOrigin: true,
-          serviceWorkerPath: 'OneSignalSDKWorker.js',
-          notifyButton: { enable: false }
-        });
-      }
+      await ensureInitialized(OneSignal);
 
       if (!foregroundListenerAttached && OneSignal.Notifications?.addEventListener) {
         foregroundListenerAttached = true;
@@ -88,7 +96,7 @@ export const initOneSignal = (usuarioId?: number | string) => {
       }
 
       if (usuarioId) {
-        // Siempre vincular el external_id del técnico al iniciar sesión o restaurar contexto
+        // 1. Vincular el external_id del técnico tras completar OneSignal.init()
         await safeLogin(OneSignal, usuarioId);
 
         const prefActiva = localStorage.getItem('notificaciones_activas') !== 'false';
@@ -105,12 +113,10 @@ export const initOneSignal = (usuarioId?: number | string) => {
             Boolean(OneSignal.Notifications?.permission) ||
             (typeof Notification !== 'undefined' && Notification.permission === 'granted');
 
-          if (
-            tienePermiso &&
-            OneSignal.User?.PushSubscription?.optIn &&
-            !OneSignal.User?.PushSubscription?.optedIn
-          ) {
+          if (tienePermiso && OneSignal.User?.PushSubscription?.optIn) {
             await OneSignal.User.PushSubscription.optIn();
+            // Re-asegurar vínculo de external_id tras activar la suscripción push
+            await safeLogin(OneSignal, usuarioId);
           }
         }
       }
@@ -120,7 +126,7 @@ export const initOneSignal = (usuarioId?: number | string) => {
   };
 
   if (window.OneSignal && typeof window.OneSignal.init === 'function') {
-    runInit(window.OneSignal);
+    void runInit(window.OneSignal);
     return;
   }
 
@@ -155,35 +161,26 @@ export const toggleNotificacionesPush = async (usuarioId: number | string, activ
     }
   }
 
-  // 2. Sincronización con OneSignal con timeout seguro de 4 segundos
+  // 2. Sincronización con OneSignal con timeout seguro de 5 segundos
   return new Promise((resolve) => {
     let finalizado = false;
     const timeoutId = setTimeout(() => {
       if (!finalizado) {
         finalizado = true;
-        // Si el permiso nativo está concedido, no bloquear al usuario aunque OneSignal tarde
         resolve(activar ? permisoNativoConcedido : true);
       }
-    }, 4000);
+    }, 5000);
 
     const ejecutarSincronizacion = async (OneSignal: OneSignalSDKInstance) => {
       try {
-        if (!isInitialized) {
-          isInitialized = true;
-          await OneSignal.init({
-            appId: ONESIGNAL_APP_ID,
-            allowLocalhostAsSecureOrigin: true,
-            serviceWorkerPath: 'OneSignalSDKWorker.js',
-            notifyButton: { enable: false }
-          });
-        }
+        await ensureInitialized(OneSignal);
 
         if (activar) {
-          if (usuarioId) {
-            await safeLogin(OneSignal, usuarioId);
-          }
           if (OneSignal.User?.PushSubscription?.optIn) {
             await OneSignal.User.PushSubscription.optIn();
+          }
+          if (usuarioId) {
+            await safeLogin(OneSignal, usuarioId);
           }
           const optedIn = OneSignal.User?.PushSubscription?.optedIn;
           if (!finalizado) {
@@ -212,7 +209,7 @@ export const toggleNotificacionesPush = async (usuarioId: number | string, activ
     };
 
     if (window.OneSignal && typeof window.OneSignal.init === 'function') {
-      ejecutarSincronizacion(window.OneSignal);
+      void ejecutarSincronizacion(window.OneSignal);
       return;
     }
 

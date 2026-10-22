@@ -226,7 +226,7 @@ export const Login: React.FC = () => {
               {/* Input Password */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-slate-300">
-                  Password
+                  Contraseña
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -243,14 +243,14 @@ export const Login: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setMostrarPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 focus:outline-none transition-colors cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-600 hover:text-slate-400 focus:outline-none transition-colors cursor-pointer"
                     title={mostrarPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                   >
                     {mostrarPassword ? (
-                      <EyeOff className="w-4 h-4 stroke-[2]" />
-                    ) : (
                       <Eye className="w-4 h-4 stroke-[2]" />
+                    ) : (
+                      <EyeOff className="w-4 h-4 stroke-[2]" />
                     )}
                   </button>
                 </div>

@@ -59,8 +59,8 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const cargarOrdenes = useCallback(
     async (force: boolean = false) => {
-      // 1. Si no hay usuario autenticado, no procesar
-      if (!user) {
+      // 1. Si no hay usuario autenticado o es Administrador, no procesar endpoints exclusivos de técnico
+      if (!user || user.rol !== 'TECNICO') {
         setLoading(false);
         return;
       }
@@ -185,7 +185,7 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Carga inicial al autenticar o cambiar de usuario
   useEffect(() => {
-    if (user) {
+    if (user && user.rol === 'TECNICO') {
       if (lastUserIdRef.current !== user.usuarioId) {
         lastUserIdRef.current = user.usuarioId;
         setOrdenes([]);
@@ -207,6 +207,9 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Inicializar el estado visual del switch verificando si el permiso del navegador ya está concedido
   const [notificacionesActivas, setNotificacionesActivas] = useState<boolean>(() => {
     try {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'denied') return false;
+      }
       const stored = localStorage.getItem('notificaciones_activas');
       if (stored === 'false') return false;
       if (stored === 'true') return true;
@@ -254,9 +257,9 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [notificacionesActivas, user?.usuarioId]);
 
-  // Inicializar OneSignal con el ID del técnico y sincronizar órdenes al recibir push externo
+  // Inicializar OneSignal exclusivamente para rol TECNICO y sincronizar órdenes al recibir push externo
   useEffect(() => {
-    if (user?.usuarioId) {
+    if (user?.usuarioId && user.rol === 'TECNICO') {
       initOneSignal(user.usuarioId);
       setOnPushReceivedCallback(() => {
         cargarOrdenes(true);
@@ -265,8 +268,7 @@ export const OrdenesProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       setOnPushReceivedCallback(null);
     };
-  }, [user?.usuarioId, cargarOrdenes]);
-
+  }, [user?.usuarioId, user?.rol, cargarOrdenes]);
 
   return (
     <OrdenesContext.Provider

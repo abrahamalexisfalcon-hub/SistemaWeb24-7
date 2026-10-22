@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { Usuario, LoginRequest, AuthResponse, RolUsuario } from '../types';
 import { authApi } from '../api';
-import { initOneSignal, logoutOneSignal } from '../services/oneSignalService';
+import { initOneSignal } from '../services/oneSignalService';
 import { toast } from 'sonner';
 
 interface AuthContextType {
@@ -50,7 +50,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (lastActivityRaw && now - Number(lastActivityRaw) >= INACTIVITY_TIMEOUT) {
           // Si ya superó los 30 minutos de inactividad antes de recargar
           sessionStorage.clear();
-          void logoutOneSignal();
         } else {
           const parsedUser: Usuario = JSON.parse(storedUser);
           setToken(storedToken);
@@ -88,7 +87,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('tecnico_firma_url');
     localStorage.removeItem('ordenes_finalizadas_ids');
 
-    void logoutOneSignal();
     setToken(null);
     setUser(null);
   }, [user?.usuarioId]);
