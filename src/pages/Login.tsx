@@ -78,16 +78,16 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-slate-950 text-white overflow-y-auto relative selection:bg-sky-500 selection:text-white">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-[#060913] text-white overflow-y-auto relative selection:bg-sky-500 selection:text-white">
       {/* Resplandor ambiental de fondo */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-sky-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-sky-500/12 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/12 rounded-full blur-3xl pointer-events-none" />
 
       {/* Tarjeta Bento Principal Unificada y Fluida */}
-      <div className="w-full max-w-md md:max-w-2xl lg:max-w-4xl rounded-3xl lg:rounded-[2.5rem] overflow-hidden border border-slate-800/80 bg-[#0d121d] shadow-2xl flex flex-col lg:grid lg:grid-cols-2 my-auto relative z-10">
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-4xl rounded-3xl lg:rounded-[2.5rem] overflow-hidden border border-slate-700/70 bg-[#0b101b] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.85)] flex flex-col lg:grid lg:grid-cols-2 my-auto relative z-10">
         
         {/* Panel de Branding e Imagen (Arriba en móvil/tablet, Izquierda en desktop) */}
-        <div className="w-full h-56 sm:h-64 lg:h-auto lg:min-h-[580px] lg:m-2.5 lg:rounded-3xl lg:border lg:border-slate-800/50 p-6 sm:p-8 lg:p-10 relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-slate-900 via-sky-950/60 to-slate-950 border-b lg:border-b-0 border-slate-800/60 select-none">
+        <div className="w-full h-56 sm:h-64 lg:h-auto lg:min-h-[580px] lg:m-2.5 lg:rounded-3xl lg:border lg:border-slate-700/60 p-6 sm:p-8 lg:p-10 relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-slate-900 via-sky-950/60 to-slate-950 border-b lg:border-b-0 border-slate-800/80 select-none">
           
           {/* Fondo con onda fluida abstracta en tonos corporativos (Sky, Cyan, Indigo, Deep Navy) */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -154,8 +154,8 @@ export const Login: React.FC = () => {
             </svg>
           </div>
 
-          {/* Capa de degradado interna */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+          {/* Capa de degradado interna para garantizar contraste sobre las ondas */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050811]/90 via-[#050811]/25 to-[#050811]/50 pointer-events-none" />
 
           {/* Superior: Logotipo Oficial 24/7 Asistencias con Gran Presencia */}
           <div className="relative z-10 flex items-start justify-between">
@@ -163,11 +163,11 @@ export const Login: React.FC = () => {
               <img
                 src={logoBlanco}
                 alt="24/7 Asistencias"
-                className="h-16 sm:h-20 lg:h-24 xl:h-28 w-auto max-w-[200px] sm:max-w-[240px] lg:max-w-none object-contain drop-shadow-lg mb-2 lg:mb-4 select-none"
+                className="h-16 sm:h-20 lg:h-24 xl:h-28 w-auto max-w-[200px] sm:max-w-[240px] lg:max-w-none object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)] mb-2 lg:mb-4 select-none"
               />
             </div>
             <div className="lg:hidden mt-2">
-              <span className="px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-400 text-[10px] sm:text-xs font-semibold uppercase tracking-wider backdrop-blur-xs">
+              <span className="px-3 py-1 rounded-full bg-slate-950/80 border border-sky-400/40 text-sky-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider backdrop-blur-md shadow-sm">
                 24/7 Asistencias
               </span>
             </div>
@@ -175,21 +175,21 @@ export const Login: React.FC = () => {
 
           {/* Inferior: Frase institucional */}
           <div className="relative z-10 pt-4 sm:pt-6">
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight">
-              Tu Operación en <span className="text-sky-400 block">Tiempo Real</span>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-sm">
+              Tu Operación en <span className="text-sky-300 block">Tiempo Real</span>
             </h2>
           </div>
         </div>
 
         {/* Panel del Formulario (Abajo en móvil/tablet, Derecha en desktop) */}
-        <div className="w-full p-6 sm:p-8 lg:p-12 flex flex-col justify-center space-y-5 bg-[#0d121d]">
-          <div className="w-full max-w-sm mx-auto space-y-5">
+        <div className="w-full p-6 sm:p-8 lg:p-12 flex flex-col justify-center space-y-5 bg-[#0b101b]">
+          <div className="w-full max-w-sm mx-auto space-y-6">
             {/* Encabezado */}
-            <div className="space-y-1">
-              <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Login
+            <div className="space-y-1.5">
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Iniciar Sesión
               </h3>
-              <p className="text-xs sm:text-sm text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-300 font-medium">
                 Ingresa tus credenciales para acceder a tu cuenta
               </p>
             </div>
@@ -197,80 +197,99 @@ export const Login: React.FC = () => {
             {/* Formulario */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs rounded-xl flex items-center gap-2.5 animate-in fade-in duration-150">
+                <div
+                  role="alert"
+                  className="p-3.5 bg-rose-500/15 border border-rose-400/40 text-rose-200 text-xs rounded-xl flex items-center gap-2.5 shadow-sm animate-in fade-in duration-150"
+                >
                   <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-                  <span className="font-medium">{error}</span>
+                  <span className="font-semibold leading-snug">{error}</span>
                 </div>
               )}
 
               {/* Input Email */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Email
+                <label
+                  htmlFor="login-email"
+                  className="block text-xs font-bold text-slate-200 tracking-wide"
+                >
+                  Correo electrónico
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                    <Mail className="w-4 h-4 stroke-[2]" />
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-sky-400 transition-colors">
+                    <Mail className="w-4 h-4 stroke-[2.2]" />
                   </div>
                   <input
-                    type="text"
+                    id="login-email"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="username"
                     required
                     value={identificador}
                     onChange={(e) => setIdentificador(e.target.value)}
                     placeholder="correo@asistencias247.com"
-                    className="w-full pl-10 pr-4 py-3 bg-[#161d2d] border border-slate-700/60 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none transition-all shadow-inner"
+                    className="login-dark-input w-full pl-10 pr-4 py-3 bg-[#131c2e] hover:bg-[#162035] border border-slate-700/90 hover:border-slate-600 focus:border-sky-400 focus:bg-[#151f33] focus:ring-2 focus:ring-sky-500/25 rounded-xl text-sm font-medium text-white placeholder:text-slate-400/75 focus:outline-none transition-all shadow-inner"
                   />
                 </div>
               </div>
 
               {/* Input Password */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-300">
+                <label
+                  htmlFor="login-password"
+                  className="block text-xs font-bold text-slate-200 tracking-wide"
+                >
                   Contraseña
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                    <Lock className="w-4 h-4 stroke-[2]" />
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-sky-400 transition-colors">
+                    <Lock className="w-4 h-4 stroke-[2.2]" />
                   </div>
                   <input
+                    id="login-password"
                     type={mostrarPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     required
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-11 py-3 bg-[#161d2d] border border-slate-700/60 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none transition-all shadow-inner"
+                    className="login-dark-input w-full pl-10 pr-12 py-3 bg-[#131c2e] hover:bg-[#162035] border border-slate-700/90 hover:border-slate-600 focus:border-sky-400 focus:bg-[#151f33] focus:ring-2 focus:ring-sky-500/25 rounded-xl text-sm font-medium text-white placeholder:text-slate-400/75 focus:outline-none transition-all shadow-inner"
                   />
                   <button
                     type="button"
                     onClick={() => setMostrarPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-600 hover:text-slate-400 focus:outline-none transition-colors cursor-pointer"
+                    className={`absolute inset-y-0 right-0 px-3.5 flex items-center rounded-r-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 transition-colors cursor-pointer ${
+                      mostrarPassword
+                        ? 'text-sky-400 hover:text-sky-300'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
                     title={mostrarPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    aria-pressed={mostrarPassword}
                   >
                     {mostrarPassword ? (
-                      <Eye className="w-4 h-4 stroke-[2]" />
+                      <Eye className="w-4 h-4 stroke-[2.2]" />
                     ) : (
-                      <EyeOff className="w-4 h-4 stroke-[2]" />
+                      <EyeOff className="w-4 h-4 stroke-[2.2]" />
                     )}
                   </button>
                 </div>
               </div>
 
               {/* Fila Recordarme / Olvidé contraseña */}
-              <div className="flex items-center justify-between text-xs text-slate-400 pt-0.5">
-                <label className="flex items-center gap-2 cursor-pointer select-none hover:text-slate-300">
+              <div className="flex items-center justify-between text-xs text-slate-300 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer select-none hover:text-white transition-colors">
                   <input
                     type="checkbox"
                     checked={recordarme}
                     onChange={(e) => setRecordarme(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-sky-500"
+                    className="w-4 h-4 rounded border-slate-600 bg-[#131c2e] text-sky-500 focus:ring-2 focus:ring-sky-500/30 focus:ring-offset-0 cursor-pointer accent-sky-400"
                   />
-                  <span>Recordarme</span>
+                  <span className="font-medium">Recordarme</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => toast.info('Por favor, contacte al área de soporte o administración para restablecer sus accesos.')}
-                  className="text-sky-400 hover:text-sky-300 hover:underline cursor-pointer focus:outline-none"
+                  className="text-sky-400 hover:text-sky-300 font-semibold hover:underline cursor-pointer focus:outline-none focus-visible:underline transition-colors"
                 >
                   ¿Olvidaste tu contraseña?
                 </button>
@@ -280,15 +299,15 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full min-h-[48px] mt-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-sky-500/20 transition-all text-sm flex items-center justify-center cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed active:scale-[0.99] focus:outline-none"
+                className="w-full min-h-[48px] mt-2 bg-gradient-to-r from-sky-400 via-sky-500 to-sky-400 hover:from-sky-300 hover:via-sky-400 hover:to-sky-300 text-slate-950 font-extrabold py-3.5 px-4 rounded-xl shadow-lg shadow-sky-500/25 ring-1 ring-inset ring-white/25 transition-all text-sm tracking-wide flex items-center justify-center cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950 stroke-[2.5]" />
                     <span>Iniciando sesión...</span>
                   </div>
                 ) : (
-                  'Login'
+                  'Iniciar Sesión'
                 )}
               </button>
             </form>
