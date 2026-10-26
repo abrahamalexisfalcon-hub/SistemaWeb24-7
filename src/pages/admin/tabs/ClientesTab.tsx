@@ -126,7 +126,7 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
             className="hidden sm:flex bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl px-4 py-2.5 text-xs shadow-sm transition-colors items-center gap-1.5 active:scale-95 shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Nuevo Afiliado</span>
+            <span>Nuevo + Afiliado</span>
           </button>
         </div>
       </div>
