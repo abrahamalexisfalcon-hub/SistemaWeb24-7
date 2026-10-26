@@ -24,7 +24,6 @@ build/
 .env.*.local
 *.env
 .env*.local
-.env.production
 
 # Archivos de editor y sistema operativo
 .vscode/
