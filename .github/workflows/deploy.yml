@@ -1,0 +1,54 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Update & Rebuild Containers on VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            echo "🚀 Iniciando despliegue automático en VPS..."
+
+            if [ -d "/app-24-7/frontend" ]; then
+              echo "📦 Actualizando repositorio Frontend..."
+              cd /app-24-7/frontend
+              git fetch origin main
+              git reset --hard origin/main
+              git pull origin main
+            fi
+
+            if [ -d "/app-24-7/backend" ]; then
+              echo "⚙️ Actualizando repositorio Backend (/app-24-7/backend)..."
+              cd /app-24-7/backend
+              git fetch origin main
+              git reset --hard origin/main
+              git pull origin main
+            elif [ -d "/app-24-7/Backend" ]; then
+              echo "⚙️ Actualizando repositorio Backend (/app-24-7/Backend)..."
+              cd /app-24-7/Backend
+              git fetch origin main
+              git reset --hard origin/main
+              git pull origin main
+            fi
+
+            echo "🐳 Reconstruyendo y levantando servicios con Docker Compose..."
+            cd /app-24-7
+            docker compose up -d --build
+            docker image prune -f
+            docker compose ps
+            echo "✅ Despliegue finalizado exitosamente en https://app.24-7asistencias.com"
