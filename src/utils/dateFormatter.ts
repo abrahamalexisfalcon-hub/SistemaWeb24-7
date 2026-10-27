@@ -22,9 +22,10 @@ export function formatearFechaOrden(fechaIsoString: string | Date | undefined | 
     hour12: true
   };
 
-  const horaFormateada = new Intl.DateTimeFormat('es-PE', opcionesHora).format(fecha);
+  const horaRaw = new Intl.DateTimeFormat('en-US', opcionesHora).format(fecha);
+  const horaFormateada = horaRaw.toUpperCase();
 
-  // Determinar si es Hoy o Ayer respecto a la hora actual en Perú
+  // Determinar si es Hoy, Mañana o Ayer respecto a la hora actual en Perú
   const opcionesFecha: Intl.DateTimeFormatOptions = {
     timeZone: 'America/Lima',
     year: 'numeric',
@@ -36,6 +37,11 @@ export function formatearFechaOrden(fechaIsoString: string | Date | undefined | 
   const fechaStr = formateadorDia.format(fecha);
   const hoyStr = formateadorDia.format(new Date());
 
+  // Calcular Mañana
+  const manana = new Date();
+  manana.setDate(manana.getDate() + 1);
+  const mananaStr = formateadorDia.format(manana);
+
   // Calcular Ayer
   const ayer = new Date();
   ayer.setDate(ayer.getDate() - 1);
@@ -43,10 +49,11 @@ export function formatearFechaOrden(fechaIsoString: string | Date | undefined | 
 
   if (fechaStr === hoyStr) {
     return `Hoy, ${horaFormateada}`;
+  } else if (fechaStr === mananaStr) {
+    return `Mañana, ${horaFormateada}`;
   } else if (fechaStr === ayerStr) {
     return `Ayer, ${horaFormateada}`;
   } else {
-    // Para fechas anteriores: "14 oct, 04:30 p. m."
     const opcionesCompleta: Intl.DateTimeFormatOptions = {
       timeZone: 'America/Lima',
       day: 'numeric',

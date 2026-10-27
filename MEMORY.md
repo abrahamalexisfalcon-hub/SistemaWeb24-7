@@ -66,7 +66,11 @@
 
 ---
 
-## 5. Reglas Operativas Clave
+## 5. Reglas Operativas Clave y UI/UX de Registro de Orden
 - **Privacidad del Afiliado:** El rol `TECNICO` nunca recibe ni visualiza el teléfono del afiliado (`OrdenResumenTecnicoDto` lo excluye por diseño).
 - **Unicidad de Caso y OT:** `OrdenServicioService` y `GlobalExceptionHandler` validan que `numeroCaso` y `numeroOt` sean únicos antes de guardar y ante cualquier violación de restricción en base de datos (`HTTP 400 Bad Request`).
 - **Sincronización Backend ↔ Frontend:** Los DTOs (`CrearOrdenRequest`, `OrdenDetalleAdminDto`, `OrdenResumenTecnicoDto`, `CuentaDto`) se mantienen estrictamente sincronizados con las interfaces TypeScript en `frontend/src/types/index.ts`.
+- **UI/UX de `NuevaOrdenTab.tsx` (Fecha y Hora Pactada 12h AM/PM):**
+  - Estructurado en 3 secciones numeradas (*1. Datos de Cuenta y Expediente*, *2. Fecha y Hora Pactada del Servicio*, *3. Asignación de Afiliado y Técnico*).
+  - Selector de programación de servicio con **Fecha** (`<input type="date" min={hoy}>`), **Hora 12h** (`01`–`12`), **Minutos** (`00`–`59`) y selector segmentado explícito **`AM` / `PM`**, garantizando visibilidad de turno en cualquier navegador o sistema operativo.
+  - Incluye atajos rápidos de programación (`Ahora`, `+30 min`, `+1 hora`, `+2 horas`, `Mañana 09:00 AM`), vista previa en vivo del horario pactado, alerta preventiva si la hora elegida ya pasó y tarjeta de resumen de dirección/teléfono del afiliado y estado de disponibilidad del técnico.
