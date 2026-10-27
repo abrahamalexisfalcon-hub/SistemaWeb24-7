@@ -1,11 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useOrdenes } from '../../context/OrdenesContext';
 import { tecnicoApi } from '../../api';
 import { TecnicoLayout, OrderStepper, SignaturePad, type SignaturePadRef } from '../../components/tecnico';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { comprimirImagen } from '../../utils/imageCompressor';
+import { comprimirImagenConDetalle } from '../../utils/imageCompression';
+import { formatearHoraLocal, calcularDuracionServicio } from '../../utils/dateFormatter';
 import type { OrdenResumenTecnico, CierreHojaServicioRequest } from '../../types';
 import { ChevronLeft, Camera, Star, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -27,8 +28,27 @@ export const ValidacionCierre: React.FC = () => {
     };
   } | undefined;
 
-  const orden = stateData?.orden;
+  const [orden, setOrden] = useState<OrdenResumenTecnico | undefined>(stateData?.orden);
   const formularioPrevio = stateData?.formulario;
+
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+    tecnicoApi
+      .getDetalleOrden(Number(id))
+      .then((data) => {
+        if (!mounted || !data) return;
+        setOrden((prev) => ({
+          ...prev,
+          ...data,
+          fechaLlegada: data.fechaLlegada || data.horaLlegada || prev?.fechaLlegada,
+        }));
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   const sigPadRef = useRef<SignaturePadRef>(null);
 
@@ -60,10 +80,10 @@ export const ValidacionCierre: React.FC = () => {
 
     setLoadingState(true);
     try {
-      const { base64Url} = await comprimirImagen(file);
+      const { base64Url, pesoFinalKB } = await comprimirImagenConDetalle(file, 1280, 1280, 0.72);
       setter(base64Url);
       toast.success(
-        `Foto ${tipo === 'inicial' ? 'inicial' : 'final'} subida correctamente`,
+        `Foto ${tipo === 'inicial' ? 'inicial' : 'final'} optimizada (${pesoFinalKB} KB)`,
         { duration: 3000 }
       );
     } catch (err) {
@@ -165,6 +185,9 @@ export const ValidacionCierre: React.FC = () => {
       // 1. Esperar obligatoriamente la resolución exitosa del backend
       const cierreRes = await tecnicoApi.cerrarOrden(ordenId, requestPayload);
       const firmaClienteUrl = cierreRes?.firmaDigitalUrl || cierreRes?.firmaAfiliadoUrl || signatureDataUrl;
+      const fechaLlegadaFinal = cierreRes?.fechaLlegada || orden?.fechaLlegada || orden?.horaLlegada;
+      const fechaFinFinal = cierreRes?.fechaFinalizacion || new Date().toISOString();
+      const duracionFinal = calcularDuracionServicio(fechaLlegadaFinal, fechaFinFinal);
 
       if (firmaClienteUrl) {
         try {
@@ -176,6 +199,8 @@ export const ValidacionCierre: React.FC = () => {
       actualizarOrdenLocal({
         id: ordenId,
         estado: 'FINALIZADA',
+        fechaLlegada: fechaLlegadaFinal,
+        fechaFinalizacion: fechaFinFinal,
         firmaDigitalUrl: firmaClienteUrl,
         firmaAfiliadoUrl: firmaClienteUrl,
       });
@@ -228,6 +253,7 @@ export const ValidacionCierre: React.FC = () => {
       );
 
       navigate(`/tecnico/ordenes/${ordenId}/exito`, {
+        replace: true,
         state: {
           orden: {
             ...orden,
@@ -239,6 +265,8 @@ export const ValidacionCierre: React.FC = () => {
             distrito: orden?.distrito || 'Villa El Salvador',
             dniAfiliado: orden?.dniAfiliado || '',
             codigoCuenta: orden?.codigoCuenta || '',
+            fechaLlegada: fechaLlegadaFinal,
+            fechaFinalizacion: fechaFinFinal,
             tecnicoNombre,
             tecnicoFirmaUrl,
             firmaDigitalUrl: firmaClienteUrl,
@@ -248,7 +276,7 @@ export const ValidacionCierre: React.FC = () => {
             fotosEvidencia: fotosServidor,
             estado: 'FINALIZADA',
           },
-          duracion: '37 min',
+          duracion: duracionFinal,
           calificacion: promedioCalificacion,
           califPuntualidad,
           califSolucion,
@@ -283,6 +311,11 @@ export const ValidacionCierre: React.FC = () => {
   };
 
   const codigo = orden ? `#${orden.codigoOrden}` : '#ORD-2026-001';
+  const horaFinActual = formatearHoraLocal(orden?.fechaFinalizacion || new Date());
+  const duracionActual = calcularDuracionServicio(
+    orden?.fechaLlegada || orden?.horaLlegada,
+    orden?.fechaFinalizacion || new Date()
+  );
 
   return (
     <TecnicoLayout activeTab="ordenes">
@@ -323,7 +356,7 @@ export const ValidacionCierre: React.FC = () => {
                 {orden?.tipoServicio || 'Mantenimiento Eléctrico Preventivo'}
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Fin de servicio: 11:25 AM • Duración: 37 min
+                Fin de servicio: {horaFinActual} • Duración: {duracionActual}
               </p>
             </div>
 

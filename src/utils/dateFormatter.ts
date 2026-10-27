@@ -65,6 +65,80 @@ export function formatearFechaOrden(fechaIsoString: string | Date | undefined | 
 }
 
 /**
+ * Formatea una fecha/hora (ISO o Date) a hora local de Perú (ej: "10:35 AM").
+ * Si recibe una cadena ya formateada como "10:35 AM", la devuelve limpia.
+ */
+export function formatearHoraLocal(valor?: string | Date | null): string {
+  if (!valor) {
+    return new Date()
+      .toLocaleTimeString('es-PE', {
+        timeZone: 'America/Lima',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      })
+      .replace(/a\.?\s*m\.?/i, 'AM')
+      .replace(/p\.?\s*m\.?/i, 'PM')
+      .toUpperCase();
+  }
+
+  if (typeof valor === 'string') {
+    const limpio = valor.trim();
+    // Si ya es una hora corta tipo "10:35 AM" o "02:15 PM"
+    if (/^\d{1,2}:\d{2}\s*(AM|PM|a\.?\s*m\.?|p\.?\s*m\.?)$/i.test(limpio)) {
+      return limpio
+        .replace(/a\.?\s*m\.?/i, 'AM')
+        .replace(/p\.?\s*m\.?/i, 'PM')
+        .toUpperCase();
+    }
+  }
+
+  const fecha = valor instanceof Date ? valor : new Date(valor);
+  if (isNaN(fecha.getTime())) {
+    return typeof valor === 'string' && valor.trim() ? valor.trim() : '--:--';
+  }
+
+  return fecha
+    .toLocaleTimeString('es-PE', {
+      timeZone: 'America/Lima',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    })
+    .replace(/a\.?\s*m\.?/i, 'AM')
+    .replace(/p\.?\s*m\.?/i, 'PM')
+    .toUpperCase();
+}
+
+/**
+ * Calcula la duración real transcurrida entre la hora de llegada y la hora de finalización (o actual).
+ */
+export function calcularDuracionServicio(
+  inicioIso?: string | Date | null,
+  finIso?: string | Date | null
+): string {
+  if (!inicioIso) return '1 min';
+
+  const inicio = inicioIso instanceof Date ? inicioIso : new Date(inicioIso);
+  const fin = finIso ? (finIso instanceof Date ? finIso : new Date(finIso)) : new Date();
+
+  if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
+    return '1 min';
+  }
+
+  const diffMs = Math.max(0, fin.getTime() - inicio.getTime());
+  const totalMinutos = Math.max(1, Math.round(diffMs / 60000));
+
+  if (totalMinutos < 60) {
+    return `${totalMinutos} min`;
+  }
+
+  const horas = Math.floor(totalMinutos / 60);
+  const minutos = totalMinutos % 60;
+  return minutos > 0 ? `${horas} h ${minutos} min` : `${horas} h`;
+}
+
+/**
  * Alias compatible con vistas administrativas
  */
 export const formatearFechaHora = formatearFechaOrden;

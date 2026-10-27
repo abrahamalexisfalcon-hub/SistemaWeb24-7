@@ -7,6 +7,7 @@ import type { OrdenResumenTecnico, MaterialConsumido } from '../../types';
 import { ChevronLeft, Check, Star, FileText, Download } from 'lucide-react';
 import logo247 from '../../assets/Logo_negro.png';
 import { EvidenciasGaleria } from '../../components/EvidenciasGaleria';
+import { calcularDuracionServicio } from '../../utils/dateFormatter';
 
 /* ─────────────── Tipos del state recibido desde ValidacionCierre ─────────────── */
 interface HojaServicioData {
@@ -84,7 +85,6 @@ export const ExitoOrden: React.FC = () => {
   const stateData = location.state as ExitoState | undefined;
 
   const ordenFromState = stateData?.orden;
-  const duracion = stateData?.duracion || '37 min';
   const calificacion = stateData?.calificacion || 5;
   const califPuntualidad = stateData?.califPuntualidad ?? calificacion;
   const califSolucion = stateData?.califSolucion ?? calificacion;
@@ -92,6 +92,11 @@ export const ExitoOrden: React.FC = () => {
 
   const [modalPdfOpen, setModalPdfOpen] = useState(false);
   const [ordenDetalle, setOrdenDetalle] = useState<OrdenResumenTecnico | null>(null);
+
+  const orden = ordenDetalle || ordenFromState;
+  const duracion =
+    stateData?.duracion ||
+    calcularDuracionServicio(orden?.fechaLlegada || orden?.horaLlegada, orden?.fechaFinalizacion);
 
   const { especialidades: espObjs } = useEspecialidades();
   const tipoServicioActivo = ordenDetalle?.tipoServicio || ordenFromState?.tipoServicio;
@@ -120,8 +125,6 @@ export const ExitoOrden: React.FC = () => {
   useEffect(() => {
     localStorage.removeItem(`borrador_atencion_${ordenId}`);
   }, [ordenId]);
-
-  const orden = ordenDetalle || ordenFromState;
 
   const codigo = orden ? `#${orden.codigoOrden}` : `#ORD-2026-${String(ordenId).padStart(3, '0')}`;
   const codigoLimpio = codigo.replace(/^#+/, '#');

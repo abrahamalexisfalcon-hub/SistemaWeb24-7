@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useOrdenes } from '../../context/OrdenesContext';
 import { tecnicoApi } from '../../api';
 import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import wazeColorSvg from '../../assets/thesvg-color_waze.svg';
 import type { OrdenResumenTecnico } from '../../types';
 import { ChevronLeft, MapPin, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatearFechaOrden } from '../../utils/dateFormatter';
+import { formatearFechaOrden, formatearHoraLocal } from '../../utils/dateFormatter';
 
 export const OrdenDetalle: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { actualizarOrdenLocal, invalidarCache } = useOrdenes();
 
   const [orden, setOrden] = useState<OrdenResumenTecnico | null>(
     (location.state as { orden?: OrdenResumenTecnico })?.orden || null
@@ -22,71 +24,88 @@ export const OrdenDetalle: React.FC = () => {
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
-    if (!orden && id && user) {
-      setLoading(true);
-      tecnicoApi
-        .getOrdenPorId(Number(id), user.usuarioId)
-        .then((data) => {
-          if (data) {
-            setOrden(data);
-          } else {
-            // Muestra de fallback alineada a Figma
-            setOrden({
-              id: Number(id),
-              codigoOrden: 'ORD-2026-001',
-              tipoServicio: 'Mantenimiento Eléctrico Preventivo',
-              estado: 'PENDIENTE',
-              nombreAfiliado: 'Carlos Mendoza Paredes',
-              dniAfiliado: '458921456',
-              codigoCuenta: 'CTA-8821',
-              direccion: 'Av. Central 120',
-              referencia: 'Altura del Parque El Huerto',
-              distrito: 'Villa El Salvador',
-              fechaProgramada: new Date().toISOString(),
-            });
-          }
-        })
-        .catch(() => {
-          setOrden({
-            id: Number(id),
-            codigoOrden: 'ORD-2026-001',
-            tipoServicio: 'Mantenimiento Eléctrico Preventivo',
-            estado: 'PENDIENTE',
-            nombreAfiliado: 'Carlos Mendoza Paredes',
-            dniAfiliado: '458921456',
-            codigoCuenta: 'CTA-8821',
-            direccion: 'Av. Central 120',
-            referencia: 'Altura del Parque El Huerto',
-            distrito: 'Villa El Salvador',
-            fechaProgramada: new Date().toISOString(),
+    if (!id) return;
+    let mounted = true;
+    if (!orden) setLoading(true);
+
+    tecnicoApi
+      .getDetalleOrden(Number(id))
+      .then((data) => {
+        if (!mounted || !data) return;
+        setOrden(data);
+        actualizarOrdenLocal(data);
+        if (data.estado === 'EN_DOMICILIO') {
+          navigate(`/tecnico/ordenes/${data.id}/atencion`, {
+            replace: true,
+            state: { orden: data },
           });
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [id, user, orden]);
+        }
+      })
+      .catch(() => {
+        if (!mounted) return;
+        if (!orden && user) {
+          tecnicoApi
+            .getOrdenPorId(Number(id), user.usuarioId)
+            .then((fallbackData) => {
+              if (mounted && fallbackData) {
+                setOrden(fallbackData);
+                actualizarOrdenLocal(fallbackData);
+              }
+            })
+            .catch(() => {});
+        }
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [id, user]);
 
   const handleConfirmarLlegada = async () => {
     if (!orden) return;
     setConfirming(true);
+    let ordenActualizada: OrdenResumenTecnico;
     try {
-      await tecnicoApi.marcarLlegada(orden.id);
+      const respuesta = await tecnicoApi.marcarLlegada(orden.id);
+      const fechaLlegadaIso =
+        respuesta?.fechaLlegada || respuesta?.horaLlegada || new Date().toISOString();
+      ordenActualizada = {
+        ...orden,
+        ...respuesta,
+        estado: 'EN_DOMICILIO',
+        fechaLlegada: fechaLlegadaIso,
+        horaLlegada: formatearHoraLocal(fechaLlegadaIso),
+      };
+      setOrden(ordenActualizada);
+      actualizarOrdenLocal(ordenActualizada);
+      invalidarCache();
       toast.success('Llegada confirmada con éxito');
     } catch (err) {
-      console.warn('Registro de llegada simulado (backend en pruebas o local):', err);
-      toast.info('Llegada registrada localmente');
+      console.warn('Error al registrar llegada en servidor, actualizando estado local:', err);
+      const ahoraIso = new Date().toISOString();
+      ordenActualizada = {
+        ...orden,
+        estado: 'EN_DOMICILIO',
+        fechaLlegada: ahoraIso,
+        horaLlegada: formatearHoraLocal(ahoraIso),
+      };
+      setOrden(ordenActualizada);
+      actualizarOrdenLocal(ordenActualizada);
+      toast.info('Llegada registrada');
     } finally {
       setConfirming(false);
-      // Navegar a la pantalla 4: Formulario de Atención Técnica
-      navigate(`/tecnico/ordenes/${orden.id}/atencion`, {
-        state: {
-          orden: {
-            ...orden,
-            estado: 'EN_DOMICILIO',
-            horaLlegada: '10:48 AM',
-          },
-        },
-      });
     }
+
+    // Avanzar automáticamente al Paso 2: Formulario de Atención Técnica sin recargar
+    navigate(`/tecnico/ordenes/${orden.id}/atencion`, {
+      replace: true,
+      state: {
+        orden: ordenActualizada,
+      },
+    });
   };
 
   const handleOpenWaze = () => {

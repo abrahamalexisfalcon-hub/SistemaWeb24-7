@@ -100,7 +100,9 @@ export interface OrdenResumenTecnico {
   fechaProgramada?: string;
   fechaCreacion?: string;
   fechaAsignacion?: string;
+  fechaLlegada?: string;
   horaLlegada?: string;
+  fechaFinalizacion?: string;
   tecnicoNombre?: string;
   tecnicoFirmaUrl?: string | null;
   firmaDigitalUrl?: string | null;
@@ -125,6 +127,8 @@ export interface CierreHojaServicioResponse {
   hojaServicioId?: number;
   ordenId?: number;
   estado?: EstadoOrden;
+  fechaLlegada?: string;
+  fechaFinalizacion?: string;
   firmaDigitalUrl?: string;
   firmaAfiliadoUrl?: string;
   firmaClienteUrl?: string;

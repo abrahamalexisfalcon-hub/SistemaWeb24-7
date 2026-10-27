@@ -6,6 +6,7 @@ import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import type { OrdenResumenTecnico, MaterialCatalogo, MaterialConsumido } from '../../types';
 import { ChevronLeft, Plus, Trash2, Minus, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatearHoraLocal } from '../../utils/dateFormatter';
 
 interface BorradorAtencion {
   evaluacion: string;
@@ -85,9 +86,30 @@ export const AtencionTecnica: React.FC = () => {
   const location = useLocation();
   const { actualizarOrdenLocal, invalidarCache } = useOrdenes();
 
-  const [orden] = useState<OrdenResumenTecnico | null>(
+  const [orden, setOrden] = useState<OrdenResumenTecnico | null>(
     (location.state as { orden?: OrdenResumenTecnico })?.orden || null
   );
+
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+    tecnicoApi
+      .getDetalleOrden(Number(id))
+      .then((data) => {
+        if (!mounted || !data) return;
+        setOrden((prev) => ({
+          ...prev,
+          ...data,
+          fechaLlegada: data.fechaLlegada || data.horaLlegada || prev?.fechaLlegada,
+          horaLlegada: formatearHoraLocal(data.fechaLlegada || data.horaLlegada || prev?.fechaLlegada || prev?.horaLlegada),
+        }));
+        actualizarOrdenLocal(data);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   const [catalogo, setCatalogo] = useState<MaterialCatalogo[]>([]);
   const [modalAnulacionOpen, setModalAnulacionOpen] = useState(false);
@@ -502,7 +524,7 @@ export const AtencionTecnica: React.FC = () => {
   };
 
   const codigo = orden ? `#${orden.codigoOrden}` : '#ORD-2026-001';
-  const horaLlegada = orden?.horaLlegada || '10:48 AM';
+  const horaLlegada = formatearHoraLocal(orden?.fechaLlegada || orden?.horaLlegada);
 
   return (
     <TecnicoLayout activeTab="ordenes">
