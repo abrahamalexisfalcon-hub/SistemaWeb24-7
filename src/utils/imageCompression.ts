@@ -55,7 +55,7 @@ export async function comprimirImagen(
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 
-        const targetMaxBytes = 300 * 1024; // 300 KB
+        const targetMaxBytes = 250 * 1024; // < 250 KB garantizado sin perder nitidez
 
         const exportarBlob = (calidadActual: number) => {
           canvas.toBlob(

@@ -265,22 +265,33 @@ export const ExitoOrden: React.FC = () => {
           </p>
 
           {/* Tarjeta Resumen con Borde */}
-          <div className="w-full bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 mt-6 text-left space-y-2.5 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Orden:</span>
-              <span className="font-extrabold text-slate-900">{codigo}</span>
+          <div className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 mt-6 text-left space-y-2.5 text-sm">
+            {/* Orden / OT */}
+            <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+              <span className="text-slate-500 font-medium">Orden:</span>
+              <span className="font-bold text-slate-900 tracking-tight">
+                {orden?.numeroOt || codigo}
+              </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Afiliado:</span>
-              <span className="font-extrabold text-slate-900">{nombreAfiliado}</span>
+
+            {/* Afiliado: separación y alineación protegida */}
+            <div className="flex justify-between items-start gap-4 pb-2 border-b border-slate-200/60">
+              <span className="text-slate-500 font-medium shrink-0 pt-0.5">Afiliado:</span>
+              <span className="font-semibold text-slate-800 text-right leading-snug break-words uppercase">
+                {nombreAfiliado}
+              </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Duración:</span>
-              <span className="font-extrabold text-slate-900">{duracion}</span>
+
+            {/* Duración */}
+            <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+              <span className="text-slate-500 font-medium">Duración:</span>
+              <span className="font-bold text-slate-900">{duracion}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Calificación:</span>
-              <div className="flex items-center gap-1 text-amber-400">
+
+            {/* Calificación */}
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-medium">Calificación:</span>
+              <div className="flex text-amber-400 gap-0.5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
