@@ -13,7 +13,6 @@ import {
   Hash,
   MapPin,
   UserCheck,
-  Sparkles,
 } from 'lucide-react';
 import { obtenerFechaHoraActualLocal } from '../useAdminDashboard';
 
@@ -201,10 +200,6 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
           <p className="text-xs text-slate-500 mt-1">
             Crea y asigna una asistencia técnica vinculada a su cuenta, caso, OT y horario pactado (AM / PM)
           </p>
-        </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-50 border border-sky-200/70 text-sky-700 text-xs font-bold self-start sm:self-auto">
-          <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-          <span>Correlativo automático #ORD-{new Date().getFullYear()}</span>
         </div>
       </div>
 
