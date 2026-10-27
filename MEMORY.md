@@ -100,3 +100,4 @@
   - En la sección **DATOS DEL AFILIADO**:
     - El campo **`CUENTA:`** muestra el nombre real de la cuenta / aseguradora / convenio asociado a la orden (`orden.cuenta?.nombre` o `orden.cuentaNombre`), o `"Particular"` si la orden no tiene cuenta corporativa asignada (descartando códigos internos `CTA-...`).
     - Se reemplazó la etiqueta `ASISTENCIA:` por **`OT:`**, mostrando el número alfanumérico de OT registrado en la orden (`orden.numeroOt`, o `"-"` si no está definido).
+  - En la **barra de acción inferior** de `HojaServicioModal.tsx`: botón destacado **"Compartir por WhatsApp"** (`bg-[#25D366]`) que normaliza el teléfono del afiliado con el prefijo `+51` (Perú) y abre el chat directo (`https://wa.me/51...` o Web Share API nativa en móvil cuando no hay número registrado) con un mensaje formal preformateado de "24/7 Asistencias Generales".

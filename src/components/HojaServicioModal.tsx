@@ -134,6 +134,13 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
     detalleExtra?.dniAfiliado ||
     '';
 
+  const telefonoAfiliadoRaw =
+    orden?.afiliadoTelefono ||
+    (orden as any)?.telefonoAfiliado ||
+    orden?.cliente?.telefono ||
+    (orden as any)?.afiliado?.telefono ||
+    '';
+
   const rawNombreCuenta =
     orden?.cuenta?.nombre ||
     orden?.cuentaNombre ||
@@ -243,6 +250,73 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
   const colDer = materiales.slice(mitad);
   const filasMat = Math.max(colIzq.length, colDer.length, 1);
 
+  const handleCompartirWhatsApp = async () => {
+    const soloDigitos = String(telefonoAfiliadoRaw || '').replace(/\D/g, '');
+    const telefonoDestino =
+      soloDigitos.length === 9
+        ? `51${soloDigitos}`
+        : soloDigitos.length === 11 && soloDigitos.startsWith('51')
+          ? soloDigitos
+          : soloDigitos;
+
+    const otReferencia =
+      numeroOt && numeroOt !== '-' ? `OT N° ${numeroOt} (${codigoLimpio})` : codigoLimpio;
+    const especialidadAtendida = tipoServicio || 'Asistencia Técnica Domiciliaria';
+    const pdfActaUrl =
+      orden?.hojaServicio?.pdfActaUrl || (orden as any)?.pdfActaUrl || '';
+
+    const lineasMensaje = [
+      `*24/7 ASISTENCIAS GENERALES* 🛠️`,
+      ``,
+      `Estimado(a) *${nombreAfiliado}*, reciba un cordial saludo.`,
+      ``,
+      `Le informamos que su atención de *${especialidadAtendida}* correspondiente a la orden *${otReferencia}* ha sido *FINALIZADA CON ÉXITO* con fecha *${fechaMostrar}*.`,
+      ...(detalleSolucion
+        ? [``, `*Detalle del trabajo realizado:*`, `${detalleSolucion.trim()}`]
+        : []),
+      ``,
+      `*Técnico asignado:* ${tecnicoNombre}`,
+      ...(nombreCuenta && nombreCuenta !== 'Particular'
+        ? [`*Cuenta / Convenio:* ${nombreCuenta}`]
+        : []),
+      ...(pdfActaUrl
+        ? [``, `📄 *Enlace a su Hoja de Servicio Digital:*`, `${pdfActaUrl}`]
+        : [
+            ``,
+            `📄 Le hacemos entrega por este medio de la constancia digital de su *Hoja de Servicio*.`,
+          ]),
+      ``,
+      `Agradecemos su confianza en *24/7 Asistencias Generales*. Quedamos a su disposición las 24 horas ante cualquier consulta.`
+    ];
+
+    const mensaje = lineasMensaje.join('\n');
+
+    // Si hay teléfono del afiliado, abrir directamente su chat de WhatsApp con el mensaje prellenado
+    if (telefonoDestino) {
+      const waUrl = `https://wa.me/${telefonoDestino}?text=${encodeURIComponent(mensaje)}`;
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    // Si no hay teléfono directo y el navegador móvil soporta Web Share API nativa
+    const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (esMovil && typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `Hoja de Servicio ${codigoLimpio} - 24/7 Asistencias Generales`,
+          text: mensaje,
+          ...(pdfActaUrl ? { url: pdfActaUrl } : {}),
+        });
+        return;
+      } catch {
+        // Si el usuario cancela o falla, continuar al fallback de WhatsApp
+      }
+    }
+
+    const fallbackUrl = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+  };
+
   const fotosEvidencia: string[] = useMemo(() => {
     const isMockUrl = (url?: string | null) =>
       !url ||
@@ -311,14 +385,14 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
             </div>
 
             {/* Título central (acercado al logo, sin margen/padding izquierdo) */}
-            <div className="flex-1 flex items-center justify-start pl-0 ml-0">
+            <div className="flex-1 flex items-center justify-center pl-0 ml-0">
               <h2 className="text-[15px] font-black text-[#0284c7] tracking-wider underline underline-offset-4 decoration-[#0284c7] whitespace-nowrap">
                 HOJA DE SERVICIO
               </h2>
             </div>
 
             {/* Datos de contacto con logos oficiales locales */}
-            <div className="flex flex-col items-end space-y-1.5 text-xs text-sky-600 print:text-sky-700">
+            <div className="flex flex-col items-end space-y-1.5 text-s text-sky-600 print:text-sky-700">
               {/* Fila 1: WhatsApp */}
               <div className="flex items-center gap-1.5 font-medium">
                 <img 
@@ -327,21 +401,10 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
                   className="w-3.5 h-3.5 object-contain"
                   crossOrigin="anonymous"
                 />
-                <span>988 888 141 / 989 567 795 / 914 279 170</span>
+                <span>988 888 141 / 914 279 170</span>
               </div>
 
-              {/* Fila 2: Correo Gmail */}
-              <div className="flex items-center gap-1.5 font-medium">
-                <img 
-                  src="/icons/gmail.svg" 
-                  alt="Gmail" 
-                  className="w-3.5 h-3.5 object-contain"
-                  crossOrigin="anonymous"
-                />
-                <span>247asistencias.peru@gmail.com</span>
-              </div>
-
-              {/* Fila 3: Redes Sociales */}
+              {/* Fila 2: Redes Sociales */}
               <div className="flex items-center gap-3 font-medium">
                 {/* Instagram */}
                 <div className="flex items-center gap-1">
@@ -353,18 +416,20 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
                   />
                   <span>247asistencias</span>
                 </div>
-
-                {/* Facebook */}
-                <div className="flex items-center gap-1">
-                  <img 
-                    src="/icons/facebook.svg" 
-                    alt="Facebook" 
-                    className="w-3.5 h-3.5 object-contain"
-                    crossOrigin="anonymous"
-                  />
-                  <span>247asistencias.pe</span>
-                </div>
               </div>
+
+              {/* Fila 3: Correo Gmail*/}
+              <div className="flex items-center gap-1.5 font-medium">
+                <img 
+                  src="/icons/gmail.svg" 
+                  alt="Gmail" 
+                  className="w-3.5 h-3.5 object-contain"
+                  crossOrigin="anonymous"
+                />
+                <span>247asistencias.peru@gmail.com</span>
+              </div>
+
+
             </div>
           </div>
 
@@ -593,17 +658,37 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
           />
         </div>
 
-        {/* Botones de acción (ocultos en impresión) */}
-        <div className="flex gap-2 px-4 pb-4 pt-2 print:hidden sticky bottom-0 bg-white rounded-b-2xl border-t border-slate-100">
+        {/* Barra de acción inferior destacada (oculta en impresión) */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 px-4 pb-4 pt-3 print:hidden sticky bottom-0 bg-white/95 backdrop-blur-xs z-20 rounded-b-2xl border-t border-slate-100">
           <button
+            type="button"
             onClick={() => window.print()}
-            className="flex-1 py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20 transition-all"
+            className="flex-1 py-2.5 px-3 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.98] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20 transition-all cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5" /> Descargar / Imprimir
+            <Download className="w-3.5 h-3.5 shrink-0" />
+            <span>Descargar / Imprimir</span>
           </button>
+
           <button
+            type="button"
+            onClick={handleCompartirWhatsApp}
+            className="flex-1 py-2.5 px-3 bg-[#25D366] hover:bg-[#1ebe5d] active:scale-[0.98] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#25D366]/25 transition-all cursor-pointer"
+            title="Enviar Hoja de Servicio al Afiliado por WhatsApp"
+          >
+            <svg
+              className="w-4 h-4 fill-current shrink-0"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+            </svg>
+            <span>Compartir por WhatsApp</span>
+          </button>
+
+          <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition-colors"
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition-colors cursor-pointer"
           >
             Cerrar
           </button>
