@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 import { adminApi } from '../../api';
-import { useEspecialidades } from '../../hooks';
+import { useEspecialidades, useAutoRefresh } from '../../hooks';
 import type {
   OrdenDetalleAdmin,
   Afiliado,
@@ -112,8 +113,12 @@ export function useAdminDashboard() {
     }
   }, []);
 
-  // Carga inicial de datos
-  const cargarDatos = async (silencioso = false) => {
+  // Seguimiento de estados previos de órdenes para notificaciones de finalización en tiempo real
+  const estadosOrdenesPreviosRef = useRef<Map<number, string>>(new Map());
+  const cargaInicialCompletadaRef = useRef<boolean>(false);
+
+  // Carga y sincronización silenciosa de datos (inicial, manual y polling cada 20s)
+  const cargarDatos = useCallback(async (silencioso = false) => {
     if (!silencioso) setLoading(true);
     setIsFetching(true);
 
@@ -126,7 +131,32 @@ export function useAdminDashboard() {
       ]);
 
       if (ordenesRes.status === 'fulfilled') {
-        setOrdenes(ordenesRes.value || []);
+        const nuevasOrdenes = ordenesRes.value || [];
+
+        if (cargaInicialCompletadaRef.current) {
+          nuevasOrdenes.forEach((o) => {
+            if (!o || typeof o.id !== 'number') return;
+            const estadoPrevio = estadosOrdenesPreviosRef.current.get(o.id);
+            if (estadoPrevio && estadoPrevio !== 'FINALIZADA' && o.estado === 'FINALIZADA') {
+              const etiquetaOrden = o.numeroOt || o.numeroCaso || `#${o.codigoOrden}`;
+              toast.success(`Orden ${etiquetaOrden} ha sido finalizada por el técnico.`);
+            }
+          });
+        }
+
+        const nuevoMapa = new Map<number, string>();
+        nuevasOrdenes.forEach((o) => {
+          if (o && typeof o.id === 'number') {
+            nuevoMapa.set(o.id, o.estado);
+          }
+        });
+        estadosOrdenesPreviosRef.current = nuevoMapa;
+        cargaInicialCompletadaRef.current = true;
+
+        setOrdenes(nuevasOrdenes);
+        setOrdenSeleccionada((prev) =>
+          prev ? nuevasOrdenes.find((o) => o.id === prev.id) || prev : null
+        );
       }
 
       if (afiliadosRes.status === 'fulfilled') {
@@ -151,18 +181,28 @@ export function useAdminDashboard() {
         }
       }
 
-      recargarEspecialidades();
+      if (!silencioso) {
+        recargarEspecialidades();
+      }
     } catch (err) {
       console.warn('Error cargando datos de administración:', err);
     } finally {
       setLoading(false);
       setIsFetching(false);
     }
-  };
+  }, [recargarEspecialidades]);
+
+  const refrescarManual = useCallback(async () => {
+    await cargarDatos(true);
+    recargarEspecialidades();
+  }, [cargarDatos, recargarEspecialidades]);
 
   useEffect(() => {
-    cargarDatos();
-  }, []);
+    void cargarDatos(false);
+  }, [cargarDatos]);
+
+  // Polling inteligente centralizado cada 20 segundos con pausa en pestaña oculta
+  useAutoRefresh(() => cargarDatos(true), { intervalMs: 20000, enabled: true });
 
   // Handlers
   const handleCrearOrden = async (e: React.FormEvent) => {
@@ -435,6 +475,7 @@ export function useAdminDashboard() {
     recargarCuentas,
     loading,
     isFetching,
+    refrescarManual,
     especialidades,
     cargandoEspecialidades,
     recargarEspecialidades,

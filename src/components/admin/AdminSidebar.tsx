@@ -1,5 +1,5 @@
 import React from 'react';
-import { ClipboardList, Wrench, PlusCircle, Users, PieChart, LogOut, User } from 'lucide-react';
+import { ClipboardList, Wrench, PlusCircle, Users, PieChart, LogOut, User, RefreshCw } from 'lucide-react';
 import type { AdminTab } from './AdminBottomNav';
 import logoBlanco from '../../assets/Logo_blanco.png';
 
@@ -10,6 +10,8 @@ export interface AdminSidebarProps {
   onLogout: () => void;
   onOpenPerfil: () => void;
   ordenesPendientesCount?: number;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
@@ -19,6 +21,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onLogout,
   onOpenPerfil,
   ordenesPendientesCount = 0,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   const navItems = [
     {
@@ -66,6 +70,20 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
               Panel Administrador
             </span>
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                title="Actualizar datos en tiempo real"
+                aria-label="Actualizar datos en tiempo real"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer disabled:opacity-60"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-sky-400' : ''}`}
+                />
+              </button>
+            )}
           </div>
         </div>
 

@@ -76,3 +76,8 @@
   - Estructurado en 3 secciones numeradas (*1. Datos de Cuenta y Expediente*, *2. Fecha y Hora Pactada del Servicio*, *3. Asignación de Afiliado y Técnico*).
   - Selector de programación de servicio con **Fecha** (`<input type="date" min={hoy}>`), **Hora 12h** (`01`–`12`), **Minutos** (`00`–`59`) y selector segmentado explícito **`AM` / `PM`**, garantizando visibilidad de turno en cualquier navegador o sistema operativo.
   - Incluye atajos rápidos de programación (`Ahora`, `+30 min`, `+1 hora`, `+2 horas`, `Mañana 09:00 AM`), vista previa en vivo del horario pactado, alerta preventiva si la hora elegida ya pasó y tarjeta de resumen de dirección/teléfono del afiliado y estado de disponibilidad del técnico.
+- **Sincronización Reactiva y Polling Inteligente (`useAutoRefresh.ts` + `AdminSidebar.tsx`):**
+  - Hook centralizado `useAutoRefresh` que refresca silenciosamente las órdenes, técnicos, clientes, cuentas y métricas cada **20 segundos** sin recargar el navegador.
+  - Integra la API `visibilitychange` (`document.hidden`): pausa las consultas cuando la pestaña está minimizada/oculta y dispara un refresco inmediato al volver a enfocarla.
+  - Botón manual de actualización con ícono `RefreshCw` (`animate-spin` mientras sincroniza) en la cabecera de `AdminSidebar.tsx` junto a `PANEL ADMINISTRADOR`.
+  - Notificación automática vía `sonner` (`"Orden [OT / Caso] ha sido finalizada por el técnico."`) cuando una orden cambia a estado `FINALIZADA` en segundo plano.

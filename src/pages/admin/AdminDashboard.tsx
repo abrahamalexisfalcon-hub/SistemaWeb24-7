@@ -111,6 +111,8 @@ export const AdminDashboard: React.FC = () => {
         onLogout={handleLogout}
         onOpenPerfil={() => d.setModalPerfilAdmin(true)}
         ordenesPendientesCount={ordenesPendientesCount}
+        onRefresh={d.refrescarManual}
+        isRefreshing={d.isFetching}
       />
 
       {/* 2. Área de contenido principal 100% responsiva */}
