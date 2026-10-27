@@ -368,21 +368,21 @@ export const ExitoOrden: React.FC = () => {
             <div id="hoja-servicio-print" className="px-5 py-4 text-[10px] leading-[1.45] text-gray-900 space-y-2.5 print:px-6 print:py-4 print:text-[9.5px]">
 
               {/* ===== CABECERA ===== */}
-              <div className="grid grid-cols-3 items-center border-b-2 border-[#0284c7] pb-2.5 mb-2">
-                {/* Columna 1 (Izquierda): Logo institucional */}
+              <div className="relative w-full flex items-center justify-between min-h-[70px] border-b-2 border-sky-600 pb-3 mb-4">
+                {/* Logo (Izquierda) */}
                 <div className="flex items-center justify-start">
                   <img src={logo247} alt="24/7 Asistencias" className="h-[88px] w-auto object-contain" />
                 </div>
 
-                {/* Columna 2 (Centro): Título centrado geométricamente */}
-                <div className="flex items-center justify-center text-center">
-                  <h2 className="text-[15px] font-black text-[#0284c7] tracking-wider underline underline-offset-4 decoration-[#0284c7] whitespace-nowrap">
+                {/* Título "HOJA DE SERVICIO" (Centro Absoluto) */}
+                <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none text-center">
+                  <h2 className="text-sky-600 font-extrabold text-xl tracking-wider underline underline-offset-4 decoration-sky-600 whitespace-nowrap uppercase">
                     HOJA DE SERVICIO
                   </h2>
                 </div>
 
-                {/* Columna 3 (Derecha): Datos de contacto con logos oficiales locales */}
-                <div className="flex flex-col items-end justify-center space-y-1 text-[8.5px] leading-tight text-sky-600 print:text-sky-700 whitespace-nowrap justify-self-end">
+                {/* Bloque de Contactos y Redes (Derecha) */}
+                <div className="flex flex-col items-end space-y-1 text-[8.5px] leading-tight text-sky-600 print:text-sky-700 whitespace-nowrap">
                   {/* Fila 1: WhatsApp */}
                   <div className="flex items-center gap-1 font-medium whitespace-nowrap">
                     <img 
