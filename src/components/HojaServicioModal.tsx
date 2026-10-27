@@ -304,45 +304,49 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
           className="px-5 py-4 text-[10px] leading-[1.45] text-gray-900 space-y-2.5 print:px-6 print:py-4 print:text-[9.5px]"
         >
           {/* ===== CABECERA ===== */}
-          <div className="relative w-full flex items-center justify-between min-h-[70px] border-b-2 border-sky-600 pb-3 mb-4">
-            {/* Logo (Izquierda) */}
-            <div className="flex items-center justify-start">
-              <img src={logo247} alt="24/7 Asistencias" className="h-[88px] w-auto object-contain" />
+          <div className="flex items-center justify-between w-full pb-3 border-b-2 border-sky-600 mb-4 gap-2">
+            {/* Zona 1 - Logo (Izquierda: 25%) */}
+            <div className="w-1/4 flex items-center justify-start shrink-0">
+              <img src={logo247} alt="24/7 Asistencias" className="h-[80px] sm:h-[88px] w-auto object-contain" />
             </div>
 
-            {/* Título "HOJA DE SERVICIO" (Centro Absoluto) */}
-            <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none text-center">
-              <h2 className="text-sky-600 font-extrabold text-xl tracking-wider underline underline-offset-4 decoration-sky-600 whitespace-nowrap uppercase">
+            {/* Zona 2 - Título "HOJA DE SERVICIO" (Centro: 45%) */}
+            <div className="w-[45%] flex-1 flex items-center justify-center text-center px-1">
+              <h2 className="text-sky-600 font-extrabold text-[14px] sm:text-[15px] tracking-wider underline underline-offset-4 decoration-sky-600 whitespace-nowrap uppercase">
                 HOJA DE SERVICIO
               </h2>
             </div>
 
-            {/* Bloque de Contactos y Redes (Derecha) */}
-            <div className="flex flex-col items-end space-y-1 text-[8.5px] leading-tight text-sky-600 print:text-sky-700 whitespace-nowrap">
+            {/* Zona 3 - Contactos y Redes (Derecha: 30%) */}
+            <div className="w-[30%] flex flex-col items-end space-y-1 text-[9.5px] leading-tight text-sky-600 print:text-sky-700 text-right shrink-0">
               {/* Fila 1: WhatsApp */}
-              <div className="flex items-center gap-1 font-medium whitespace-nowrap">
+              <div className="flex items-start justify-end gap-1 font-medium leading-tight text-right">
                 <img 
                   src="/icons/whatsapp.svg" 
                   alt="WhatsApp" 
-                  className="w-3 h-3 object-contain shrink-0"
+                  className="w-3 h-3 object-contain shrink-0 mt-0.5"
                   crossOrigin="anonymous"
                 />
-                <span>988 888 141 / 989 567 795 / 914 279 170</span>
+                <span>
+                  988 888 141 / 989 567 795
+                  <br />
+                  914 279 170
+                </span>
               </div>
 
               {/* Fila 2: Correo Gmail */}
-              <div className="flex items-center gap-1 font-medium whitespace-nowrap">
+              <div className="flex items-center justify-end gap-1 font-medium leading-tight text-right">
                 <img 
                   src="/icons/gmail.svg" 
                   alt="Gmail" 
                   className="w-3 h-3 object-contain shrink-0"
                   crossOrigin="anonymous"
                 />
-                <span>247asistencias.peru@gmail.com</span>
+                <span className="break-all sm:break-normal">247asistencias.peru@gmail.com</span>
               </div>
 
               {/* Fila 3: Redes Sociales */}
-              <div className="flex items-center gap-2 font-medium whitespace-nowrap">
+              <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 font-medium leading-tight text-right">
                 {/* Instagram */}
                 <div className="flex items-center gap-1">
                   <img 
