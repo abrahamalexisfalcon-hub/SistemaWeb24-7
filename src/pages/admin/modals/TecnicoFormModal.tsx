@@ -95,12 +95,17 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
         });
       }
     } else if (modo === 'editar' && onGuardarEdicion) {
+      if (!correo.trim()) {
+        setLocalError('El correo electrónico es obligatorio.');
+        return;
+      }
       if (pinLimpio.length > 0 && !/^\d{4}$/.test(pinLimpio)) {
         setLocalError('Si deseas cambiar el PIN de acceso, debe tener exactamente 4 dígitos numéricos.');
         return;
       }
       const payload: ActualizarTecnicoRequest = {
         nombreCompleto: nombreCompleto.trim(),
+        correo: correo.trim().toLowerCase(),
         telefono: telefonoLimpio,
         especialidad: especialidad.trim(),
       };
@@ -122,9 +127,9 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
               <span className="font-black text-base text-slate-900 block">
                 {modo === 'crear' ? 'Registrar Técnico' : 'Editar Técnico'}
               </span>
-              {modo === 'editar' && tecnicoAEditar && (
+              {modo === 'editar' && (
                 <span className="text-[11px] text-slate-400 font-medium">
-                  {tecnicoAEditar.correo}
+                  {correo || tecnicoAEditar?.correo}
                 </span>
               )}
             </div>
@@ -166,24 +171,22 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
               />
             </div>
 
-            {modo === 'crear' && (
-              <div>
-                <label htmlFor="tecnico_correo" className="block font-bold text-slate-700 uppercase mb-1">
-                  Correo Electrónico <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="tecnico_correo"
-                  name="tecnico_correo"
-                  type="email"
-                  required
-                  autoComplete="off"
-                  value={correo}
-                  onChange={(e) => setCorreo(e.target.value)}
-                  placeholder="tecnico@asistencias247.com"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
-                />
-              </div>
-            )}
+            <div>
+              <label htmlFor="tecnico_correo" className="block font-bold text-slate-700 uppercase mb-1">
+                Correo Electrónico <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="tecnico_correo"
+                name="tecnico_correo"
+                type="email"
+                required
+                autoComplete="off"
+                value={correo}
+                onChange={(e) => setCorreo(e.target.value)}
+                placeholder="tecnico@asistencias247.com"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>

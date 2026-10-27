@@ -309,6 +309,7 @@ export interface CrearTecnicoRequest {
 
 export interface ActualizarTecnicoRequest {
   nombreCompleto?: string;
+  correo?: string;
   telefono?: string;
   especialidad?: string;
   password?: string;
