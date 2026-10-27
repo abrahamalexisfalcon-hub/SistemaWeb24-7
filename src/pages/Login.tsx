@@ -32,8 +32,16 @@ export const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (searchParams.get('motivo') === 'inactividad') {
-      setError('Tu sesión expiró por inactividad (30 minutos). Por favor, vuelve a ingresar.');
+    const motivo = searchParams.get('motivo');
+    if (motivo === 'inactividad') {
+      const tiempo = searchParams.get('tiempo');
+      setError(
+        tiempo
+          ? `Tu sesión expiró por inactividad (${tiempo}). Por favor, vuelve a ingresar.`
+          : 'Tu sesión expiró por inactividad. Por favor, vuelve a ingresar.'
+      );
+    } else if (motivo === 'expirado') {
+      setError('Tu sesión ha expirado o no es válida. Por favor, vuelve a ingresar.');
     }
   }, [searchParams]);
 

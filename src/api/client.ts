@@ -33,9 +33,9 @@ api.interceptors.response.use(
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
       localStorage.removeItem('auth_user');
-      // Si no estamos en la página de login, redirigir
+      // Si no estamos en la página de login, redirigir con notificación de expiración
       if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+        window.location.href = '/login?motivo=expirado';
       }
     }
     return Promise.reject(error);

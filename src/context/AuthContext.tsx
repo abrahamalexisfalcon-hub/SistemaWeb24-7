@@ -23,8 +23,21 @@ const AUTH_TOKEN_KEY = 'auth_token';
 const USER_KEY = 'user';
 const LAST_ACTIVITY_KEY = 'last_activity_ts';
 
-// Expiración automática tras 30 minutos de inactividad
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+// Expiración por inactividad diferenciada por rol:
+// Administrador: 2 horas (7,200,000 ms)
+// Técnico: 12 horas (43,200,000 ms)
+export const INACTIVITY_TIMEOUT_ADMIN = 2 * 60 * 60 * 1000;
+export const INACTIVITY_TIMEOUT_TECNICO = 12 * 60 * 60 * 1000;
+
+export const getInactivityTimeoutForRole = (rol?: RolUsuario | string | null): number => {
+  if (rol === 'ADMINISTRADOR') return INACTIVITY_TIMEOUT_ADMIN;
+  if (rol === 'TECNICO') return INACTIVITY_TIMEOUT_TECNICO;
+  return INACTIVITY_TIMEOUT_ADMIN;
+};
+
+export const getInactivityLabelForRole = (rol?: RolUsuario | string | null): string => {
+  return rol === 'TECNICO' ? '12 horas' : '2 horas';
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<Usuario | null>(null);
@@ -46,12 +59,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const lastActivityRaw = sessionStorage.getItem(LAST_ACTIVITY_KEY);
 
       if (storedToken && storedUser) {
+        const parsedUser: Usuario = JSON.parse(storedUser);
+        const timeout = getInactivityTimeoutForRole(parsedUser.rol);
         const now = Date.now();
-        if (lastActivityRaw && now - Number(lastActivityRaw) >= INACTIVITY_TIMEOUT) {
-          // Si ya superó los 30 minutos de inactividad antes de recargar
+        if (lastActivityRaw && now - Number(lastActivityRaw) >= timeout) {
+          // Si ya superó el tiempo de inactividad correspondiente antes de recargar
           sessionStorage.clear();
         } else {
-          const parsedUser: Usuario = JSON.parse(storedUser);
           setToken(storedToken);
           setUser(parsedUser);
           sessionStorage.setItem(LAST_ACTIVITY_KEY, String(now));
@@ -135,9 +149,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!token && !!user;
 
-  // Control automático de expiración por inactividad (30 minutos)
+  // Control automático de expiración por inactividad diferenciada por roles:
+  // Administrador: 2 horas | Técnico: 12 horas
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       if (inactivityTimerRef.current) {
         clearTimeout(inactivityTimerRef.current);
         inactivityTimerRef.current = null;
@@ -145,37 +160,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    const currentTimeout = getInactivityTimeoutForRole(user.rol);
+    const timeoutLabel = getInactivityLabelForRole(user.rol);
+
     const handleInactivityExpire = () => {
       logout();
-      toast.info('Tu sesión ha expirado por inactividad (30 min).', {
+      toast.info(`Tu sesión ha expirado por inactividad (${timeoutLabel}).`, {
         id: 'session-expired',
         duration: 4500,
       });
       if (window.location.pathname !== '/login') {
-        window.location.replace('/login?motivo=inactividad');
+        window.location.replace(`/login?motivo=inactividad&tiempo=${encodeURIComponent(timeoutLabel)}`);
       }
     };
+
+    let lastRecordedActivity = Date.now();
 
     const resetTimer = () => {
       const now = Date.now();
       const lastActivityRaw = sessionStorage.getItem(LAST_ACTIVITY_KEY);
 
-      // Si el dispositivo estuvo suspendido en segundo plano por más de 30 minutos
-      if (lastActivityRaw && now - Number(lastActivityRaw) >= INACTIVITY_TIMEOUT) {
+      // Si el dispositivo estuvo suspendido en segundo plano por más del tiempo permitido
+      if (lastActivityRaw && now - Number(lastActivityRaw) >= currentTimeout) {
         handleInactivityExpire();
         return;
       }
+
+      // Throttle: evitar escrituras y setTimeout continuos en ráfagas de mouse/touch menores a 5 segundos
+      if (now - lastRecordedActivity < 5000 && inactivityTimerRef.current) {
+        return;
+      }
+      lastRecordedActivity = now;
 
       sessionStorage.setItem(LAST_ACTIVITY_KEY, String(now));
 
       if (inactivityTimerRef.current) {
         clearTimeout(inactivityTimerRef.current);
       }
-      inactivityTimerRef.current = setTimeout(handleInactivityExpire, INACTIVITY_TIMEOUT);
+      inactivityTimerRef.current = setTimeout(handleInactivityExpire, currentTimeout);
     };
 
     const activityEvents: (keyof WindowEventMap)[] = [
       'mousedown',
+      'mousemove',
       'keydown',
       'scroll',
       'touchstart',
@@ -208,7 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('focus', handleVisibilityOrFocus);
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
     };
-  }, [isAuthenticated, logout]);
+  }, [isAuthenticated, user?.rol, logout]);
 
   const isAdmin = user?.rol === 'ADMINISTRADOR';
   const isTecnico = user?.rol === 'TECNICO';

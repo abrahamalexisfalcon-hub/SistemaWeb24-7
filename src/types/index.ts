@@ -21,6 +21,7 @@ export interface AuthResponse {
   disponible?: boolean;
   firmaUrl?: string | null;
   firmaDigitalUrl?: string | null;
+  expiresIn?: number;
 }
 
 export interface PerfilTecnico {
