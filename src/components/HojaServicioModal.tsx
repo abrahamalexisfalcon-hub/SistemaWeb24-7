@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Download, X } from 'lucide-react';
+import { FileText, Download, X, Loader2 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import { toast } from 'sonner';
 import logo247 from '../assets/Logo_negro.png';
 import { tecnicoApi } from '../api';
 import { useEspecialidades } from '../hooks';
@@ -75,6 +78,7 @@ const RenglonesTexto: React.FC<{ texto?: string; minLineas?: number }> = ({ text
 /* ═══════════════════════════════════════════════════════════════════════════════ */
 export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onClose }) => {
   const [detalleExtra, setDetalleExtra] = useState<OrdenResumenTecnico | null>(null);
+  const [compartiendoWa, setCompartiendoWa] = useState(false);
   const { especialidades: espObjs } = useEspecialidades();
 
   const listaEspecialidades = useMemo(() => {
@@ -250,71 +254,168 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
   const colDer = materiales.slice(mitad);
   const filasMat = Math.max(colIzq.length, colDer.length, 1);
 
-  const handleCompartirWhatsApp = async () => {
-    const soloDigitos = String(telefonoAfiliadoRaw || '').replace(/\D/g, '');
-    const telefonoDestino =
-      soloDigitos.length === 9
-        ? `51${soloDigitos}`
-        : soloDigitos.length === 11 && soloDigitos.startsWith('51')
-          ? soloDigitos
-          : soloDigitos;
+  const generarArchivoHojaServicio = async (codigoSinHash: string): Promise<File | null> => {
+    const elemento = document.getElementById('hoja-servicio-print');
+    if (!elemento) return null;
 
-    const otReferencia =
-      numeroOt && numeroOt !== '-' ? `OT N° ${numeroOt} (${codigoLimpio})` : codigoLimpio;
-    const especialidadAtendida = tipoServicio || 'Asistencia Técnica Domiciliaria';
-    const pdfActaUrl =
-      orden?.hojaServicio?.pdfActaUrl || (orden as any)?.pdfActaUrl || '';
+    const codigoSanitizado = codigoSinHash.replace(/[^a-zA-Z0-9_-]/g, '_');
 
-    const lineasMensaje = [
-      `*24/7 ASISTENCIAS GENERALES* 🛠️`,
-      ``,
-      `Estimado(a) *${nombreAfiliado}*, reciba un cordial saludo.`,
-      ``,
-      `Le informamos que su atención de *${especialidadAtendida}* correspondiente a la orden *${otReferencia}* ha sido *FINALIZADA CON ÉXITO* con fecha *${fechaMostrar}*.`,
-      ...(detalleSolucion
-        ? [``, `*Detalle del trabajo realizado:*`, `${detalleSolucion.trim()}`]
-        : []),
-      ``,
-      `*Técnico asignado:* ${tecnicoNombre}`,
-      ...(nombreCuenta && nombreCuenta !== 'Particular'
-        ? [`*Cuenta / Convenio:* ${nombreCuenta}`]
-        : []),
-      ...(pdfActaUrl
-        ? [``, `📄 *Enlace a su Hoja de Servicio Digital:*`, `${pdfActaUrl}`]
-        : [
-            ``,
-            `📄 Le hacemos entrega por este medio de la constancia digital de su *Hoja de Servicio*.`,
-          ]),
-      ``,
-      `Agradecemos su confianza en *24/7 Asistencias Generales*. Quedamos a su disposición las 24 horas ante cualquier consulta.`
-    ];
+    try {
+      const canvas = await html2canvas(elemento, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
 
-    const mensaje = lineasMensaje.join('\n');
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
 
-    // Si hay teléfono del afiliado, abrir directamente su chat de WhatsApp con el mensaje prellenado
-    if (telefonoDestino) {
-      const waUrl = `https://wa.me/${telefonoDestino}?text=${encodeURIComponent(mensaje)}`;
-      window.open(waUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const maxWidth = pageWidth - margin * 2;
+      const maxHeight = pageHeight - margin * 2;
 
-    // Si no hay teléfono directo y el navegador móvil soporta Web Share API nativa
-    const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (esMovil && typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({
-          title: `Hoja de Servicio ${codigoLimpio} - 24/7 Asistencias Generales`,
-          text: mensaje,
-          ...(pdfActaUrl ? { url: pdfActaUrl } : {}),
-        });
-        return;
-      } catch {
-        // Si el usuario cancela o falla, continuar al fallback de WhatsApp
+      let imgWidth = maxWidth;
+      let imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      if (imgHeight > maxHeight) {
+        imgHeight = maxHeight;
+        imgWidth = (canvas.width * imgHeight) / canvas.height;
       }
-    }
 
-    const fallbackUrl = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
-    window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+      const xOffset = (pageWidth - imgWidth) / 2;
+      pdf.addImage(imgData, 'PNG', xOffset, margin, imgWidth, imgHeight);
+
+      const pdfBlob = pdf.output('blob');
+      const nombrePdf = `Hoja_Servicio_${codigoSanitizado}.pdf`;
+      return new File([pdfBlob], nombrePdf, { type: 'application/pdf' });
+    } catch {
+      return null;
+    }
+  };
+
+  const descargarArchivoLocal = (archivo: File) => {
+    const blobUrl = URL.createObjectURL(archivo);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = archivo.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  };
+
+  const handleCompartirWhatsApp = async () => {
+    if (compartiendoWa) return;
+    setCompartiendoWa(true);
+
+    try {
+      const soloDigitos = String(telefonoAfiliadoRaw || '').replace(/\D/g, '');
+      const telefonoDestino =
+        soloDigitos.length === 9
+          ? `51${soloDigitos}`
+          : soloDigitos.length === 11 && soloDigitos.startsWith('51')
+            ? soloDigitos
+            : soloDigitos;
+
+      const codigoSinHash = codigoLimpio.replace(/^#+/, '');
+      const otReferencia =
+        numeroOt && numeroOt !== '-' ? `OT N° ${numeroOt} (${codigoLimpio})` : codigoLimpio;
+      const especialidadAtendida = tipoServicio || 'Asistencia Técnica Domiciliaria';
+      const pdfActaUrl =
+        orden?.hojaServicio?.pdfActaUrl || (orden as any)?.pdfActaUrl || '';
+      const enlaceDirectoHoja =
+        pdfActaUrl ||
+        `${window.location.origin}/?orden=${encodeURIComponent(codigoSinHash)}`;
+
+      const construirMensaje = (incluirEnlace: boolean) => {
+        const lineas = [
+          `*24/7 ASISTENCIAS GENERALES* 🛠️`,
+          ``,
+          `Estimado(a) *${nombreAfiliado}*, reciba un cordial saludo.`,
+          ``,
+          `Le informamos que su atención de *${especialidadAtendida}* correspondiente a la orden *${otReferencia}* ha sido *FINALIZADA CON ÉXITO* con fecha *${fechaMostrar}*.`,
+          ...(detalleSolucion
+            ? [``, `*Detalle del trabajo realizado:*`, `${detalleSolucion.trim()}`]
+            : []),
+          ``,
+          `*Técnico asignado:* ${tecnicoNombre}`,
+          ...(nombreCuenta && nombreCuenta !== 'Particular'
+            ? [`*Cuenta / Convenio:* ${nombreCuenta}`]
+            : []),
+          ...(incluirEnlace
+            ? [
+                ``,
+                `📄 *Constancia Digital (Hoja de Servicio):*`,
+                `${enlaceDirectoHoja}`,
+              ]
+            : [
+                ``,
+                `📄 Adjuntamos a este mensaje el archivo de su *Hoja de Servicio Digital*.`,
+              ]),
+          ``,
+          `Agradecemos su confianza en *24/7 Asistencias Generales*. Quedamos a su disposición las 24 horas ante cualquier consulta.`,
+        ];
+        return lineas.join('\n');
+      };
+
+      // 1. Generar el archivo físico (PDF) en memoria
+      const archivoPdf = await generarArchivoHojaServicio(codigoSinHash);
+
+      // 2. En dispositivos móviles que soportan Web Share API con archivos (`navigator.canShare({ files })`)
+      const esDispositivoMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (
+        esDispositivoMovil &&
+        archivoPdf &&
+        typeof navigator !== 'undefined' &&
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [archivoPdf] })
+      ) {
+        try {
+          await navigator.share({
+            files: [archivoPdf],
+            title: `Hoja de Servicio ${codigoLimpio} - 24/7 Asistencias Generales`,
+            text: construirMensaje(Boolean(pdfActaUrl)),
+          });
+          return;
+        } catch (shareErr: any) {
+          if (shareErr?.name === 'AbortError') {
+            return;
+          }
+          // Si falla el share nativo, continúa al fallback de descarga + WhatsApp Web
+        }
+      }
+
+      // 3. Fallback en Escritorio o navegadores sin soporte de compartir archivos en WhatsApp:
+      //    a) Descargar automáticamente el archivo PDF en el equipo del usuario
+      if (archivoPdf) {
+        descargarArchivoLocal(archivoPdf);
+      }
+
+      //    b) Construir el mensaje incluyendo el enlace directo de consulta
+      const mensajeFallback = construirMensaje(true);
+
+      //    c) Abrir WhatsApp Web con el mensaje y el teléfono del afiliado precargados
+      const waUrl = telefonoDestino
+        ? `https://wa.me/${telefonoDestino}?text=${encodeURIComponent(mensajeFallback)}`
+        : `https://wa.me/?text=${encodeURIComponent(mensajeFallback)}`;
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+
+      //    d) Mostrar toast informativo
+      toast.success(
+        'Hoja de servicio descargada. Puedes adjuntarla directamente en el chat abierto de WhatsApp'
+      );
+    } finally {
+      setCompartiendoWa(false);
+    }
   };
 
   const fotosEvidencia: string[] = useMemo(() => {
@@ -672,17 +773,22 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
           <button
             type="button"
             onClick={handleCompartirWhatsApp}
-            className="flex-1 py-2.5 px-3 bg-[#25D366] hover:bg-[#1ebe5d] active:scale-[0.98] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#25D366]/25 transition-all cursor-pointer"
-            title="Enviar Hoja de Servicio al Afiliado por WhatsApp"
+            disabled={compartiendoWa}
+            className="flex-1 py-2.5 px-3 bg-[#25D366] hover:bg-[#1ebe5d] disabled:opacity-70 active:scale-[0.98] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#25D366]/25 transition-all cursor-pointer"
+            title="Enviar Hoja de Servicio (PDF) al Afiliado por WhatsApp"
           >
-            <svg
-              className="w-4 h-4 fill-current shrink-0"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-            </svg>
-            <span>Compartir por WhatsApp</span>
+            {compartiendoWa ? (
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            ) : (
+              <svg
+                className="w-4 h-4 fill-current shrink-0"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+              </svg>
+            )}
+            <span>{compartiendoWa ? 'Generando PDF...' : 'Compartir por WhatsApp'}</span>
           </button>
 
           <button
