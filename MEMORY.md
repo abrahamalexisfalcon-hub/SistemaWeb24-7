@@ -96,6 +96,7 @@
   - Recibe `ReaperturarOrdenRequest` (`nuevaFechaPactada` futura, `tecnicoId` y `observacion` opcional), cambia el estado de `CANCELADA` a `PENDIENTE`, actualiza la fecha pactada y el técnico asignado, limpia `fechaLlegada`, `fechaFinalizacion` y `fechaCancelacion` (`null`) y envía notificación push OneSignal al técnico.
   - En el panel de administrador (`OrdenDetalleModal.tsx` y `ReaperturarOrdenModal.tsx`), el botón **"Reaperturar Servicio"** (`RotateCcw`) se muestra exclusivamente dentro del modal de detalle de la orden (`Ver detalle`) y actualiza reactivamente la tabla de órdenes sin requerir F5.
 - **Plantilla Imprimible de Hoja de Servicio (`HojaServicioModal.tsx` y `ExitoOrden.tsx`):**
+  - En la **CABECERA** (esquina superior derecha): bloque profesional de contacto en 3 filas con íconos vectoriales SVG (`WhatsApp` + teléfonos, `Gmail` + correo corporativo, e `Instagram` + `Facebook`).
   - En la sección **DATOS DEL AFILIADO**:
     - El campo **`CUENTA:`** muestra el nombre real de la cuenta / aseguradora / convenio asociado a la orden (`orden.cuenta?.nombre` o `orden.cuentaNombre`), o `"Particular"` si la orden no tiene cuenta corporativa asignada (descartando códigos internos `CTA-...`).
     - Se reemplazó la etiqueta `ASISTENCIA:` por **`OT:`**, mostrando el número alfanumérico de OT registrado en la orden (`orden.numeroOt`, o `"-"` si no está definido).
