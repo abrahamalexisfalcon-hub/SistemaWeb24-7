@@ -131,7 +131,17 @@ export const ExitoOrden: React.FC = () => {
   const nombreAfiliado = orden?.nombreAfiliado || 'Carlos Mendoza P.';
   const direccion = orden?.direccion || 'Av. Central 120';
   const dniAfiliado = orden?.dniAfiliado || '';
-  const codigoCuenta = orden?.codigoCuenta || '';
+  const rawNombreCuenta =
+    orden?.cuentaNombre ||
+    (orden as any)?.cuenta?.nombre ||
+    (orden as any)?.nombreCuenta ||
+    orden?.codigoCuenta ||
+    '';
+  const nombreCuenta =
+    rawNombreCuenta && !String(rawNombreCuenta).trim().toUpperCase().startsWith('CTA-')
+      ? String(rawNombreCuenta).trim()
+      : 'Particular';
+  const numeroOt = orden?.numeroOt || '-';
   const tecnicoNombre = orden?.tecnicoNombre || 'Técnico 24/7';
   const tipoServicio = orden?.tipoServicio || '';
 
@@ -403,7 +413,7 @@ export const ExitoOrden: React.FC = () => {
                   <div className="flex gap-4">
                     <div className="flex-1">
                       <span className="font-bold">CUENTA: </span>
-                      <span className="border-b border-gray-300 pb-0.5">{codigoCuenta || '—'}</span>
+                      <span className="border-b border-gray-300 pb-0.5">{nombreCuenta}</span>
                     </div>
                     <div>
                       <span className="font-bold">D.N.I. N°: </span>
@@ -415,8 +425,8 @@ export const ExitoOrden: React.FC = () => {
                     <span className="border-b border-gray-300 pb-0.5">{direccion}{orden?.distrito ? `, ${orden.distrito}` : ''}</span>
                   </div>
                   <div>
-                    <span className="font-bold">ASISTENCIA: </span>
-                    <span className="border-b border-gray-300 pb-0.5">{codigoLimpio}</span>
+                    <span className="font-bold">OT: </span>
+                    <span className="border-b border-gray-300 pb-0.5">{numeroOt}</span>
                   </div>
                 </div>
               </div>

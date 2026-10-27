@@ -134,11 +134,24 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
     detalleExtra?.dniAfiliado ||
     '';
 
-  const codigoCuenta =
+  const rawNombreCuenta =
+    orden?.cuenta?.nombre ||
+    orden?.cuentaNombre ||
+    (orden as any)?.nombreCuenta ||
+    detalleExtra?.cuentaNombre ||
     orden?.codigoCuenta ||
-    ordenExtendida?.numeroCuentaAfiliado ||
     detalleExtra?.codigoCuenta ||
     '';
+
+  const nombreCuenta =
+    rawNombreCuenta && !String(rawNombreCuenta).trim().toUpperCase().startsWith('CTA-')
+      ? String(rawNombreCuenta).trim()
+      : 'Particular';
+
+  const numeroOt =
+    orden?.numeroOt ||
+    detalleExtra?.numeroOt ||
+    '-';
 
   const tecnicoNombre =
     orden?.tecnicoNombre ||
@@ -336,7 +349,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
               <div className="flex gap-4">
                 <div className="flex-1">
                   <span className="font-bold">CUENTA: </span>
-                  <span className="border-b border-gray-300 pb-0.5">{codigoCuenta || '—'}</span>
+                  <span className="border-b border-gray-300 pb-0.5">{nombreCuenta}</span>
                 </div>
                 <div>
                   <span className="font-bold">D.N.I. N°: </span>
@@ -350,8 +363,8 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
                 </span>
               </div>
               <div>
-                <span className="font-bold">ASISTENCIA: </span>
-                <span className="border-b border-gray-300 pb-0.5">{codigoLimpio}</span>
+                <span className="font-bold">OT: </span>
+                <span className="border-b border-gray-300 pb-0.5">{numeroOt}</span>
               </div>
             </div>
           </div>
