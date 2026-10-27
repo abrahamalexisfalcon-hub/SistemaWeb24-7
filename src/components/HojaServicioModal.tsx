@@ -838,17 +838,9 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
           />
         </div>
 
-        {/* Barra de acción inferior: en móvil apilada en 3 filas (WhatsApp -> Descargar -> Cerrar), en escritorio fila horizontal intacta */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:gap-2 px-4 pb-4 pt-3 print:hidden sticky bottom-0 bg-white/95 backdrop-blur-xs z-20 rounded-b-2xl border-t border-slate-100">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="order-2 sm:order-1 w-full sm:w-auto sm:flex-1 min-h-[44px] sm:min-h-0 py-2.5 px-3 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.98] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20 transition-all cursor-pointer whitespace-nowrap"
-          >
-            <Download className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
-            <span className="whitespace-nowrap">Descargar / Imprimir</span>
-          </button>
-
+        {/* Barra de acción inferior: en móvil apilada en 3 filas con espaciado ergonómico (WhatsApp -> Descargar -> Cerrar), en escritorio fila horizontal intacta */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-2 px-4 pb-4 pt-3 print:hidden sticky bottom-0 bg-white/95 backdrop-blur-xs z-20 rounded-b-2xl border-t border-slate-100">
+          {/* Botón 1 en móvil: WhatsApp (destacado) | Botón 2 en desktop */}
           <button
             type="button"
             onClick={handleCompartirWhatsApp}
@@ -870,6 +862,17 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
             <span className="whitespace-nowrap">{compartiendoWa ? 'Generando PDF...' : 'Compartir por WhatsApp'}</span>
           </button>
 
+          {/* Botón 2 en móvil: Descargar / Imprimir | Botón 1 en desktop */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="order-2 sm:order-1 w-full sm:w-auto sm:flex-1 min-h-[44px] sm:min-h-0 py-2.5 px-3 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.98] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20 transition-all cursor-pointer whitespace-nowrap"
+          >
+            <Download className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
+            <span className="whitespace-nowrap">Descargar / Imprimir</span>
+          </button>
+
+          {/* Botón 3: Cerrar */}
           <button
             type="button"
             onClick={onClose}
