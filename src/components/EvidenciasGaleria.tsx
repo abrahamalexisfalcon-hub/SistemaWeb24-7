@@ -4,6 +4,8 @@ import { Camera, ZoomIn, X, RotateCw, Download, ChevronLeft, ChevronRight, Share
 
 export interface EvidenciasGaleriaProps {
   fotos?: (string | null | undefined)[];
+  fotoInicialUrl?: string | null;
+  fotoFinalUrl?: string | null;
   titulo?: string;
   emptyMessage?: string;
   className?: string;
@@ -11,6 +13,8 @@ export interface EvidenciasGaleriaProps {
 
 export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
   fotos = [],
+  fotoInicialUrl,
+  fotoFinalUrl,
   titulo,
   emptyMessage = 'No se adjuntaron evidencias del trabajo',
   className = '',
@@ -24,10 +28,38 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
     );
   };
 
-  // Filtrar URLs válidas (no nulas, no vacías y sin fotos mock/placeholder)
-  const fotosValidas = (fotos || []).filter(
-    (f): f is string => typeof f === 'string' && f.trim().length > 0 && !esUrlMock(f)
-  );
+  const limpiarUrl = (f?: string | null): string | null =>
+    typeof f === 'string' && f.trim().length > 0 && !esUrlMock(f) ? f.trim() : null;
+
+  const fotoAntesLimpia = limpiarUrl(fotoInicialUrl);
+  const fotoDespuesLimpia = limpiarUrl(fotoFinalUrl);
+
+  // Construir arreglo de ítems con etiqueta explícita (Antes / Después)
+  const itemsEvidencia: Array<{ url: string; label: string }> = [];
+
+  if (fotoAntesLimpia || fotoDespuesLimpia) {
+    if (fotoAntesLimpia) {
+      itemsEvidencia.push({ url: fotoAntesLimpia, label: 'Antes (Inicial)' });
+    }
+    if (fotoDespuesLimpia) {
+      itemsEvidencia.push({ url: fotoDespuesLimpia, label: 'Después (Final)' });
+    }
+  } else {
+    const validas = (fotos || []).filter(
+      (f): f is string => typeof f === 'string' && f.trim().length > 0 && !esUrlMock(f)
+    );
+    validas.forEach((url, idx) => {
+      const label =
+        idx === 0
+          ? 'Antes (Inicial)'
+          : idx === 1
+          ? 'Después (Final)'
+          : `Evidencia ${idx + 1}`;
+      itemsEvidencia.push({ url, label });
+    });
+  }
+
+  const fotosValidas = itemsEvidencia.map((item) => item.url);
 
   const [fotoActivaIndex, setFotoActivaIndex] = useState<number | null>(null);
   const [rotacion, setRotacion] = useState(0);
@@ -171,10 +203,13 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
   }, [fotoActual]);
 
   const obtenerEtiquetaFoto = (index: number) => {
-    if (fotosValidas.length === 2) {
-      return index === 0 ? 'Foto Inicial' : 'Foto Final';
+    if (itemsEvidencia[index]?.label) {
+      return itemsEvidencia[index].label;
     }
-    return `Evidencia ${index + 1}`;
+    if (fotosValidas.length === 2) {
+      return index === 0 ? 'Antes (Inicial)' : 'Después (Final)';
+    }
+    return index === 0 ? 'Antes (Inicial)' : index === 1 ? 'Después (Final)' : `Evidencia ${index + 1}`;
   };
 
   return (
@@ -194,34 +229,38 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {fotosValidas.map((url, idx) => (
-            <div
-              key={`${url}-${idx}`}
-              onClick={() => {
-                setFotoActivaIndex(idx);
-                setRotacion(0);
-              }}
-              className="rounded-xl overflow-hidden border border-slate-200 aspect-square group relative cursor-pointer bg-slate-100 shadow-2xs hover:shadow-md hover:border-sky-300 transition-all"
-            >
-              <img
-                src={url}
-                alt={obtenerEtiquetaFoto(idx)}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                loading="lazy"
-              />
+            <div key={`${url}-${idx}`} className="space-y-1.5">
+              <span className="block text-[11px] font-bold text-slate-700">
+                {obtenerEtiquetaFoto(idx)}
+              </span>
+              <div
+                onClick={() => {
+                  setFotoActivaIndex(idx);
+                  setRotacion(0);
+                }}
+                className="rounded-xl overflow-hidden border border-slate-200 aspect-square group relative cursor-pointer bg-slate-100 shadow-2xs hover:shadow-md hover:border-sky-300 transition-all"
+              >
+                <img
+                  src={url}
+                  alt={obtenerEtiquetaFoto(idx)}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  loading="lazy"
+                />
 
-              {/* Etiqueta tipo badge en esquina inferior */}
-              <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                <span className="px-2 py-0.5 rounded-md bg-slate-900/75 backdrop-blur-xs text-white text-[10px] font-semibold truncate block text-center">
-                  {obtenerEtiquetaFoto(idx)}
-                </span>
-              </div>
+                {/* Etiqueta tipo badge en esquina inferior */}
+                <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                  <span className="px-2 py-0.5 rounded-md bg-slate-900/75 backdrop-blur-xs text-white text-[10px] font-semibold truncate block text-center">
+                    {obtenerEtiquetaFoto(idx)}
+                  </span>
+                </div>
 
-              {/* Overlay en hover */}
-              <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 text-white transition-opacity duration-150">
-                <ZoomIn className="w-6 h-6 stroke-[2.5]" />
-                <span className="text-[11px] font-bold tracking-tight">Ver ampliada</span>
+                {/* Overlay en hover */}
+                <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 text-white transition-opacity duration-150">
+                  <ZoomIn className="w-6 h-6 stroke-[2.5]" />
+                  <span className="text-[11px] font-bold tracking-tight">Ver ampliada</span>
+                </div>
               </div>
             </div>
           ))}

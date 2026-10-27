@@ -67,15 +67,23 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
     url.includes('images.unsplash.com') ||
     url.includes('placeholder');
 
+  const fotoInicialEfectiva =
+    orden.fotoInicialUrl ||
+    orden.hojaServicio?.fotoInicialUrl ||
+    orden.hojaServicio?.fotoAntesUrl ||
+    null;
+
+  const fotoFinalEfectiva =
+    orden.fotoFinalUrl ||
+    orden.hojaServicio?.fotoFinalUrl ||
+    orden.hojaServicio?.fotoDespuesUrl ||
+    null;
+
   const fotosEvidencia: string[] = [
+    fotoInicialEfectiva,
+    fotoFinalEfectiva,
     ...(orden.fotosEvidencia || []),
     ...(orden.hojaServicio?.fotosEvidencia || []),
-    orden.fotoInicialUrl,
-    orden.fotoFinalUrl,
-    orden.hojaServicio?.fotoInicialUrl,
-    orden.hojaServicio?.fotoFinalUrl,
-    orden.hojaServicio?.fotoAntesUrl,
-    orden.hojaServicio?.fotoDespuesUrl,
   ].filter((url, index, arr): url is string => Boolean(url && url.trim() && !isMockUrl(url) && arr.indexOf(url) === index));
 
   const handleGuardarObservacion = async () => {
@@ -202,9 +210,13 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
           {/* Bloque: EVIDENCIAS DEL SERVICIO (FOTOS) */}
           <div className="pt-2 border-t border-slate-100 space-y-2">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-              EVIDENCIAS DEL SERVICIO (FOTOS)
+              EVIDENCIAS DEL SERVICIO
             </span>
-            <EvidenciasGaleria fotos={fotosEvidencia} />
+            <EvidenciasGaleria
+              fotos={fotosEvidencia}
+              fotoInicialUrl={fotoInicialEfectiva}
+              fotoFinalUrl={fotoFinalEfectiva}
+            />
           </div>
         </div>
 

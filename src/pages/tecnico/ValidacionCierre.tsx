@@ -8,7 +8,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { comprimirImagenConDetalle } from '../../utils/imageCompression';
 import { formatearHoraLocal, calcularDuracionServicio } from '../../utils/dateFormatter';
 import type { OrdenResumenTecnico, CierreHojaServicioRequest } from '../../types';
-import { ChevronLeft, Camera, Star, AlertCircle, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Camera, Star, AlertCircle, RefreshCw, Trash2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const ValidacionCierre: React.FC = () => {
@@ -136,6 +136,15 @@ export const ValidacionCierre: React.FC = () => {
 
   const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    if (!fotoInicial || !fotoFinal) {
+      const msg = 'Debes adjuntar obligatoriamente la foto de antes y la foto de después del servicio.';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+
     if (sigPadRef.current?.isEmpty()) {
       toast.error('Por favor solicita la firma del afiliado antes de finalizar.');
       return;
@@ -144,6 +153,14 @@ export const ValidacionCierre: React.FC = () => {
   };
 
   const handleFinalizar = async () => {
+    if (!fotoInicial || !fotoFinal) {
+      const msg = 'Debes adjuntar obligatoriamente la foto de antes y la foto de después del servicio.';
+      setError(msg);
+      toast.error(msg);
+      setConfirmDialogOpen(false);
+      return;
+    }
+
     setError(null);
     setSubmitting(true);
 
@@ -361,10 +378,15 @@ export const ValidacionCierre: React.FC = () => {
             </div>
 
             {/* EVIDENCIA DEL SERVICIO */}
-            <div className="pt-2 border-t border-slate-100">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                EVIDENCIA DEL SERVICIO
-              </h3>
+            <div className="pt-2 border-t border-slate-100 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  EVIDENCIA DEL SERVICIO <span className="text-rose-500">*</span>
+                </h3>
+                <span className="text-[10px] font-bold text-slate-500">
+                  {[fotoInicial, fotoFinal].filter(Boolean).length}/2 adjuntas
+                </span>
+              </div>
 
               <input
                 type="file"
@@ -383,51 +405,151 @@ export const ValidacionCierre: React.FC = () => {
                 onChange={(e) => handleImageUpload(e, setFotoFinal, setComprimiendoFinal, 'final')}
               />
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Cuadro Foto Inicial */}
-                <div
-                  onClick={() => !comprimiendoInicial && fileInputInicialRef.current?.click()}
-                  className="min-h-[110px] h-28 rounded-2xl border border-dashed border-slate-300 hover:border-[#0ea5e9] bg-slate-50/70 hover:bg-sky-50/40 flex flex-col items-center justify-center p-3 cursor-pointer transition-all overflow-hidden relative"
-                >
-                  {comprimiendoInicial ? (
-                    <div className="flex flex-col items-center gap-1.5 text-[#0ea5e9]">
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                      <span className="text-[11px] font-bold">Optimizando...</span>
-                    </div>
-                  ) : fotoInicial ? (
-                    <img src={fotoInicial} alt="Foto inicial" className="w-full h-full object-cover rounded-xl" />
-                  ) : (
-                    <>
-                      <div className="w-9 h-9 rounded-full border border-[#0ea5e9] text-[#0ea5e9] flex items-center justify-center mb-1.5">
-                        <Camera className="w-4 h-4 stroke-[2]" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Slot 1: Foto Inicial (Antes del trabajo) * */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">
+                    Foto Inicial (Antes del trabajo) <span className="text-rose-500">*</span>
+                  </label>
+                  <div
+                    onClick={() => !comprimiendoInicial && !fotoInicial && fileInputInicialRef.current?.click()}
+                    className={`min-h-[132px] h-36 rounded-2xl border ${
+                      fotoInicial
+                        ? 'border-emerald-300 bg-emerald-50/20'
+                        : 'border-dashed border-slate-300 hover:border-[#0ea5e9] bg-slate-50/70 hover:bg-sky-50/40 cursor-pointer'
+                    } flex flex-col items-center justify-center p-2 transition-all overflow-hidden relative`}
+                  >
+                    {comprimiendoInicial ? (
+                      <div className="flex flex-col items-center gap-1.5 text-[#0ea5e9]">
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                        <span className="text-[11px] font-bold">Comprimiendo evidencia...</span>
                       </div>
-                      <span className="text-xs font-semibold text-slate-600">Foto inicial</span>
-                    </>
-                  )}
+                    ) : fotoInicial ? (
+                      <>
+                        <img
+                          src={fotoInicial}
+                          alt="Foto Inicial (Antes del trabajo)"
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                        <div className="absolute top-2 left-2 bg-emerald-600/90 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-xs">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Antes</span>
+                        </div>
+                        <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fileInputInicialRef.current?.click();
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-900 text-white text-[10px] font-bold shadow-sm transition-colors cursor-pointer"
+                          >
+                            Reemplazar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFotoInicial(null);
+                            }}
+                            className="p-1.5 rounded-lg bg-rose-600/90 hover:bg-rose-700 text-white shadow-sm transition-colors cursor-pointer"
+                            title="Eliminar foto inicial"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full border border-[#0ea5e9] text-[#0ea5e9] bg-white flex items-center justify-center mb-1.5 shadow-2xs">
+                          <Camera className="w-4 h-4 stroke-[2]" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-700 text-center">
+                          Subir Foto Antes
+                        </span>
+                        <span className="text-[10px] text-slate-400 text-center mt-0.5">
+                          Cámara o Galería
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                {/* Cuadro Foto Final */}
-                <div
-                  onClick={() => !comprimiendoFinal && fileInputFinalRef.current?.click()}
-                  className="min-h-[110px] h-28 rounded-2xl border border-dashed border-slate-300 hover:border-[#0ea5e9] bg-slate-50/70 hover:bg-sky-50/40 flex flex-col items-center justify-center p-3 cursor-pointer transition-all overflow-hidden relative"
-                >
-                  {comprimiendoFinal ? (
-                    <div className="flex flex-col items-center gap-1.5 text-[#0ea5e9]">
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                      <span className="text-[11px] font-bold">Optimizando...</span>
-                    </div>
-                  ) : fotoFinal ? (
-                    <img src={fotoFinal} alt="Foto final" className="w-full h-full object-cover rounded-xl" />
-                  ) : (
-                    <>
-                      <div className="w-9 h-9 rounded-full border border-[#0ea5e9] text-[#0ea5e9] flex items-center justify-center mb-1.5">
-                        <Camera className="w-4 h-4 stroke-[2]" />
+                {/* Slot 2: Foto Final (Trabajo culminado) * */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">
+                    Foto Final (Trabajo culminado) <span className="text-rose-500">*</span>
+                  </label>
+                  <div
+                    onClick={() => !comprimiendoFinal && !fotoFinal && fileInputFinalRef.current?.click()}
+                    className={`min-h-[132px] h-36 rounded-2xl border ${
+                      fotoFinal
+                        ? 'border-emerald-300 bg-emerald-50/20'
+                        : 'border-dashed border-slate-300 hover:border-[#0ea5e9] bg-slate-50/70 hover:bg-sky-50/40 cursor-pointer'
+                    } flex flex-col items-center justify-center p-2 transition-all overflow-hidden relative`}
+                  >
+                    {comprimiendoFinal ? (
+                      <div className="flex flex-col items-center gap-1.5 text-[#0ea5e9]">
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                        <span className="text-[11px] font-bold">Comprimiendo evidencia...</span>
                       </div>
-                      <span className="text-xs font-semibold text-slate-600">Foto final</span>
-                    </>
-                  )}
+                    ) : fotoFinal ? (
+                      <>
+                        <img
+                          src={fotoFinal}
+                          alt="Foto Final (Trabajo culminado)"
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                        <div className="absolute top-2 left-2 bg-sky-600/90 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-xs">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Después</span>
+                        </div>
+                        <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fileInputFinalRef.current?.click();
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-900 text-white text-[10px] font-bold shadow-sm transition-colors cursor-pointer"
+                          >
+                            Reemplazar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFotoFinal(null);
+                            }}
+                            className="p-1.5 rounded-lg bg-rose-600/90 hover:bg-rose-700 text-white shadow-sm transition-colors cursor-pointer"
+                            title="Eliminar foto final"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full border border-[#0ea5e9] text-[#0ea5e9] bg-white flex items-center justify-center mb-1.5 shadow-2xs">
+                          <Camera className="w-4 h-4 stroke-[2]" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-700 text-center">
+                          Subir Foto Después
+                        </span>
+                        <span className="text-[10px] text-slate-400 text-center mt-0.5">
+                          Cámara o Galería
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {(!fotoInicial || !fotoFinal) && (
+                <p className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/70 rounded-xl px-3 py-2">
+                  * Es obligatorio adjuntar tanto la Foto Inicial (Antes) como la Foto Final (Después) para habilitar el cierre de la orden.
+                </p>
+              )}
             </div>
 
             {/* EVALUACIÓN DEL SERVICIO */}
@@ -499,8 +621,8 @@ export const ValidacionCierre: React.FC = () => {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={submitting || comprimiendoInicial || comprimiendoFinal}
-              className="w-full min-h-[52px] py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none"
+              disabled={!fotoInicial || !fotoFinal || submitting || comprimiendoInicial || comprimiendoFinal}
+              className="w-full min-h-[52px] py-4 px-4 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-sky-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none"
             >
               {submitting ? (
                 <>
