@@ -469,7 +469,7 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
                 {/* Selector de Hora (01-12) y Minutos (00-59) */}
                 <div className="sm:col-span-4">
                   <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
-                    Hora (12h)
+                    Hora
                   </label>
                   <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:border-sky-500">
                     <Clock className="w-4 h-4 text-slate-400 mr-1.5 flex-shrink-0" />
@@ -508,7 +508,7 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
                 {/* Botones segmentados AM / PM */}
                 <div className="sm:col-span-3">
                   <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
-                    Turno (AM / PM)
+                    Turno
                   </label>
                   <div className="grid grid-cols-2 gap-1 bg-slate-200/80 p-1 rounded-xl h-[42px]">
                     <button
