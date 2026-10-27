@@ -15,7 +15,6 @@ interface OrdenesTabProps {
   filtroActivo: FiltroOrdenes;
   onFiltroChange: (filtro: FiltroOrdenes) => void;
   onSelectOrden: (orden: OrdenDetalleAdmin) => void;
-  onReaperturarOrden?: (orden: OrdenDetalleAdmin) => void;
   onOpenPerfil: () => void;
   paginaActual?: number;
   onPaginaChange?: (pagina: number) => void;
@@ -32,7 +31,6 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
   filtroActivo,
   onFiltroChange,
   onSelectOrden,
-  onReaperturarOrden,
   onOpenPerfil,
   paginaActual: propsPaginaActual,
   onPaginaChange,
@@ -348,7 +346,6 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
                     key={orden.id}
                     orden={orden}
                     onClick={() => onSelectOrden(orden)}
-                    onReaperturar={onReaperturarOrden}
                     onOpenWaze={handleOpenWaze}
                   />
                 ))}
@@ -389,7 +386,6 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
               <AdminOrdenTable
                 ordenes={ordenesPaginadas}
                 onSelectOrden={onSelectOrden}
-                onReaperturarOrden={onReaperturarOrden}
                 onOpenWaze={handleOpenWaze}
                 totalOrdenes={totalItems}
                 paginaActual={paginaValida}

@@ -89,4 +89,4 @@
 - **Reapertura de Órdenes (`ASISTIDO_NO_REALIZADO` / `CANCELADA`):**
   - Endpoint `PATCH /api/ordenes/{id}/reaperturar` (y `/api/admin/ordenes/{id}/reaperturar`) en `OrdenController` / `AdminOrdenController` / `OrdenServicioService.reaperturarOrden`.
   - Recibe `ReaperturarOrdenRequest` (`nuevaFechaPactada` futura, `tecnicoId` y `observacion` opcional), cambia el estado de `CANCELADA` a `PENDIENTE`, actualiza la fecha pactada y el técnico asignado, limpia `fechaLlegada`, `fechaFinalizacion` y `fechaCancelacion` (`null`) y envía notificación push OneSignal al técnico.
-  - En el panel de administrador (`AdminOrdenTable.tsx`, `AdminOrdenCard.tsx`, `OrdenDetalleModal.tsx` y `ReaperturarOrdenModal.tsx`), muestra el botón **"Reaperturar Servicio"** (`RotateCcw`) y actualiza reactivamente la tabla de órdenes sin requerir F5.
+  - En el panel de administrador (`OrdenDetalleModal.tsx` y `ReaperturarOrdenModal.tsx`), el botón **"Reaperturar Servicio"** (`RotateCcw`) se muestra exclusivamente dentro del modal de detalle de la orden (`Ver detalle`) y actualiza reactivamente la tabla de órdenes sin requerir F5.

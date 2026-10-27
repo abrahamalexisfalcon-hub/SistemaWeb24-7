@@ -33,7 +33,6 @@ export const AdminDashboard: React.FC = () => {
             filtroActivo={d.filtroActivo}
             onFiltroChange={d.setFiltroActivo}
             onSelectOrden={d.setOrdenSeleccionada}
-            onReaperturarOrden={d.handleAbrirReaperturarOrden}
             onOpenPerfil={() => d.setModalPerfilAdmin(true)}
           />
         );
