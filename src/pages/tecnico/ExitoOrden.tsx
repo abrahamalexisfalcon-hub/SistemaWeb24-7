@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { tecnicoApi } from '../../api';
 import { useEspecialidades } from '../../hooks';
@@ -44,10 +45,27 @@ function formatFechaHoy(): string {
 /* ─────────────── Componente Checkbox visual ─────────────── */
 const CheckBox: React.FC<{ checked: boolean; label: string }> = ({ checked, label }) => (
   <span className="inline-flex items-center gap-1.5 mr-3 text-[9.5px] leading-none whitespace-nowrap text-gray-800">
-    <span className={`inline-flex items-center justify-center w-[11px] h-[11px] border border-gray-700 rounded-sm text-[8px] font-bold ${checked ? 'bg-[#0284c7] text-white border-[#0284c7]' : 'bg-white'}`}>
-      {checked ? '✓' : ''}
+    <span className={`inline-flex items-center justify-center w-[11px] h-[11px] border border-gray-700 rounded-sm shrink-0 ${checked ? 'bg-[#0284c7] text-white border-[#0284c7]' : 'bg-white'}`}>
+      {checked && (
+        <svg
+          className="w-2.5 h-2.5 text-white stroke-current"
+          width="10"
+          height="10"
+          viewBox="0 0 12 12"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M2.5 6.2L5 8.7L9.5 3.5"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
     </span>
-    {label}
+    <span className="leading-none">{label}</span>
   </span>
 );
 
@@ -345,10 +363,13 @@ export const ExitoOrden: React.FC = () => {
       </div>
 
       {/* ═══════════════════════  MODAL HOJA DE SERVICIO OFICIAL  ═══════════════════════ */}
-      {modalPdfOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/60 p-2 print:p-0 print:bg-white">
+      {modalPdfOpen && createPortal(
+        <div
+          id="hoja-servicio-portal-root"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/60 p-2 print:static print:p-0 print:bg-white print:block"
+        >
           {/* Contenedor modal — en print ocupa toda la página */}
-          <div className="bg-white rounded-2xl max-w-[540px] w-full max-h-[92vh] overflow-y-auto shadow-2xl print:max-w-none print:max-h-none print:rounded-none print:shadow-none print:overflow-visible no-print-hide">
+          <div className="bg-white rounded-2xl max-w-[540px] w-full max-h-[92vh] overflow-y-auto shadow-2xl print:max-w-none print:max-h-none print:rounded-none print:shadow-none print:overflow-hidden no-print-hide">
 
             {/* Barra de herramientas del modal (se oculta en impresión) */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 print:hidden sticky top-0 bg-white z-10 rounded-t-2xl">
@@ -365,7 +386,7 @@ export const ExitoOrden: React.FC = () => {
             </div>
 
             {/* ── HOJA DE SERVICIO IMPRIMIBLE (Formato Físico Original) ── */}
-            <div id="hoja-servicio-print" className="px-5 py-4 text-[10px] leading-[1.45] text-gray-900 space-y-2.5 print:px-6 print:py-4 print:text-[9.5px]">
+            <div id="hoja-servicio-print" className="px-5 py-4 text-[10px] leading-[1.45] text-gray-900 space-y-2.5 overflow-hidden print:px-6 print:py-3 print:text-[9.5px] print:max-h-[278mm] print:overflow-hidden">
 
               {/* ===== CABECERA ===== */}
               <div className="flex items-center justify-between w-full pb-3 border-b-2 border-sky-600 mb-4">
@@ -374,8 +395,8 @@ export const ExitoOrden: React.FC = () => {
                   <img src={logo247} alt="24/7 Asistencias" className="h-[100px] w-auto object-contain" />
                 </div>
 
-                {/* Título central (acercado al logo, sin margen/padding izquierdo) */}
-                <div className="flex-1 flex items-center justify-start pl-0 ml-0">
+                {/* Título central */}
+                <div className="flex-1 flex items-center justify-center pl-0 ml-0">
                   <h2 className="text-[15px] font-black text-[#0284c7] tracking-wider underline underline-offset-4 decoration-[#0284c7] whitespace-nowrap">
                     HOJA DE SERVICIO
                   </h2>
@@ -391,21 +412,10 @@ export const ExitoOrden: React.FC = () => {
                       className="w-3.5 h-3.5 object-contain"
                       crossOrigin="anonymous"
                     />
-                    <span>988 888 141 / 989 567 795 / 914 279 170</span>
+                    <span>988 888 141 / 914 279 170</span>
                   </div>
 
-                  {/* Fila 2: Correo Gmail */}
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <img 
-                      src="/icons/gmail.svg" 
-                      alt="Gmail" 
-                      className="w-3.5 h-3.5 object-contain"
-                      crossOrigin="anonymous"
-                    />
-                    <span>247asistencias.peru@gmail.com</span>
-                  </div>
-
-                  {/* Fila 3: Redes Sociales */}
+                  {/* Fila 2: Redes Sociales */}
                   <div className="flex items-center gap-3 font-medium">
                     {/* Instagram */}
                     <div className="flex items-center gap-1">
@@ -417,17 +427,17 @@ export const ExitoOrden: React.FC = () => {
                       />
                       <span>247asistencias</span>
                     </div>
+                  </div>
 
-                    {/* Facebook */}
-                    <div className="flex items-center gap-1">
-                      <img 
-                        src="/icons/facebook.svg" 
-                        alt="Facebook" 
-                        className="w-3.5 h-3.5 object-contain"
-                        crossOrigin="anonymous"
-                      />
-                      <span>247asistencias.pe</span>
-                    </div>
+                  {/* Fila 3: Correo Gmail */}
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <img 
+                      src="/icons/gmail.svg" 
+                      alt="Gmail" 
+                      className="w-3.5 h-3.5 object-contain"
+                      crossOrigin="anonymous"
+                    />
+                    <span>247asistencias.peru@gmail.com</span>
                   </div>
                 </div>
               </div>
@@ -645,7 +655,8 @@ export const ExitoOrden: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </TecnicoLayout>
   );

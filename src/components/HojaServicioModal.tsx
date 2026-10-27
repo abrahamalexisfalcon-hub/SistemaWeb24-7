@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { FileText, Download, X, Loader2 } from 'lucide-react';
+import { domToCanvas } from 'modern-screenshot';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
@@ -40,13 +42,30 @@ function formatFecha(fechaStr?: string): string {
 const CheckBox: React.FC<{ checked: boolean; label: string }> = ({ checked, label }) => (
   <span className="inline-flex items-center gap-1.5 mr-3 text-[9.5px] leading-none whitespace-nowrap text-gray-800">
     <span
-      className={`inline-flex items-center justify-center w-[11px] h-[11px] border border-gray-700 rounded-sm text-[8px] font-bold ${
+      className={`inline-flex items-center justify-center w-[11px] h-[11px] border border-gray-700 rounded-sm shrink-0 ${
         checked ? 'bg-[#0284c7] text-white border-[#0284c7]' : 'bg-white'
       }`}
     >
-      {checked ? '✓' : ''}
+      {checked && (
+        <svg
+          className="w-2.5 h-2.5 text-white stroke-current"
+          width="10"
+          height="10"
+          viewBox="0 0 12 12"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M2.5 6.2L5 8.7L9.5 3.5"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
     </span>
-    {label}
+    <span className="leading-none">{label}</span>
   </span>
 );
 
@@ -261,37 +280,45 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
     const codigoSanitizado = codigoSinHash.replace(/[^a-zA-Z0-9_-]/g, '_');
 
     try {
-      const canvas = await html2canvas(elemento, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
+      let canvas: HTMLCanvasElement;
+      try {
+        // Renderizado nativo con modern-screenshot: conserva al 100% los íconos SVG, checks, subrayados y fuentes de la web
+        canvas = await domToCanvas(elemento, {
+          scale: 3,
+          backgroundColor: '#ffffff',
+        });
+      } catch {
+        canvas = await html2canvas(elemento, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          height: elemento.offsetHeight,
+          windowHeight: elemento.scrollHeight,
+        });
+      }
 
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
+      // Dimensiones exactas de A4 vertical en mm (210 x 297)
+      const pageWidth = 210;
+      const pageHeight = 297;
       const margin = 8;
       const maxWidth = pageWidth - margin * 2;
       const maxHeight = pageHeight - margin * 2;
 
-      let imgWidth = maxWidth;
-      let imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      if (imgHeight > maxHeight) {
-        imgHeight = maxHeight;
-        imgWidth = (canvas.width * imgHeight) / canvas.height;
-      }
+      // Escalar proporcionalmente para encajar estrictamente en 1 sola página A4 (297mm)
+      const ratio = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
+      const imgWidth = canvas.width * ratio;
+      const imgHeight = canvas.height * ratio;
 
       const xOffset = (pageWidth - imgWidth) / 2;
-      pdf.addImage(imgData, 'PNG', xOffset, margin, imgWidth, imgHeight);
+      const yOffset = margin;
+
+      // Renderizar en la primera y única página (sin llamar a pdf.addPage())
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight, undefined, 'FAST');
 
       const pdfBlob = pdf.output('blob');
       const nombrePdf = `Hoja_Servicio_${codigoSanitizado}.pdf`;
@@ -337,7 +364,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
 
       const construirMensaje = (incluirEnlace: boolean) => {
         const lineas = [
-          `*24/7 ASISTENCIAS GENERALES* 🛠️`,
+          `*24/7 ASISTENCIAS GENERALES*`,
           ``,
           `Estimado(a) *${nombreAfiliado}*, reciba un cordial saludo.`,
           ``,
@@ -353,7 +380,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
           ...(incluirEnlace
             ? [
                 ``,
-                `📄 *Constancia Digital (Hoja de Servicio):*`,
+                `*Constancia Digital (Hoja de Servicio):*`,
                 `${enlaceDirectoHoja}`,
               ]
             : [
@@ -453,10 +480,13 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
     );
   }, [detalleExtra, orden]);
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/60 p-2 print:p-0 print:bg-white animate-in fade-in">
+  return createPortal(
+    <div
+      id="hoja-servicio-portal-root"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/60 p-2 print:static print:p-0 print:bg-white print:block animate-in fade-in"
+    >
       {/* Contenedor modal — en print ocupa toda la página */}
-      <div className="bg-white rounded-2xl max-w-[540px] w-full max-h-[92vh] overflow-y-auto shadow-2xl print:max-w-none print:max-h-none print:rounded-none print:shadow-none print:overflow-visible no-print-hide">
+      <div className="bg-white rounded-2xl max-w-[540px] w-full max-h-[92vh] overflow-y-auto shadow-2xl print:max-w-none print:max-h-none print:rounded-none print:shadow-none print:overflow-hidden no-print-hide">
         
         {/* Barra de herramientas del modal (se oculta en impresión) */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 print:hidden sticky top-0 bg-white z-10 rounded-t-2xl">
@@ -476,7 +506,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
         {/* ── HOJA DE SERVICIO IMPRIMIBLE (Formato Oficial Físico) ── */}
         <div
           id="hoja-servicio-print"
-          className="px-5 py-4 text-[10px] leading-[1.45] text-gray-900 space-y-2.5 print:px-6 print:py-4 print:text-[9.5px]"
+          className="px-5 py-4 text-[10px] leading-[1.45] text-gray-900 space-y-2.5 overflow-hidden print:px-6 print:py-3 print:text-[9.5px] print:max-h-[278mm] print:overflow-hidden"
         >
           {/* ===== CABECERA ===== */}
           <div className="flex items-center justify-between w-full pb-3 border-b-2 border-sky-600 mb-4">
@@ -800,7 +830,8 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
