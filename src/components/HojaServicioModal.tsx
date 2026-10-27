@@ -42,9 +42,8 @@ function formatFecha(fechaStr?: string): string {
 const CheckBox: React.FC<{ checked: boolean; label: string }> = ({ checked, label }) => (
   <span className="inline-flex items-center gap-1.5 mr-3 text-[9.5px] leading-none whitespace-nowrap text-gray-800">
     <span
-      className={`inline-flex items-center justify-center w-[11px] h-[11px] border border-gray-700 rounded-sm shrink-0 ${
-        checked ? 'bg-[#0284c7] text-white border-[#0284c7]' : 'bg-white'
-      }`}
+      className={`inline-flex items-center justify-center w-[11px] h-[11px] border border-gray-700 rounded-sm shrink-0 ${checked ? 'bg-[#0284c7] text-white border-[#0284c7]' : 'bg-white'
+        }`}
     >
       {checked && (
         <svg
@@ -379,14 +378,14 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
             : []),
           ...(incluirEnlace
             ? [
-                ``,
-                `*Constancia Digital (Hoja de Servicio):*`,
-                `${enlaceDirectoHoja}`,
-              ]
+              ``,
+              `*Constancia Digital (Hoja de Servicio):*`,
+              `${enlaceDirectoHoja}`,
+            ]
             : [
-                ``,
-                `📄 Adjuntamos a este mensaje el archivo de su *Hoja de Servicio Digital*.`,
-              ]),
+              ``,
+              `📄 Adjuntamos a este mensaje el archivo de su *Hoja de Servicio Digital*.`,
+            ]),
           ``,
           `Agradecemos su confianza en *24/7 Asistencias Generales*. Quedamos a su disposición las 24 horas ante cualquier consulta.`,
         ];
@@ -487,7 +486,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
     >
       {/* Contenedor modal — en print ocupa toda la página */}
       <div className="bg-white rounded-2xl max-w-[540px] w-full max-h-[92vh] overflow-y-auto shadow-2xl print:max-w-none print:max-h-none print:rounded-none print:shadow-none print:overflow-hidden no-print-hide">
-        
+
         {/* Barra de herramientas del modal (se oculta en impresión) */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 print:hidden sticky top-0 bg-white z-10 rounded-t-2xl">
           <div className="flex items-center gap-2 text-slate-900 font-extrabold text-sm">
@@ -526,9 +525,9 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
             <div className="flex flex-col items-end space-y-1.5 text-s text-sky-600 print:text-sky-700">
               {/* Fila 1: WhatsApp */}
               <div className="flex items-center gap-1.5 font-medium">
-                <img 
-                  src="/icons/whatsapp.svg" 
-                  alt="WhatsApp" 
+                <img
+                  src="/icons/whatsapp.svg"
+                  alt="WhatsApp"
                   className="w-3.5 h-3.5 object-contain"
                   crossOrigin="anonymous"
                 />
@@ -539,9 +538,9 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
               <div className="flex items-center gap-3 font-medium">
                 {/* Instagram */}
                 <div className="flex items-center gap-1">
-                  <img 
-                    src="/icons/instagram.svg" 
-                    alt="Instagram" 
+                  <img
+                    src="/icons/instagram.svg"
+                    alt="Instagram"
                     className="w-3.5 h-3.5 object-contain"
                     crossOrigin="anonymous"
                   />
@@ -551,9 +550,9 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
 
               {/* Fila 3: Correo Gmail*/}
               <div className="flex items-center gap-1.5 font-medium">
-                <img 
-                  src="/icons/gmail.svg" 
-                  alt="Gmail" 
+                <img
+                  src="/icons/gmail.svg"
+                  alt="Gmail"
                   className="w-3.5 h-3.5 object-contain"
                   crossOrigin="anonymous"
                 />
@@ -564,20 +563,26 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
 
           {/* ===== CABECERA MÓVIL (2 niveles apilados, oculta en escritorio e impresión) ===== */}
           <div className="flex sm:hidden print:hidden flex-col w-full pb-3 border-b-2 border-sky-600 mb-3 gap-2.5">
-            {/* Nivel 1 (Fila superior): Logo a la izquierda + Título a su costado */}
-            <div className="flex items-center justify-between gap-3 w-full">
+            {/* Nivel 1 (Fila superior): Logo a la izquierda + Título al centro exacto */}
+            <div className="flex items-center justify-between w-full">
+              {/* Logo a la izquierda */}
               <img
                 src={logo247}
                 alt="24/7 Asistencias"
                 className="h-12 w-auto object-contain shrink-0"
               />
-              <h2 className="text-[15px] font-black text-[#0284c7] tracking-wider underline underline-offset-4 decoration-[#0284c7] whitespace-nowrap">
+
+              {/* Título centrado geométricamente */}
+              <h2 className="text-[15px] font-black text-[#0284c7] tracking-wider underline underline-offset-4 decoration-[#0284c7] whitespace-nowrap text-center flex-1 mx-2">
                 HOJA DE SERVICIO
               </h2>
+
+              {/* Elemento invisible de compensación (mismo ancho aproximado del logo para equilibrar el centro) */}
+              <div className="w-12 shrink-0 invisible" aria-hidden="true" />
             </div>
 
             {/* Nivel 2 (Fila inferior - Datos de Contacto en 2 filas) */}
-            <div className="flex flex-col items-end space-y-1 text-[10.5px] leading-tight text-sky-600 w-full">
+            <div className="flex flex-col items-center space-y-1 text-[10.5px] leading-tight text-sky-600 w-full">
               {/* Fila de contacto 1: WhatsApp con teléfonos */}
               <div className="flex items-center gap-1.5 font-medium whitespace-nowrap">
                 <img
@@ -590,7 +595,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
               </div>
 
               {/* Fila de contacto 2: Instagram + Gmail */}
-              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 font-medium">
+              <div className="flex flex-col items-center justify-end gap-x-3 gap-y-1 font-medium">
                 <div className="flex items-center gap-1 whitespace-nowrap">
                   <img
                     src="/icons/instagram.svg"
