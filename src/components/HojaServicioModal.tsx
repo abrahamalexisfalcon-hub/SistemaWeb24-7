@@ -304,51 +304,51 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
           className="px-5 py-4 text-[10px] leading-[1.45] text-gray-900 space-y-2.5 print:px-6 print:py-4 print:text-[9.5px]"
         >
           {/* ===== CABECERA ===== */}
-          <div className="flex items-start gap-3 border-b-2 border-[#0284c7] pb-2">
-            {/* Logo institucional */}
-            <div className="flex-shrink-0 flex flex-col items-center">
-              <img src={logo247} alt="24/7 Asistencias" className="h-[100px] w-auto object-contain" />
+          <div className="grid grid-cols-3 items-center border-b-2 border-[#0284c7] pb-2.5 mb-2">
+            {/* Columna 1 (Izquierda): Logo institucional */}
+            <div className="flex items-center justify-start">
+              <img src={logo247} alt="24/7 Asistencias" className="h-[88px] w-auto object-contain" />
             </div>
 
-            {/* Título central */}
-            <div className="flex-1 flex items-center justify-center pt-2">
-              <h2 className="text-[15px] font-black text-[#0284c7] tracking-wider underline underline-offset-4 decoration-[#0284c7]">
+            {/* Columna 2 (Centro): Título centrado geométricamente */}
+            <div className="flex items-center justify-center text-center">
+              <h2 className="text-[15px] font-black text-[#0284c7] tracking-wider underline underline-offset-4 decoration-[#0284c7] whitespace-nowrap">
                 HOJA DE SERVICIO
               </h2>
             </div>
 
-            {/* Datos de contacto con logos oficiales locales */}
-            <div className="flex flex-col items-end space-y-1.5 text-xs text-sky-600 print:text-sky-700">
+            {/* Columna 3 (Derecha): Datos de contacto con logos oficiales locales */}
+            <div className="flex flex-col items-end justify-center space-y-1 text-[8.5px] leading-tight text-sky-600 print:text-sky-700 whitespace-nowrap justify-self-end">
               {/* Fila 1: WhatsApp */}
-              <div className="flex items-center gap-1.5 font-medium">
+              <div className="flex items-center gap-1 font-medium whitespace-nowrap">
                 <img 
                   src="/icons/whatsapp.svg" 
                   alt="WhatsApp" 
-                  className="w-3.5 h-3.5 object-contain"
+                  className="w-3 h-3 object-contain shrink-0"
                   crossOrigin="anonymous"
                 />
                 <span>988 888 141 / 989 567 795 / 914 279 170</span>
               </div>
 
               {/* Fila 2: Correo Gmail */}
-              <div className="flex items-center gap-1.5 font-medium">
+              <div className="flex items-center gap-1 font-medium whitespace-nowrap">
                 <img 
                   src="/icons/gmail.svg" 
                   alt="Gmail" 
-                  className="w-3.5 h-3.5 object-contain"
+                  className="w-3 h-3 object-contain shrink-0"
                   crossOrigin="anonymous"
                 />
                 <span>247asistencias.peru@gmail.com</span>
               </div>
 
               {/* Fila 3: Redes Sociales */}
-              <div className="flex items-center gap-3 font-medium">
+              <div className="flex items-center gap-2 font-medium whitespace-nowrap">
                 {/* Instagram */}
                 <div className="flex items-center gap-1">
                   <img 
                     src="/icons/instagram.svg" 
                     alt="Instagram" 
-                    className="w-3.5 h-3.5 object-contain"
+                    className="w-3 h-3 object-contain shrink-0"
                     crossOrigin="anonymous"
                   />
                   <span>247asistencias</span>
@@ -359,7 +359,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
                   <img 
                     src="/icons/facebook.svg" 
                     alt="Facebook" 
-                    className="w-3.5 h-3.5 object-contain"
+                    className="w-3 h-3 object-contain shrink-0"
                     crossOrigin="anonymous"
                   />
                   <span>247asistencias.pe</span>
