@@ -4,7 +4,7 @@ import type {
   CrearTecnicoRequest,
   ActualizarTecnicoRequest,
 } from '../../../types';
-import { X, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, RefreshCw, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface TecnicoFormModalProps {
   isOpen: boolean;
@@ -35,30 +35,34 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
   onToggleEstado,
   togglingId,
 }) => {
-  // Form states
+  // Estados limpios de formulario
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [correo, setCorreo] = useState('');
   const [telefono, setTelefono] = useState('');
   const [especialidad, setEspecialidad] = useState('');
-  const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
+  const [mostrarPin, setMostrarPin] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // Confirmación de suspensión / reactivación
   const [modalConfirmarEstado, setModalConfirmarEstado] = useState(false);
   const [accionConfirmar, setAccionConfirmar] = useState<'suspender' | 'reactivar' | null>(null);
 
   useEffect(() => {
+    setLocalError(null);
+    setMostrarPin(false);
     if (modo === 'editar' && tecnicoAEditar) {
       setNombreCompleto(tecnicoAEditar.nombreCompleto || '');
       setCorreo(tecnicoAEditar.correo || '');
-      setTelefono(tecnicoAEditar.telefono || '');
+      setTelefono((tecnicoAEditar.telefono || '').replace(/\D/g, '').slice(0, 9));
       setEspecialidad(tecnicoAEditar.especialidad || (especialidades[0] || ''));
-      setPassword('');
+      setPin('');
     } else {
       setNombreCompleto('');
       setCorreo('');
       setTelefono('');
       setEspecialidad(especialidades[0] || '');
-      setPassword('');
+      setPin('');
     }
   }, [modo, tecnicoAEditar, especialidades, isOpen]);
 
@@ -66,26 +70,48 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (modo === 'crear' && onCrear) {
-      await onCrear({
-        nombreCompleto: nombreCompleto.trim(),
-        correo: correo.trim(),
-        password: password.trim(),
-        telefono: telefono.trim(),
-        especialidad: especialidad.trim(),
-      });
+    setLocalError(null);
+
+    const telefonoLimpio = telefono.replace(/\D/g, '');
+    const pinLimpio = pin.replace(/\D/g, '');
+
+    if (!/^\d{9}$/.test(telefonoLimpio)) {
+      setLocalError('El número de teléfono / celular debe contener exactamente 9 dígitos numéricos.');
+      return;
+    }
+
+    if (modo === 'crear') {
+      if (!/^\d{4}$/.test(pinLimpio)) {
+        setLocalError('El PIN de acceso debe contener exactamente 4 dígitos numéricos.');
+        return;
+      }
+      if (onCrear) {
+        await onCrear({
+          nombreCompleto: nombreCompleto.trim(),
+          correo: correo.trim(),
+          password: pinLimpio,
+          telefono: telefonoLimpio,
+          especialidad: especialidad.trim(),
+        });
+      }
     } else if (modo === 'editar' && onGuardarEdicion) {
+      if (pinLimpio.length > 0 && !/^\d{4}$/.test(pinLimpio)) {
+        setLocalError('Si deseas cambiar el PIN de acceso, debe tener exactamente 4 dígitos numéricos.');
+        return;
+      }
       const payload: ActualizarTecnicoRequest = {
         nombreCompleto: nombreCompleto.trim(),
-        telefono: telefono.trim(),
+        telefono: telefonoLimpio,
         especialidad: especialidad.trim(),
       };
-      if (password && password.trim().length >= 4) {
-        payload.password = password.trim();
+      if (pinLimpio.length === 4) {
+        payload.password = pinLimpio;
       }
       await onGuardarEdicion(payload);
     }
   };
+
+  const errorMostrado = localError || error;
 
   return (
     <>
@@ -105,27 +131,34 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {error && (
+          {errorMostrado && (
             <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{error}</span>
+              <span>{errorMostrado}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+          <form onSubmit={handleSubmit} autoComplete="off" className="space-y-3 text-xs">
+            {/* Campos señuelo ocultos para evitar que Chrome/Edge inyecten credenciales guardadas */}
+            <input type="text" name="fake_user_autofill" autoComplete="username" className="hidden" tabIndex={-1} />
+            <input type="password" name="fake_pass_autofill" autoComplete="new-password" className="hidden" tabIndex={-1} />
+
             <div>
-              <label className="block font-bold text-slate-700 uppercase mb-1">
+              <label htmlFor="tecnico_nombre" className="block font-bold text-slate-700 uppercase mb-1">
                 NOMBRES Y APELLIDOS: <span className="text-red-500">*</span>
               </label>
               <input
+                id="tecnico_nombre"
+                name="tecnico_nombre"
                 type="text"
                 required
+                autoComplete="off"
                 value={nombreCompleto}
                 onChange={(e) => setNombreCompleto(e.target.value)}
                 placeholder="Ej. Roberto Sánchez Gómez"
@@ -135,12 +168,15 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
 
             {modo === 'crear' && (
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">
+                <label htmlFor="tecnico_correo" className="block font-bold text-slate-700 uppercase mb-1">
                   Correo Electrónico <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="tecnico_correo"
+                  name="tecnico_correo"
                   type="email"
                   required
+                  autoComplete="off"
                   value={correo}
                   onChange={(e) => setCorreo(e.target.value)}
                   placeholder="tecnico@asistencias247.com"
@@ -151,23 +187,31 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">
-                  Teléfono {modo === 'crear' && <span className="text-red-500">*</span>}
+                <label htmlFor="tecnico_telefono" className="block font-bold text-slate-700 uppercase mb-1">
+                  Teléfono / Celular <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="tecnico_telefono"
+                  name="tecnico_telefono"
                   type="tel"
-                  required={modo === 'crear'}
+                  inputMode="numeric"
+                  maxLength={9}
+                  pattern="[0-9]{9}"
+                  autoComplete="new-password"
+                  required
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
+                  onChange={(e) => setTelefono(e.target.value.replace(/\D/g, '').slice(0, 9))}
                   placeholder="987654321"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
                 />
               </div>
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">
+                <label htmlFor="tecnico_especialidad" className="block font-bold text-slate-700 uppercase mb-1">
                   Especialidad <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="tecnico_especialidad"
+                  name="tecnico_especialidad"
                   value={especialidad}
                   onChange={(e) => setEspecialidad(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
@@ -188,27 +232,43 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 uppercase mb-1">
+              <label htmlFor="tecnico_pin" className="block font-bold text-slate-700 uppercase mb-1">
                 {modo === 'crear' ? (
-                  <>Contraseña Inicial <span className="text-red-500">*</span></>
+                  <>PIN DE ACCESO (4 DÍGITOS) <span className="text-red-500">*</span></>
                 ) : (
-                  'Cambiar Contraseña (Opcional)'
+                  'CAMBIAR PIN DE ACCESO (4 DÍGITOS)'
                 )}
               </label>
-              <input
-                type="password"
-                required={modo === 'crear'}
-                minLength={4}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={modo === 'crear' ? 'Mínimo 4 caracteres' : 'Dejar en blanco para mantener la actual'}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
-              />
-              {modo === 'editar' && (
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Si no deseas cambiar la clave del técnico, déjalo vacío.
-                </p>
-              )}
+              <div className="relative">
+                <input
+                  id="tecnico_pin"
+                  name="tecnico_pin"
+                  type={mostrarPin ? 'text' : 'password'}
+                  inputMode="numeric"
+                  maxLength={4}
+                  pattern="[0-9]{4}"
+                  autoComplete="new-password"
+                  required={modo === 'crear'}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  placeholder={modo === 'crear' ? 'Ej: 1234' : 'Dejar vacío para mantener PIN actual'}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-9 font-semibold text-slate-800 tracking-widest placeholder:tracking-normal focus:outline-none focus:border-sky-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarPin((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 px-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                  tabIndex={-1}
+                  title={mostrarPin ? 'Ocultar PIN' : 'Mostrar PIN'}
+                >
+                  {mostrarPin ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                {modo === 'crear'
+                  ? 'El técnico iniciará sesión con su Número de Celular y este PIN de 4 dígitos.'
+                  : 'Si no deseas cambiar el PIN del técnico, déjalo vacío.'}
+              </p>
             </div>
 
             {/* Toggle de Suspensión / Reactivación para modo Editar */}
@@ -231,7 +291,7 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
                     setModalConfirmarEstado(true);
                   }}
                   disabled={togglingId === tecnicoAEditar.id}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
                     tecnicoAEditar.activo !== false
                       ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                       : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
@@ -251,14 +311,14 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors"
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 py-3 bg-[#0284c7] hover:bg-[#0369a1] disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5"
+                className="flex-1 py-3 bg-[#0284c7] hover:bg-[#0369a1] disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {submitting ? (
                   <>
@@ -287,7 +347,7 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
               <button
                 type="button"
                 onClick={() => setModalConfirmarEstado(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -304,7 +364,7 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
                 type="button"
                 onClick={() => setModalConfirmarEstado(false)}
                 disabled={togglingId === tecnicoAEditar.id}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors"
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -315,7 +375,7 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
                   setModalConfirmarEstado(false);
                 }}
                 disabled={togglingId === tecnicoAEditar.id}
-                className={`flex-1 py-2.5 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer ${
                   accionConfirmar === 'suspender'
                     ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20'
                     : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'

@@ -206,13 +206,13 @@ export const Login: React.FC = () => {
                 </div>
               )}
 
-              {/* Input Email */}
+              {/* Input Correo o Celular */}
               <div className="space-y-1.5">
                 <label
                   htmlFor="login-email"
                   className="block text-xs font-bold text-slate-200 tracking-wide"
                 >
-                  Correo electrónico
+                  Correo electrónico o N° Celular
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-sky-400 transition-colors">
@@ -220,25 +220,25 @@ export const Login: React.FC = () => {
                   </div>
                   <input
                     id="login-email"
-                    type="email"
-                    inputMode="email"
+                    type="text"
+                    inputMode="text"
                     autoComplete="username"
                     required
                     value={identificador}
                     onChange={(e) => setIdentificador(e.target.value)}
-                    placeholder="correo@asistencias247.com"
+                    placeholder="987654321 o correo@asistencias247.com"
                     className="login-dark-input w-full pl-10 pr-4 py-3 bg-[#131c2e] hover:bg-[#162035] border border-slate-700/90 hover:border-slate-600 focus:border-sky-400 focus:bg-[#151f33] focus:ring-2 focus:ring-sky-500/25 rounded-xl text-sm font-medium text-white placeholder:text-slate-400/75 focus:outline-none transition-all shadow-inner"
                   />
                 </div>
               </div>
 
-              {/* Input Password */}
+              {/* Input Contraseña o PIN */}
               <div className="space-y-1.5">
                 <label
                   htmlFor="login-password"
                   className="block text-xs font-bold text-slate-200 tracking-wide"
                 >
-                  Contraseña
+                  Contraseña o PIN (4 dígitos)
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-sky-400 transition-colors">
@@ -251,7 +251,7 @@ export const Login: React.FC = () => {
                     required
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Ingresa tu PIN o contraseña"
                     className="login-dark-input w-full pl-10 pr-12 py-3 bg-[#131c2e] hover:bg-[#162035] border border-slate-700/90 hover:border-slate-600 focus:border-sky-400 focus:bg-[#151f33] focus:ring-2 focus:ring-sky-500/25 rounded-xl text-sm font-medium text-white placeholder:text-slate-400/75 focus:outline-none transition-all shadow-inner"
                   />
                   <button

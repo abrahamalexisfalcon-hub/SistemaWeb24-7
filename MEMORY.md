@@ -56,7 +56,9 @@
    - Clientes asegurados registrados en el padrón (`id`, `nombreCompleto`, `dni`, `numeroCuenta`, `telefono` [exclusivo para administración], `direccion`, `referencia`, `distrito`, `activo`).
 
 4. **`Usuario` (`usuarios`):**
-   - Usuarios operativos del sistema con roles `ADMINISTRADOR` y `TECNICO` (`id`, `nombreCompleto`, `correo`, `password` en BCrypt, `telefono`, `rol`, `especialidad`, `firmaUrl`, `disponible`, `activo`).
+   - Usuarios operativos del sistema con roles `ADMINISTRADOR` y `TECNICO` (`id`, `nombreCompleto`, `correo` único, `telefono` único de 9 dígitos, `password` en BCrypt [PIN de 4 dígitos para técnicos], `rol`, `especialidad`, `firmaUrl`, `disponible`, `activo`).
+   - **Autenticación Dual (Correo o Celular + PIN):** `CustomUserDetailsService` y `AuthServiceImpl` permiten iniciar sesión ingresando tanto el correo electrónico como el número de celular (`telefono`) junto con el PIN de 4 dígitos (validando que el técnico esté `activo`).
+   - **Modal `TecnicoFormModal.tsx`:** Configurado con `autoComplete="off"` y `autoComplete="new-password"` para bloquear el autocompletado del navegador, validación de teléfono de 9 dígitos numéricos y **PIN de acceso de 4 dígitos numéricos** (`inputMode="numeric"`, `maxLength={4}`, `pattern="[0-9]{4}"`).
 
 5. **`Especialidad` (`especialidades`):**
    - Catálogo dinámico de especialidades técnicas (`id`, `nombre` único, `activo`).
