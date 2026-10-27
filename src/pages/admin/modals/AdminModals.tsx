@@ -2,6 +2,7 @@ import React from 'react';
 import { HojaServicioModal } from '../../../components/HojaServicioModal';
 import { OrdenDetalleModal } from './OrdenDetalleModal';
 import { AnularOrdenModal } from './AnularOrdenModal';
+import { ReaperturarOrdenModal } from './ReaperturarOrdenModal';
 import { TecnicoFormModal } from './TecnicoFormModal';
 import { EspecialidadesModal } from './EspecialidadesModal';
 import { CuentasModal } from './CuentasModal';
@@ -26,7 +27,21 @@ export const AdminModals: React.FC<AdminModalsProps> = ({ d, user, onLogout }) =
           d.setErrorAnulacion(null);
           d.setModalAnularOrden(true);
         }}
+        onReaperturarOrden={d.handleAbrirReaperturarOrden}
         onActualizarObservacion={d.handleActualizarObservacionCancelacion}
+      />
+
+      <ReaperturarOrdenModal
+        isOpen={d.modalReaperturarOrden}
+        orden={d.ordenAReaperturar || d.ordenSeleccionada}
+        tecnicos={d.tecnicos}
+        onClose={() => {
+          d.setModalReaperturarOrden(false);
+          d.setOrdenAReaperturar(null);
+        }}
+        onConfirmar={d.handleConfirmarReapertura}
+        reaperturando={d.reaperturando}
+        error={d.errorReapertura}
       />
 
       <AnularOrdenModal

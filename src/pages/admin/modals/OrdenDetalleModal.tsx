@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { OrdenDetalleAdmin } from '../../../types';
-import { X, Phone, Clock, AlertCircle, FileText, Pencil, Check, RefreshCw } from 'lucide-react';
+import { X, Phone, Clock, AlertCircle, FileText, Pencil, Check, RefreshCw, RotateCcw } from 'lucide-react';
 import { formatearFechaHora, getBadgeConfig } from '../utils';
 import { EvidenciasGaleria } from '../../../components';
 import { adminApi } from '../../../api';
@@ -11,6 +11,7 @@ interface OrdenDetalleModalProps {
   onClose: () => void;
   onVerHojaServicio: () => void;
   onAnularOrden: () => void;
+  onReaperturarOrden?: (orden: OrdenDetalleAdmin) => void;
   onActualizarObservacion?: (ordenId: number, nuevaObservacion: string) => Promise<void>;
 }
 
@@ -19,6 +20,7 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
   onClose,
   onVerHojaServicio,
   onAnularOrden,
+  onReaperturarOrden,
   onActualizarObservacion,
 }) => {
   const [editandoObs, setEditandoObs] = useState(false);
@@ -288,6 +290,19 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
             )}
           </div>
         )}
+
+        {/* Botón Reaperturar Servicio si la orden está en estado Cancelada / Asistido No Realizado */}
+        {(orden.estado === 'CANCELADA' || (orden.estado as string) === 'ASISTIDO_NO_REALIZADO') &&
+          onReaperturarOrden && (
+            <button
+              type="button"
+              onClick={() => onReaperturarOrden(orden)}
+              className="w-full py-3 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs rounded-2xl transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Reaperturar Servicio</span>
+            </button>
+          )}
 
         {/* Botón Ver Hoja de Servicio Oficial si la orden está finalizada */}
         {orden.estado === 'FINALIZADA' && (

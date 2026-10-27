@@ -1,18 +1,20 @@
 import React from 'react';
 import type { OrdenDetalleAdmin } from '../../../types';
-import { MapPin, Clock, Building2 } from 'lucide-react';
+import { MapPin, Clock, Building2, RotateCcw } from 'lucide-react';
 import frame26 from '../../../assets/Frame 26.svg';
 import { formatearFechaHora, getBadgeConfig } from '../utils';
 
 interface AdminOrdenCardProps {
   orden: OrdenDetalleAdmin;
   onClick: () => void;
+  onReaperturar?: (orden: OrdenDetalleAdmin) => void;
   onOpenWaze: (e: React.MouseEvent, orden: OrdenDetalleAdmin) => void;
 }
 
 export const AdminOrdenCard: React.FC<AdminOrdenCardProps> = ({
   orden,
   onClick,
+  onReaperturar,
   onOpenWaze,
 }) => {
   const badge = getBadgeConfig(orden.estado);
@@ -116,6 +118,25 @@ export const AdminOrdenCard: React.FC<AdminOrdenCardProps> = ({
           </span>
         )}
       </div>
+
+      {/* Botón rápido de Reapertura para órdenes en Asistido No Realizado / Cancelada */}
+      {(orden.estado === 'CANCELADA' ||
+        (orden.estado as string) === 'ASISTIDO_NO_REALIZADO') &&
+        onReaperturar && (
+          <div className="pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReaperturar(orden);
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reaperturar Servicio</span>
+            </button>
+          </div>
+        )}
     </div>
   );
 };

@@ -9,6 +9,7 @@ import type {
   CrearTecnicoRequest,
   ActualizarTecnicoRequest,
   CrearOrdenRequest,
+  ReaperturarOrdenRequest,
   CrearAfiliadoRequest,
   ActualizarAfiliadoRequest,
   Cuenta,
@@ -46,6 +47,10 @@ export function useAdminDashboard() {
   const [modalAnularOrden, setModalAnularOrden] = useState<boolean>(false);
   const [anulando, setAnulando] = useState<boolean>(false);
   const [errorAnulacion, setErrorAnulacion] = useState<string | null>(null);
+  const [modalReaperturarOrden, setModalReaperturarOrden] = useState<boolean>(false);
+  const [ordenAReaperturar, setOrdenAReaperturar] = useState<OrdenDetalleAdmin | null>(null);
+  const [reaperturando, setReaperturando] = useState<boolean>(false);
+  const [errorReapertura, setErrorReapertura] = useState<string | null>(null);
 
   // Modales de Técnicos
   const [modalNuevoTecnico, setModalNuevoTecnico] = useState<boolean>(false);
@@ -383,6 +388,60 @@ export function useAdminDashboard() {
     );
   };
 
+  const handleAbrirReaperturarOrden = useCallback((orden: OrdenDetalleAdmin) => {
+    setErrorReapertura(null);
+    setOrdenAReaperturar(orden);
+    setModalReaperturarOrden(true);
+  }, []);
+
+  const handleConfirmarReapertura = async (ordenId: number, data: ReaperturarOrdenRequest) => {
+    setReaperturando(true);
+    setErrorReapertura(null);
+    try {
+      const ordenReaperturada = await adminApi.reaperturarOrden(ordenId, data);
+      setOrdenes((prev) =>
+        prev.map((o) =>
+          o.id === ordenId
+            ? {
+                ...o,
+                ...ordenReaperturada,
+                estado: 'PENDIENTE',
+                fechaLlegada: undefined,
+                fechaFinalizacion: undefined,
+                fechaCancelacion: undefined,
+              }
+            : o
+        )
+      );
+      setOrdenSeleccionada((prev) =>
+        prev && prev.id === ordenId
+          ? {
+              ...prev,
+              ...ordenReaperturada,
+              estado: 'PENDIENTE',
+              fechaLlegada: undefined,
+              fechaFinalizacion: undefined,
+              fechaCancelacion: undefined,
+            }
+          : prev
+      );
+      setModalReaperturarOrden(false);
+      setOrdenAReaperturar(null);
+      toast.success(
+        `¡Orden #${ordenReaperturada.codigoOrden || ordenId} reaperturada y asignada exitosamente!`
+      );
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.mensaje ||
+        'Error al reaperturar la orden. Verifica que la fecha sea futura e inténtalo de nuevo.';
+      setErrorReapertura(msg);
+      toast.error(msg);
+    } finally {
+      setReaperturando(false);
+    }
+  };
+
   const handleCrearTecnico = async (nuevoTecnico: CrearTecnicoRequest) => {
     setFormError(null);
     setSubmitting(true);
@@ -500,6 +559,13 @@ export function useAdminDashboard() {
     anulando,
     errorAnulacion,
     setErrorAnulacion,
+    modalReaperturarOrden,
+    setModalReaperturarOrden,
+    ordenAReaperturar,
+    setOrdenAReaperturar,
+    reaperturando,
+    errorReapertura,
+    setErrorReapertura,
     modalNuevoTecnico,
     setModalNuevoTecnico,
     modalEditarTecnico,
@@ -520,6 +586,8 @@ export function useAdminDashboard() {
     handleEliminarAfiliado,
     handleConfirmarAnulacion,
     handleActualizarObservacionCancelacion,
+    handleAbrirReaperturarOrden,
+    handleConfirmarReapertura,
     handleCrearTecnico,
     handleToggleEstadoTecnico,
     handleGuardarEditarTecnico,

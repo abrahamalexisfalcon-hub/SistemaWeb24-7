@@ -1,12 +1,13 @@
 import React from 'react';
 import type { OrdenDetalleAdmin } from '../../../types';
-import { MapPin, Eye, ChevronLeft, ChevronRight, User, Building2, CalendarClock } from 'lucide-react';
+import { MapPin, Eye, ChevronLeft, ChevronRight, User, Building2, CalendarClock, RotateCcw } from 'lucide-react';
 import frame26 from '../../../assets/Frame 26.svg';
 import { formatearFechaHora, getBadgeConfig } from '../utils';
 
 export interface AdminOrdenTableProps {
   ordenes: OrdenDetalleAdmin[];
   onSelectOrden: (orden: OrdenDetalleAdmin) => void;
+  onReaperturarOrden?: (orden: OrdenDetalleAdmin) => void;
   onOpenWaze: (e: React.MouseEvent, orden: OrdenDetalleAdmin) => void;
   totalOrdenes: number;
   paginaActual: number;
@@ -18,6 +19,7 @@ export interface AdminOrdenTableProps {
 export const AdminOrdenTable: React.FC<AdminOrdenTableProps> = ({
   ordenes,
   onSelectOrden,
+  onReaperturarOrden,
   onOpenWaze,
   totalOrdenes,
   paginaActual,
@@ -194,17 +196,35 @@ export const AdminOrdenTable: React.FC<AdminOrdenTableProps> = ({
                     </td>
 
                     <td className="py-3.5 px-4 text-right whitespace-nowrap pr-6">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectOrden(orden);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl text-sky-600 hover:bg-sky-50 border border-sky-200/80 transition-colors cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Ver detalle</span>
-                      </button>
+                      <div className="inline-flex items-center justify-end gap-1.5">
+                        {(orden.estado === 'CANCELADA' ||
+                          (orden.estado as string) === 'ASISTIDO_NO_REALIZADO') &&
+                          onReaperturarOrden && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onReaperturarOrden(orden);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer"
+                              title="Reaperturar Servicio"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Reaperturar Servicio</span>
+                            </button>
+                          )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectOrden(orden);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl text-sky-600 hover:bg-sky-50 border border-sky-200/80 transition-colors cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Ver detalle</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

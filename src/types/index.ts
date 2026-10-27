@@ -232,6 +232,12 @@ export interface CancelarOrdenRequest {
   motivo?: string;
 }
 
+export interface ReaperturarOrdenRequest {
+  nuevaFechaPactada: string;
+  tecnicoId: number;
+  observacion?: string;
+}
+
 export interface Cuenta {
   id: number;
   nombre: string;

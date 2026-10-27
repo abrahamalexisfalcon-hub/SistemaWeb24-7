@@ -2,6 +2,7 @@ import api from './client';
 import type {
   OrdenDetalleAdmin,
   CrearOrdenRequest,
+  ReaperturarOrdenRequest,
   Afiliado,
   CrearAfiliadoRequest,
   ActualizarAfiliadoRequest,
@@ -46,6 +47,11 @@ export const adminApi = {
       motivo: observacion,
       motivoCancelacion: observacion,
     });
+    return response.data;
+  },
+
+  reaperturarOrden: async (id: number, data: ReaperturarOrdenRequest): Promise<OrdenDetalleAdmin> => {
+    const response = await api.patch<OrdenDetalleAdmin>(`/ordenes/${id}/reaperturar`, data);
     return response.data;
   },
 

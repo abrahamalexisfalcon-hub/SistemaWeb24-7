@@ -1,5 +1,6 @@
 export * from './OrdenDetalleModal';
 export * from './AnularOrdenModal';
+export * from './ReaperturarOrdenModal';
 export * from './TecnicoFormModal';
 export * from './CatalogoMaterialesModal';
 export * from './EspecialidadesModal';
