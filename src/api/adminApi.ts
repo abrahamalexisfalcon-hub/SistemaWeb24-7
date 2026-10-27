@@ -10,7 +10,8 @@ import type {
   ActualizarTecnicoRequest,
   MaterialCatalogo,
   EstadoOrden,
-  Especialidad
+  Especialidad,
+  Cuenta
 } from '../types';
 
 export const adminApi = {
@@ -129,6 +130,33 @@ export const adminApi = {
 
   eliminarEspecialidad: async (id: number): Promise<{ mensaje: string }> => {
     const response = await api.delete<{ mensaje: string }>(`/admin/especialidades/${id}`);
+    return response.data;
+  },
+
+  // Cuentas / Aseguradoras
+  getCuentas: async (todas = false): Promise<Cuenta[]> => {
+    const params = todas ? { todas: true } : undefined;
+    const response = await api.get<Cuenta[]>('/cuentas', { params });
+    return response.data;
+  },
+
+  crearCuenta: async (nombre: string): Promise<Cuenta> => {
+    const response = await api.post<Cuenta>('/admin/cuentas', { nombre });
+    return response.data;
+  },
+
+  actualizarCuenta: async (id: number, nombre: string, activo?: boolean): Promise<Cuenta> => {
+    const response = await api.put<Cuenta>(`/admin/cuentas/${id}`, { nombre, activo });
+    return response.data;
+  },
+
+  toggleCuenta: async (id: number): Promise<Cuenta> => {
+    const response = await api.patch<Cuenta>(`/admin/cuentas/${id}/toggle`);
+    return response.data;
+  },
+
+  eliminarCuenta: async (id: number): Promise<{ mensaje: string }> => {
+    const response = await api.delete<{ mensaje: string }>(`/admin/cuentas/${id}`);
     return response.data;
   },
 };

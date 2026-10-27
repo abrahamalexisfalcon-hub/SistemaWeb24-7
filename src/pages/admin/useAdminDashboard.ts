@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { adminApi } from '../../api';
 import { useEspecialidades } from '../../hooks';
 import type {
@@ -10,9 +10,16 @@ import type {
   CrearOrdenRequest,
   CrearAfiliadoRequest,
   ActualizarAfiliadoRequest,
+  Cuenta,
 } from '../../types';
 import type { AdminTab } from '../../components/admin';
 import type { FiltroOrdenes } from './tabs';
+
+export const obtenerFechaHoraActualLocal = (): string => {
+  const ahora = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${ahora.getFullYear()}-${pad(ahora.getMonth() + 1)}-${pad(ahora.getDate())}T${pad(ahora.getHours())}:${pad(ahora.getMinutes())}`;
+};
 
 export function useAdminDashboard() {
   // Tabs y Filtros
@@ -24,6 +31,8 @@ export function useAdminDashboard() {
   const [ordenes, setOrdenes] = useState<OrdenDetalleAdmin[]>([]);
   const [afiliados, setAfiliados] = useState<Afiliado[]>([]);
   const [tecnicos, setTecnicos] = useState<TecnicoResumen[]>([]);
+  const [cuentas, setCuentas] = useState<Cuenta[]>([]);
+  const [cargandoCuentas, setCargandoCuentas] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [isFetching, setIsFetching] = useState<boolean>(false);
 
@@ -43,10 +52,11 @@ export function useAdminDashboard() {
   const [tecnicoAEditar, setTecnicoAEditar] = useState<TecnicoResumen | null>(null);
   const [togglingTecnicoId, setTogglingTecnicoId] = useState<number | null>(null);
 
-  // Modales de Especialidades y Materiales
+  // Modales de Especialidades, Materiales y Cuentas
   const [modalNuevaEspecialidad, setModalNuevaEspecialidad] = useState<boolean>(false);
   const [guardandoEspecialidad, setGuardandoEspecialidad] = useState<boolean>(false);
   const [modalGestionMateriales, setModalGestionMateriales] = useState<boolean>(false);
+  const [modalGestionCuentas, setModalGestionCuentas] = useState<boolean>(false);
 
   // Hook centralizado para Especialidades dinámicas
   const {
@@ -66,6 +76,10 @@ export function useAdminDashboard() {
     tipoServicio: '',
     afiliadoId: 0,
     tecnicoId: 0,
+    cuentaId: 0,
+    numeroCaso: '',
+    numeroOt: '',
+    fechaPactada: obtenerFechaHoraActualLocal(),
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -79,16 +93,36 @@ export function useAdminDashboard() {
     }
   }, [especialidades, nuevaOrden.tipoServicio]);
 
+  const recargarCuentas = useCallback(async () => {
+    setCargandoCuentas(true);
+    try {
+      const lista = await adminApi.getCuentas(false);
+      const activas = Array.isArray(lista) ? lista.filter((c) => c.activo !== false) : [];
+      setCuentas(activas);
+      if (activas.length > 0) {
+        setNuevaOrden((prev) => ({
+          ...prev,
+          cuentaId: prev.cuentaId && activas.some((c) => c.id === prev.cuentaId) ? prev.cuentaId : activas[0].id,
+        }));
+      }
+    } catch (err) {
+      console.warn('Error al cargar cuentas:', err);
+    } finally {
+      setCargandoCuentas(false);
+    }
+  }, []);
+
   // Carga inicial de datos
   const cargarDatos = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
     setIsFetching(true);
 
     try {
-      const [ordenesRes, afiliadosRes, tecnicosRes] = await Promise.allSettled([
+      const [ordenesRes, afiliadosRes, tecnicosRes, cuentasRes] = await Promise.allSettled([
         adminApi.getOrdenes(),
         adminApi.getAfiliados(),
         adminApi.getTecnicos(),
+        adminApi.getCuentas(false),
       ]);
 
       if (ordenesRes.status === 'fulfilled') {
@@ -106,6 +140,14 @@ export function useAdminDashboard() {
         setTecnicos(tecnicosRes.value || []);
         if ((tecnicosRes.value || []).length > 0) {
           setNuevaOrden((prev) => ({ ...prev, tecnicoId: prev.tecnicoId || tecnicosRes.value[0].id }));
+        }
+      }
+
+      if (cuentasRes.status === 'fulfilled') {
+        const activas = (cuentasRes.value || []).filter((c) => c.activo !== false);
+        setCuentas(activas);
+        if (activas.length > 0) {
+          setNuevaOrden((prev) => ({ ...prev, cuentaId: prev.cuentaId || activas[0].id }));
         }
       }
 
@@ -128,22 +170,76 @@ export function useAdminDashboard() {
     setFormError(null);
     setFormExito(null);
 
+    const casoLimpio = (nuevaOrden.numeroCaso || '').trim();
+    const otLimpio = (nuevaOrden.numeroOt || '').trim();
+
+    if (!nuevaOrden.cuentaId) {
+      setFormError('Por favor selecciona una Cuenta / Aseguradora para la orden.');
+      return;
+    }
+
+    if (!casoLimpio) {
+      setFormError('El Número de Caso es obligatorio.');
+      return;
+    }
+
+    if (!otLimpio) {
+      setFormError('El Número de OT es obligatorio.');
+      return;
+    }
+
+    if (!nuevaOrden.fechaPactada) {
+      setFormError('La Fecha y Hora Pactada del servicio es obligatoria.');
+      return;
+    }
+
+    const fechaSeleccionada = new Date(nuevaOrden.fechaPactada);
+    const ahoraMinuto = new Date();
+    ahoraMinuto.setSeconds(0, 0);
+    if (isNaN(fechaSeleccionada.getTime()) || fechaSeleccionada < ahoraMinuto) {
+      setFormError('La fecha y hora pactada no puede estar en el pasado.');
+      return;
+    }
+
     if (!nuevaOrden.afiliadoId || !nuevaOrden.tecnicoId) {
       setFormError('Por favor selecciona un afiliado y un técnico para la orden.');
       return;
     }
 
+    const fechaIsoPayload =
+      nuevaOrden.fechaPactada.length === 16
+        ? `${nuevaOrden.fechaPactada}:59`
+        : nuevaOrden.fechaPactada;
+
     setSubmitting(true);
     try {
-      const creada = await adminApi.crearOrden(nuevaOrden);
+      const creada = await adminApi.crearOrden({
+        ...nuevaOrden,
+        numeroCaso: casoLimpio,
+        numeroOt: otLimpio,
+        fechaPactada: fechaIsoPayload,
+      });
       setOrdenes((prev) => [creada, ...prev]);
-      setFormExito(`¡Orden #${creada.codigoOrden} creada exitosamente!`);
+      setNuevaOrden((prev) => ({
+        ...prev,
+        numeroCaso: '',
+        numeroOt: '',
+        fechaPactada: obtenerFechaHoraActualLocal(),
+      }));
+      setFormExito(`¡Orden #${creada.codigoOrden} (Caso: ${creada.numeroCaso || casoLimpio}) creada exitosamente!`);
       setTimeout(() => {
         setFormExito(null);
         setActiveTab('ordenes');
       }, 1500);
     } catch (err: any) {
-      setFormError(err?.response?.data?.message || 'Error al crear la orden. Verifica los datos.');
+      const validaciones = Array.isArray(err?.response?.data?.validaciones)
+        ? err.response.data.validaciones.join(' | ')
+        : null;
+      setFormError(
+        validaciones ||
+          err?.response?.data?.message ||
+          'Error al crear la orden. Verifica que el Número de Caso y OT no estén duplicados.'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -334,6 +430,9 @@ export function useAdminDashboard() {
     ordenes,
     afiliados,
     tecnicos,
+    cuentas,
+    cargandoCuentas,
+    recargarCuentas,
     loading,
     isFetching,
     especialidades,
@@ -372,6 +471,8 @@ export function useAdminDashboard() {
     guardandoEspecialidad,
     modalGestionMateriales,
     setModalGestionMateriales,
+    modalGestionCuentas,
+    setModalGestionCuentas,
     handleCrearOrden,
     handleCrearAfiliado,
     handleGuardarEditarAfiliado,
@@ -384,4 +485,3 @@ export function useAdminDashboard() {
     handleCrearEspecialidad,
   };
 }
-

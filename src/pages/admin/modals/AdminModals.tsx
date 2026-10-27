@@ -4,6 +4,7 @@ import { OrdenDetalleModal } from './OrdenDetalleModal';
 import { AnularOrdenModal } from './AnularOrdenModal';
 import { TecnicoFormModal } from './TecnicoFormModal';
 import { EspecialidadesModal } from './EspecialidadesModal';
+import { CuentasModal } from './CuentasModal';
 import { CatalogoMaterialesModal } from './CatalogoMaterialesModal';
 import { PerfilAdminModal } from './PerfilAdminModal';
 import { AfiliadoFormModal } from './AfiliadoFormModal';
@@ -71,6 +72,12 @@ export const AdminModals: React.FC<AdminModalsProps> = ({ d, user, onLogout }) =
         onEspecialidadesCambiadas={d.recargarEspecialidades}
         onCrearEspecialidad={d.handleCrearEspecialidad}
         guardando={d.guardandoEspecialidad}
+      />
+
+      <CuentasModal
+        isOpen={d.modalGestionCuentas}
+        onClose={() => d.setModalGestionCuentas(false)}
+        onCuentasCambiadas={d.recargarCuentas}
       />
 
       <CatalogoMaterialesModal

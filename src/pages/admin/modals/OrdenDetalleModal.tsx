@@ -51,8 +51,9 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
     (orden as any).referenciaAfiliado ||
     '';
   const fechaTexto = formatearFechaHora(
-    orden.fechaProgramada || orden.fechaAsignacion || orden.fechaCreacion
+    orden.fechaPactada || orden.fechaProgramada || orden.fechaAsignacion || orden.fechaCreacion
   );
+  const cuentaNombre = orden.cuentaNombre || orden.cuenta?.nombre;
   const tecnicoNombre =
     orden.tecnico?.nombre ||
     orden.tecnicoNombre ||
@@ -127,6 +128,29 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
             <span className="text-[10px] font-bold text-slate-400 uppercase">Servicio</span>
             <p className="font-bold text-slate-900 text-sm mt-0.5">{orden.tipoServicio}</p>
           </div>
+
+          {(cuentaNombre || orden.numeroCaso || orden.numeroOt) && (
+            <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Cuenta</span>
+                <span className="text-xs font-bold text-emerald-700 truncate block">
+                  {cuentaNombre || 'General'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">N° Caso</span>
+                <span className="text-xs font-bold text-slate-800 truncate block">
+                  {orden.numeroCaso || '-'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">N° OT</span>
+                <span className="text-xs font-bold text-blue-700 truncate block">
+                  {orden.numeroOt || '-'}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase">Cliente Afiliado</span>

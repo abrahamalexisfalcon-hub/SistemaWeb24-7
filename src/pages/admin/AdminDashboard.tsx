@@ -59,6 +59,8 @@ export const AdminDashboard: React.FC = () => {
             onNuevaOrdenChange={d.setNuevaOrden}
             especialidades={d.especialidades}
             cargandoEspecialidades={d.cargandoEspecialidades}
+            cuentas={d.cuentas}
+            cargandoCuentas={d.cargandoCuentas}
             afiliados={d.afiliados}
             tecnicos={d.tecnicos}
             submitting={d.submitting}
@@ -72,6 +74,7 @@ export const AdminDashboard: React.FC = () => {
             }}
             onAbrirMateriales={() => d.setModalGestionMateriales(true)}
             onAbrirEspecialidades={() => d.setModalNuevaEspecialidad(true)}
+            onAbrirCuentas={() => d.setModalGestionCuentas(true)}
           />
         );
       case 'clientes':

@@ -84,6 +84,11 @@ export interface CierreHojaServicioRequest {
 export interface OrdenResumenTecnico {
   id: number;
   codigoOrden: string;
+  numeroCaso?: string;
+  numeroOt?: string;
+  fechaPactada?: string;
+  cuentaId?: number;
+  cuentaNombre?: string;
   tipoServicio: string;
   estado: EstadoOrden;
   nombreAfiliado: string;
@@ -159,6 +164,12 @@ export interface HojaServicioDetalleAdmin {
 export interface OrdenDetalleAdmin {
   id: number;
   codigoOrden: string;
+  numeroCaso?: string;
+  numeroOt?: string;
+  fechaPactada?: string;
+  cuentaId?: number;
+  cuentaNombre?: string;
+  cuenta?: Cuenta;
   tipoServicio: string;
   estado: EstadoOrden;
   fechaAsignacion: string;
@@ -167,6 +178,7 @@ export interface OrdenDetalleAdmin {
   fechaCreacion?: string;
   fechaProgramada?: string;
   afiliadoId: number;
+  dniAfiliado?: string;
   afiliadoNombre?: string;
   nombreAfiliado?: string;
   afiliadoTelefono?: string;
@@ -216,10 +228,22 @@ export interface CancelarOrdenRequest {
   motivo?: string;
 }
 
+export interface Cuenta {
+  id: number;
+  nombre: string;
+  activo?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface CrearOrdenRequest {
   tipoServicio: string;
   afiliadoId: number;
   tecnicoId: number;
+  cuentaId: number;
+  numeroCaso: string;
+  numeroOt: string;
+  fechaPactada: string;
 }
 
 export interface Afiliado {

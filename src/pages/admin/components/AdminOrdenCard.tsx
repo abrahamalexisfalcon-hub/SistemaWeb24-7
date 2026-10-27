@@ -1,6 +1,6 @@
 import React from 'react';
 import type { OrdenDetalleAdmin } from '../../../types';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, Building2 } from 'lucide-react';
 import frame26 from '../../../assets/Frame 26.svg';
 import { formatearFechaHora, getBadgeConfig } from '../utils';
 
@@ -29,13 +29,14 @@ export const AdminOrdenCard: React.FC<AdminOrdenCardProps> = ({
     (orden as any).distritoAfiliado ||
     '';
   const fechaTexto = formatearFechaHora(
-    orden.fechaProgramada || orden.fechaAsignacion || orden.fechaCreacion
+    orden.fechaPactada || orden.fechaProgramada || orden.fechaAsignacion || orden.fechaCreacion
   );
   const tecnicoNombre =
     orden.tecnico?.nombre ||
     orden.tecnicoNombre ||
     orden.nombreTecnico ||
     orden.tecnico?.nombreCompleto;
+  const cuentaNombre = orden.cuentaNombre || orden.cuenta?.nombre;
 
   return (
     <div
@@ -51,6 +52,28 @@ export const AdminOrdenCard: React.FC<AdminOrdenCardProps> = ({
           {badge.label}
         </span>
       </div>
+
+      {/* Píldoras de Cuenta, Caso y OT */}
+      {(cuentaNombre || orden.numeroCaso || orden.numeroOt) && (
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
+          {cuentaNombre && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+              <Building2 className="w-3 h-3" />
+              <span>{cuentaNombre}</span>
+            </span>
+          )}
+          {orden.numeroCaso && (
+            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+              Caso: {orden.numeroCaso}
+            </span>
+          )}
+          {orden.numeroOt && (
+            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
+              OT: {orden.numeroOt}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Fila 2: Nombre del Servicio */}
       <h3 className="font-bold text-slate-900 text-base leading-snug">
@@ -75,7 +98,7 @@ export const AdminOrdenCard: React.FC<AdminOrdenCardProps> = ({
         </button>
       </div>
 
-      {/* Fila 4: Horario y Técnico */}
+      {/* Fila 4: Horario Pactado y Técnico */}
       <div className="flex items-center justify-between pt-0.5 text-xs">
         <div className="flex items-center gap-1.5 text-slate-500 font-medium">
           <Clock className="w-3.5 h-3.5 text-slate-400" />

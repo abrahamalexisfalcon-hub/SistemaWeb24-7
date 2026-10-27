@@ -63,6 +63,10 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
       const coincideTexto =
         !termino ||
         orden.codigoOrden?.toLowerCase().includes(termino) ||
+        orden.numeroCaso?.toLowerCase().includes(termino) ||
+        orden.numeroOt?.toLowerCase().includes(termino) ||
+        orden.cuentaNombre?.toLowerCase().includes(termino) ||
+        orden.cuenta?.nombre?.toLowerCase().includes(termino) ||
         orden.afiliadoNombre?.toLowerCase().includes(termino) ||
         (orden as any).nombreAfiliado?.toLowerCase().includes(termino) ||
         orden.tipoServicio?.toLowerCase().includes(termino) ||
