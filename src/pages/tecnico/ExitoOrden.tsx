@@ -388,8 +388,8 @@ export const ExitoOrden: React.FC = () => {
             {/* ── HOJA DE SERVICIO IMPRIMIBLE (Formato Físico Original) ── */}
             <div id="hoja-servicio-print" className="px-5 py-4 text-[10px] leading-[1.45] text-gray-900 space-y-2.5 overflow-hidden print:px-6 print:py-3 print:text-[9.5px] print:max-h-[278mm] print:overflow-hidden">
 
-              {/* ===== CABECERA ===== */}
-              <div className="flex items-center justify-between w-full pb-3 border-b-2 border-sky-600 mb-4">
+              {/* ===== CABECERA ESCRITORIO / IMPRESIÓN (Intacta) ===== */}
+              <div className="hidden sm:flex print:flex items-center justify-between w-full pb-3 border-b-2 border-sky-600 mb-4">
                 {/* Logo institucional (15% de ancho, alineado a la izquierda) */}
                 <div className="w-[15%] flex items-center justify-start">
                   <img src={logo247} alt="24/7 Asistencias" className="h-[100px] w-auto object-contain" />
@@ -438,6 +438,57 @@ export const ExitoOrden: React.FC = () => {
                       crossOrigin="anonymous"
                     />
                     <span>247asistencias.peru@gmail.com</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ===== CABECERA MÓVIL (2 niveles apilados, oculta en escritorio e impresión) ===== */}
+              <div className="flex sm:hidden print:hidden flex-col w-full pb-3 border-b-2 border-sky-600 mb-3 gap-2.5">
+                {/* Nivel 1 (Fila superior): Logo a la izquierda + Título a su costado */}
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <img
+                    src={logo247}
+                    alt="24/7 Asistencias"
+                    className="h-12 w-auto object-contain shrink-0"
+                  />
+                  <h2 className="text-[15px] font-black text-[#0284c7] tracking-wider underline underline-offset-4 decoration-[#0284c7] whitespace-nowrap">
+                    HOJA DE SERVICIO
+                  </h2>
+                </div>
+
+                {/* Nivel 2 (Fila inferior - Datos de Contacto en 2 filas) */}
+                <div className="flex flex-col items-end space-y-1 text-[10.5px] leading-tight text-sky-600 w-full">
+                  {/* Fila de contacto 1: WhatsApp con teléfonos */}
+                  <div className="flex items-center gap-1.5 font-medium whitespace-nowrap">
+                    <img
+                      src="/icons/whatsapp.svg"
+                      alt="WhatsApp"
+                      className="w-3.5 h-3.5 object-contain shrink-0"
+                      crossOrigin="anonymous"
+                    />
+                    <span>988 888 141 / 914 279 170</span>
+                  </div>
+
+                  {/* Fila de contacto 2: Instagram + Gmail */}
+                  <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 font-medium">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <img
+                        src="/icons/instagram.svg"
+                        alt="Instagram"
+                        className="w-3.5 h-3.5 object-contain shrink-0"
+                        crossOrigin="anonymous"
+                      />
+                      <span>247asistencias</span>
+                    </div>
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <img
+                        src="/icons/gmail.svg"
+                        alt="Gmail"
+                        className="w-3.5 h-3.5 object-contain shrink-0"
+                        crossOrigin="anonymous"
+                      />
+                      <span>247asistencias.peru@gmail.com</span>
+                    </div>
                   </div>
                 </div>
               </div>
