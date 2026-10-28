@@ -171,7 +171,7 @@ export const OrdenDetalle: React.FC = () => {
               {orden?.nombreAfiliado || 'Carlos Mendoza Paredes'}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
-              DNI: {orden?.dniAfiliado || '458921456'} | Cuenta: {orden?.codigoCuenta || 'CTA-8821'}
+              DNI: {orden?.dniAfiliado?.trim() || 'No registrado'} | Cuenta: {orden?.codigoCuenta || 'CTA-8821'}
             </p>
           </div>
 

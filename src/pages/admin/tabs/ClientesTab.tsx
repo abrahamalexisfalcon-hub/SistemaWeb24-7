@@ -161,7 +161,7 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
                         {a.nombreCompleto || a.nombre}
                       </h4>
                       <span className="text-[11px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md inline-block mt-0.5">
-                        DNI: {a.dni}
+                        DNI: {a.dni?.trim() ? a.dni : 'Sin DNI'}
                       </span>
                     </div>
 

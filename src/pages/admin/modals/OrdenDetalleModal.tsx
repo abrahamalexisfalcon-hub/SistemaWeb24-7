@@ -13,6 +13,7 @@ interface OrdenDetalleModalProps {
   onAnularOrden: () => void;
   onReaperturarOrden?: (orden: OrdenDetalleAdmin) => void;
   onActualizarObservacion?: (ordenId: number, nuevaObservacion: string) => Promise<void>;
+  onEditarAfiliado?: (orden: OrdenDetalleAdmin) => void;
 }
 
 export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
@@ -22,6 +23,7 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
   onAnularOrden,
   onReaperturarOrden,
   onActualizarObservacion,
+  onEditarAfiliado,
 }) => {
   const [editandoObs, setEditandoObs] = useState(false);
   const [observacionTexto, setObservacionTexto] = useState('');
@@ -163,13 +165,29 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
           )}
 
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Cliente Afiliado</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Cliente Afiliado</span>
+              {onEditarAfiliado && orden.afiliadoId && (
+                <button
+                  type="button"
+                  onClick={() => onEditarAfiliado(orden)}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 hover:text-sky-700 bg-sky-50 border border-sky-100 hover:border-sky-300 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+                  title="Editar o completar DNI y teléfono del afiliado"
+                >
+                  <Pencil className="w-3 h-3" />
+                  <span>Editar datos</span>
+                </button>
+              )}
+            </div>
             <p className="font-bold text-slate-900 mt-0.5">
               {orden.afiliadoNombre || (orden as any).nombreAfiliado || 'Carlos Mendoza'}
             </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              DNI: {orden.dniAfiliado?.trim() || 'No registrado'}
+            </p>
             <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5 text-slate-400" />
-              {orden.afiliadoTelefono || '987 654 321'}
+              {orden.afiliadoTelefono || orden.telefonoAfiliado || 'Sin teléfono'}
             </p>
           </div>
 

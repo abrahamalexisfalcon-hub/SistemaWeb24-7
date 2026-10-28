@@ -29,6 +29,7 @@ export const AdminModals: React.FC<AdminModalsProps> = ({ d, user, onLogout }) =
         }}
         onReaperturarOrden={d.handleAbrirReaperturarOrden}
         onActualizarObservacion={d.handleActualizarObservacionCancelacion}
+        onEditarAfiliado={d.handleEditarAfiliadoDeOrden}
       />
 
       <ReaperturarOrdenModal

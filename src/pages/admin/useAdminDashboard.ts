@@ -314,6 +314,39 @@ export function useAdminDashboard() {
       setAfiliados((prev) =>
         prev.map((a) => (a.id === id ? { ...a, ...actualizado } : a))
       );
+
+      // Reflejar inmediatamente los datos complementados en las órdenes ya cargadas
+      const datosOrden: Partial<OrdenDetalleAdmin> = {
+        dniAfiliado: actualizado.dni || '',
+        afiliadoNombre: actualizado.nombreCompleto,
+        nombreAfiliado: actualizado.nombreCompleto,
+        afiliadoTelefono: actualizado.telefono || '',
+        telefonoAfiliado: actualizado.telefono || '',
+        afiliadoDireccion: actualizado.direccion,
+        direccionAfiliado: actualizado.direccion,
+        direccion: actualizado.direccion,
+        afiliadoDistrito: actualizado.distrito,
+        distritoAfiliado: actualizado.distrito,
+        distrito: actualizado.distrito,
+        cliente: {
+          ...(ordenSeleccionada?.cliente || {}),
+          id,
+          nombre: actualizado.nombreCompleto,
+          direccion: actualizado.direccion,
+          referencia: actualizado.referencia,
+          distrito: actualizado.distrito,
+          telefono: actualizado.telefono,
+        },
+      };
+      (datosOrden as any).referenciaAfiliado = actualizado.referencia || '';
+
+      setOrdenes((prev) =>
+        prev.map((o) => (o.afiliadoId === id ? { ...o, ...datosOrden } : o))
+      );
+      setOrdenSeleccionada((prev) =>
+        prev && prev.afiliadoId === id ? { ...prev, ...datosOrden } : prev
+      );
+
       setModalNuevoAfiliado(false);
       setAfiliadoAEditar(null);
     } catch (err: any) {
@@ -322,6 +355,34 @@ export function useAdminDashboard() {
       setSubmitting(false);
     }
   };
+
+  const handleEditarAfiliadoDeOrden = useCallback(
+    (orden: OrdenDetalleAdmin) => {
+      if (!orden.afiliadoId) return;
+      const existente = afiliados.find((a) => a.id === orden.afiliadoId);
+      const afiliado: Afiliado = existente || {
+        id: orden.afiliadoId,
+        nombreCompleto: orden.afiliadoNombre || orden.nombreAfiliado || '',
+        dni: orden.dniAfiliado || '',
+        telefono: orden.afiliadoTelefono || orden.telefonoAfiliado || '',
+        direccion:
+          orden.afiliadoDireccion ||
+          orden.direccionAfiliado ||
+          orden.direccion ||
+          '',
+        referencia: orden.cliente?.referencia || '',
+        distrito:
+          orden.afiliadoDistrito ||
+          orden.distritoAfiliado ||
+          orden.distrito ||
+          '',
+      };
+      setAfiliadoAEditar(afiliado);
+      setFormError(null);
+      setModalNuevoAfiliado(true);
+    },
+    [afiliados]
+  );
 
   const handleEliminarAfiliado = async (id: number) => {
     try {
@@ -583,6 +644,7 @@ export function useAdminDashboard() {
     handleCrearOrden,
     handleCrearAfiliado,
     handleGuardarEditarAfiliado,
+    handleEditarAfiliadoDeOrden,
     handleEliminarAfiliado,
     handleConfirmarAnulacion,
     handleActualizarObservacionCancelacion,

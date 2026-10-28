@@ -587,7 +587,8 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
                   </option>
                   {(afiliados || []).map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.nombreCompleto || a.nombre} (DNI: {a.dni}) - {a.distrito}
+                      {a.nombreCompleto || a.nombre}
+                      {a.dni?.trim() ? ` (DNI: ${a.dni})` : ''} - {a.distrito}
                     </option>
                   ))}
                 </select>

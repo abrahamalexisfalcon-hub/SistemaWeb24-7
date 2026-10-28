@@ -71,6 +71,8 @@ export interface CierreHojaServicioRequest {
   sugerencias?: string;
   calificacion?: number;
   calificacionAfiliado?: number;
+  /** DNI del afiliado capturado opcionalmente en campo */
+  dniAfiliado?: string;
   fotoInicialUrl?: string;
   fotoAntesUrl?: string;
   fotoFinalUrl?: string;
@@ -261,8 +263,8 @@ export interface Afiliado {
   id: number;
   nombreCompleto: string;
   nombre?: string;
-  dni: string;
-  telefono: string;
+  dni?: string;
+  telefono?: string;
   direccion: string;
   referencia?: string;
   distrito: string;
@@ -272,8 +274,8 @@ export interface Afiliado {
 
 export interface CrearAfiliadoRequest {
   nombreCompleto: string;
-  dni: string;
-  telefono: string;
+  dni?: string;
+  telefono?: string;
   direccion: string;
   referencia?: string;
   distrito: string;
@@ -283,7 +285,7 @@ export interface CrearAfiliadoRequest {
 export interface ActualizarAfiliadoRequest {
   nombreCompleto: string;
   dni?: string;
-  telefono: string;
+  telefono?: string;
   direccion: string;
   referencia?: string;
   distrito?: string;

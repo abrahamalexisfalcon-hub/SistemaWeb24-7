@@ -184,12 +184,13 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block font-bold text-slate-700 uppercase mb-1">
-                DNI N° <span className="text-red-500">*</span>
+                DNI N° <span className="text-slate-400 font-normal lowercase">(opcional)</span>
               </label>
               <input
                 type="text"
                 name="dni"
-                required
+                inputMode="numeric"
+                maxLength={15}
                 value={formData.dni}
                 onChange={handleChange}
                 placeholder="70920543"
@@ -198,12 +199,13 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
             </div>
             <div>
               <label className="block font-bold text-slate-700 uppercase mb-1">
-                Teléfono <span className="text-red-500">*</span>
+                Teléfono <span className="text-slate-400 font-normal lowercase">(opcional)</span>
               </label>
               <input
                 type="tel"
                 name="telefono"
-                required
+                inputMode="tel"
+                maxLength={15}
                 value={formData.telefono}
                 onChange={handleChange}
                 placeholder="987556321"
@@ -211,6 +213,11 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
               />
             </div>
           </div>
+
+          <p className="text-[11px] text-slate-400 leading-snug -mt-1">
+            Puedes registrar la orden sin DNI ni teléfono. Estos datos podrán completarse después
+            desde la orden o durante la atención del técnico.
+          </p>
 
           <div>
             <label className="block font-bold text-slate-700 uppercase mb-1">

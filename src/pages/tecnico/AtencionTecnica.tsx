@@ -12,6 +12,7 @@ interface BorradorAtencion {
   evaluacion: string;
   solucion: string;
   sugerencias: string;
+  dniAfiliado?: string;
   descripcionMateriales?: string;
   materialesSeleccionados: Array<{
     materialId: number | null;
@@ -159,6 +160,27 @@ export const AtencionTecnica: React.FC = () => {
     return '';
   });
 
+  // DNI opcional: se recupera del borrador o de la orden ya registrada
+  const [dniAfiliado, setDniAfiliado] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(`borrador_atencion_${id || '1'}`);
+      if (saved) {
+        const parsed: BorradorAtencion = JSON.parse(saved);
+        if (parsed.dniAfiliado) return parsed.dniAfiliado;
+      }
+    } catch (e) {
+      console.error('Error cargando borrador de DNI:', e);
+    }
+    return orden?.dniAfiliado || '';
+  });
+  const dniEditadoRef = React.useRef(false);
+
+  useEffect(() => {
+    if (!dniEditadoRef.current && !dniAfiliado && orden?.dniAfiliado) {
+      setDniAfiliado(orden.dniAfiliado);
+    }
+  }, [orden?.dniAfiliado, dniAfiliado]);
+
   const [evaluacionTouched, setEvaluacionTouched] = useState<boolean>(false);
   const [solucionTouched, setSolucionTouched] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -201,6 +223,7 @@ export const AtencionTecnica: React.FC = () => {
       evaluacion,
       solucion,
       sugerencias,
+      dniAfiliado,
       materialesSeleccionados,
     };
     try {
@@ -208,7 +231,7 @@ export const AtencionTecnica: React.FC = () => {
     } catch (e) {
       console.error('Error guardando borrador en localStorage:', e);
     }
-  }, [evaluacion, solucion, sugerencias, materialesSeleccionados, DRAFT_KEY]);
+  }, [evaluacion, solucion, sugerencias, dniAfiliado, materialesSeleccionados, DRAFT_KEY]);
 
   useEffect(() => {
     const fetchMateriales = async () => {
@@ -482,6 +505,7 @@ export const AtencionTecnica: React.FC = () => {
           evaluacionAveria: evaluacion || 'Avería eléctrica identificada en el circuito principal.',
           detalleSolucion: solucion || 'Se realizó mantenimiento preventivo y reemplazo de componentes defectuosos.',
           sugerencias: sugerencias || 'Evitar sobrecargar las tomas y realizar revisión periódica.',
+          dniAfiliado: dniAfiliado.trim() || undefined,
           materiales: listaMateriales,
         },
       },
@@ -559,6 +583,33 @@ export const AtencionTecnica: React.FC = () => {
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 Llegada registrada: {horaLlegada}
+              </p>
+            </div>
+
+            {/* DNI OPCIONAL DEL CLIENTE */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  DNI DEL CLIENTE <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+                </label>
+                {dniAfiliado.trim() && (
+                  <span className="text-[10px] text-emerald-600 font-semibold">Registrado</span>
+                )}
+              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={15}
+                value={dniAfiliado}
+                onChange={(e) => {
+                  dniEditadoRef.current = true;
+                  setDniAfiliado(e.target.value);
+                }}
+                placeholder="Ej. 70920543 (si el cliente lo proporciona)"
+                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] transition-all"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Puedes dejarlo en blanco si el cliente prefiere no brindarlo o no lo tiene a la mano.
               </p>
             </div>
 

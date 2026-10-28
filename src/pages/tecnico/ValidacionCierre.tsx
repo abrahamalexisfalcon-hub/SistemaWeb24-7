@@ -24,6 +24,7 @@ export const ValidacionCierre: React.FC = () => {
       evaluacionAveria: string;
       detalleSolucion: string;
       sugerencias: string;
+      dniAfiliado?: string;
       materiales: Array<{ materialId?: number | null; descripcion?: string | null; cantidad: number }>;
     };
   } | undefined;
@@ -49,6 +50,31 @@ export const ValidacionCierre: React.FC = () => {
       mounted = false;
     };
   }, [id]);
+
+  // DNI opcional del cliente: puede venir del paso de atención, del borrador o de la orden
+  const [dniAfiliado, setDniAfiliado] = useState<string>(
+    stateData?.formulario?.dniAfiliado || stateData?.orden?.dniAfiliado || ''
+  );
+  const dniEditadoRef = useRef(false);
+
+  useEffect(() => {
+    if (dniEditadoRef.current || dniAfiliado) return;
+    try {
+      const saved = localStorage.getItem(`borrador_atencion_${id || orden?.id || '1'}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.dniAfiliado) {
+          setDniAfiliado(parsed.dniAfiliado);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudo recuperar el DNI del borrador:', e);
+    }
+    if (orden?.dniAfiliado) {
+      setDniAfiliado(orden.dniAfiliado);
+    }
+  }, [id, orden?.id, orden?.dniAfiliado, dniAfiliado]);
 
   const sigPadRef = useRef<SignaturePadRef>(null);
 
@@ -190,6 +216,7 @@ export const ValidacionCierre: React.FC = () => {
         sugerencias: formularioEfectivo?.sugerencias || 'Revisión técnica periódica recomendada.',
         calificacion: promedioCalificacion,
         calificacionAfiliado: promedioCalificacion,
+        dniAfiliado: dniAfiliado.trim() || undefined,
         fotoInicialUrl: fotoInicial || undefined,
         fotoAntesUrl: fotoInicial || undefined,
         fotoFinalUrl: fotoFinal || undefined,
@@ -222,6 +249,7 @@ export const ValidacionCierre: React.FC = () => {
         fechaFinalizacion: fechaFinFinal,
         firmaDigitalUrl: firmaClienteUrl,
         firmaAfiliadoUrl: firmaClienteUrl,
+        dniAfiliado: dniAfiliado.trim() || orden?.dniAfiliado || '',
       });
       invalidarCache();
 
@@ -282,7 +310,7 @@ export const ValidacionCierre: React.FC = () => {
             tipoServicio: orden?.tipoServicio || 'Mantenimiento Eléctrico Preventivo',
             direccion: orden?.direccion || 'Av. Central 120',
             distrito: orden?.distrito || 'Villa El Salvador',
-            dniAfiliado: orden?.dniAfiliado || '',
+            dniAfiliado: dniAfiliado.trim() || orden?.dniAfiliado || '',
             numeroOt: orden?.numeroOt || '',
             numeroCaso: orden?.numeroCaso || '',
             cuentaId: orden?.cuentaId,
@@ -667,6 +695,33 @@ export const ValidacionCierre: React.FC = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* DATOS DEL AFILIADO */}
+            <div className="pt-2 border-t border-slate-100 space-y-2">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                DATOS DEL AFILIADO
+              </h3>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  DNI del cliente <span className="text-slate-400 font-normal">(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={15}
+                  value={dniAfiliado}
+                  onChange={(e) => {
+                    dniEditadoRef.current = true;
+                    setDniAfiliado(e.target.value);
+                  }}
+                  placeholder="Ej. 70920543"
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] transition-all"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Puedes completarlo si el cliente lo proporciona. No es obligatorio para cerrar la orden.
+                </p>
               </div>
             </div>
 
