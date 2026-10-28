@@ -1,8 +1,21 @@
+export interface OneSignalNotificationPayload {
+  title?: string;
+  body?: string;
+  url?: string;
+  additionalData?: Record<string, unknown>;
+}
+
 export interface OneSignalForegroundEvent {
-  notification?: {
-    title?: string;
-    body?: string;
-  };
+  notification?: OneSignalNotificationPayload;
+}
+
+export interface OneSignalClickEvent {
+  notification?: OneSignalNotificationPayload;
+  /**
+   * En SDKs recientes permite evitar la navegación por defecto (recarga
+   * completa o apertura de otra pestaña) para resolver la ruta con React Router.
+   */
+  preventDefault?: () => void;
 }
 
 export interface OneSignalSDKInstance {
@@ -25,10 +38,10 @@ export interface OneSignalSDKInstance {
   Notifications: {
     permission?: boolean;
     requestPermission: () => Promise<void>;
-    addEventListener?: (
-      event: 'foregroundWillDisplay',
-      listener: (event: OneSignalForegroundEvent) => void
-    ) => void;
+    addEventListener?: {
+      (event: 'foregroundWillDisplay', listener: (event: OneSignalForegroundEvent) => void): void;
+      (event: 'click', listener: (event: OneSignalClickEvent) => void): void;
+    };
   };
 }
 
@@ -40,12 +53,34 @@ declare global {
 }
 
 const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || "32237258-b02d-470e-a80c-9c57fadf03c2";
+const NAVIGATE_EVENT = 'asistencias247:navigate';
 let initPromise: Promise<void> | null = null;
 let foregroundListenerAttached = false;
+let clickListenerAttached = false;
 let onPushReceivedCallback: ((data: { title?: string; body?: string }) => void) | null = null;
 
 export const setOnPushReceivedCallback = (cb: ((data: { title?: string; body?: string }) => void) | null) => {
   onPushReceivedCallback = cb;
+};
+
+/**
+ * Convierte la URL/additionalData de la notificación en una ruta interna segura.
+ * Se rechazan destinos externos para no salir de la aplicación.
+ */
+const resolverRutaNotificacion = (notification?: OneSignalNotificationPayload): string | null => {
+  const routeFromData = notification?.additionalData?.route;
+  const rawRoute = typeof routeFromData === 'string' ? routeFromData : notification?.url;
+
+  if (!rawRoute) return null;
+
+  try {
+    if (rawRoute.startsWith('/')) return rawRoute;
+    const parsed = new URL(rawRoute, window.location.origin);
+    if (parsed.origin !== window.location.origin) return null;
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
 };
 
 const ensureInitialized = async (OneSignal: OneSignalSDKInstance): Promise<void> => {
@@ -92,6 +127,20 @@ export const initOneSignal = (usuarioId?: number | string) => {
               body: notif?.body,
             });
           }
+        });
+      }
+
+      if (!clickListenerAttached && OneSignal.Notifications?.addEventListener) {
+        clickListenerAttached = true;
+        OneSignal.Notifications.addEventListener('click', (event: OneSignalClickEvent) => {
+          const ruta = resolverRutaNotificacion(event?.notification);
+          if (!ruta) return;
+
+          // Navegación SPA: mantiene el AuthContext vivo y evita recargar la app.
+          event.preventDefault?.();
+          window.dispatchEvent(
+            new CustomEvent(NAVIGATE_EVENT, { detail: { path: ruta } })
+          );
         });
       }
 

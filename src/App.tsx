@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OrdenesProvider } from './context/OrdenesContext';
 import { ProtectedRoute } from './components';
@@ -38,6 +38,27 @@ const RouteFallback: React.FC = () => (
   </div>
 );
 
+/**
+ * Escucha los clics de notificaciones OneSignal resueltos por oneSignalService
+ * y navega dentro del router. No recarga la página ni toca el estado de sesión.
+ */
+const NotificationNavigationHandler: React.FC = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleNavigate = (event: Event) => {
+      const path = (event as CustomEvent<{ path?: string }>).detail?.path;
+      if (!path || !path.startsWith('/')) return;
+      navigate(path);
+    };
+
+    window.addEventListener('asistencias247:navigate', handleNavigate);
+    return () => window.removeEventListener('asistencias247:navigate', handleNavigate);
+  }, [navigate]);
+
+  return null;
+};
+
 const HomeRedirect: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
@@ -61,6 +82,7 @@ export const App: React.FC = () => {
     <AuthProvider>
       <OrdenesProvider>
         <BrowserRouter>
+          <NotificationNavigationHandler />
           <Toaster
             position="top-right"
             richColors

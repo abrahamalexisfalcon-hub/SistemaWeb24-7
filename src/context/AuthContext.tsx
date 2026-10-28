@@ -2,6 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import type { Usuario, LoginRequest, AuthResponse, RolUsuario } from '../types';
 import { authApi } from '../api';
 import { initOneSignal } from '../services/oneSignalService';
+import {
+  getStoredLastActivity,
+  getStoredToken,
+  getStoredUser,
+  saveAuthSession,
+  updateLastActivity,
+  clearAuthSession,
+} from '../utils/authStorage';
 import { toast } from 'sonner';
 
 interface AuthContextType {
@@ -17,11 +25,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const TOKEN_KEY = 'token';
-const AUTH_TOKEN_KEY = 'auth_token';
-const USER_KEY = 'user';
-const LAST_ACTIVITY_KEY = 'last_activity_ts';
 
 // Expiración por inactividad diferenciada por rol:
 // Administrador: 2 horas (7,200,000 ms)
@@ -45,38 +48,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Inicializar estado exclusivamente desde sessionStorage al montar (se destruye al cerrar pestaña/app)
+  // Restaurar la sesión desde el almacenamiento compartido. Esto es clave para
+  // las notificaciones push: al abrir la app en una nueva pestaña/ventana, la
+  // sesión activa debe estar disponible sin forzar un nuevo login.
   useEffect(() => {
     try {
-      // Limpieza defensiva de posibles credenciales antiguas en localStorage
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      localStorage.removeItem('auth_user');
+      const storedToken = getStoredToken();
+      const parsedUser = getStoredUser();
+      const lastActivity = getStoredLastActivity();
 
-      const storedToken = sessionStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY);
-      const storedUser = sessionStorage.getItem(USER_KEY);
-      const lastActivityRaw = sessionStorage.getItem(LAST_ACTIVITY_KEY);
-
-      if (storedToken && storedUser) {
-        const parsedUser: Usuario = JSON.parse(storedUser);
+      if (storedToken && parsedUser) {
         const timeout = getInactivityTimeoutForRole(parsedUser.rol);
         const now = Date.now();
-        if (lastActivityRaw && now - Number(lastActivityRaw) >= timeout) {
-          // Si ya superó el tiempo de inactividad correspondiente antes de recargar
-          sessionStorage.clear();
+
+        if (lastActivity === null || now - lastActivity >= timeout) {
+          // La sesión existía, pero ya superó el tiempo de inactividad permitido
+          // o no tiene una marca de actividad válida.
+          clearAuthSession();
         } else {
+          // Migra sesiones antiguas de sessionStorage y mantiene sincronizadas
+          // todas las pestañas con el mismo usuario autenticado.
+          saveAuthSession(storedToken, parsedUser, now);
           setToken(storedToken);
           setUser(parsedUser);
-          sessionStorage.setItem(LAST_ACTIVITY_KEY, String(now));
           if (parsedUser.usuarioId && parsedUser.rol === 'TECNICO') {
             initOneSignal(parsedUser.usuarioId);
           }
         }
+      } else if (storedToken || parsedUser) {
+        // Estado de autenticación incompleto/corrupto: no permitir media sesión.
+        clearAuthSession();
       }
     } catch (error) {
       console.error('Error restaurando sesión almacenada:', error);
-      sessionStorage.clear();
+      clearAuthSession();
     } finally {
       setIsLoading(false);
     }
@@ -93,11 +98,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem(`ordenes_finalizadas_ids_${user.usuarioId}`);
     }
 
-    sessionStorage.clear();
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem('auth_user');
+    // Cierre de sesión explícito: limpiar credenciales y los datos temporales
+    // de la pestaña. Nunca se ejecuta desde el manejador de notificaciones.
+    clearAuthSession();
+    try {
+      sessionStorage.clear();
+    } catch {
+      // Ignorar almacenamiento restringido
+    }
     localStorage.removeItem('tecnico_firma_url');
     localStorage.removeItem('ordenes_finalizadas_ids');
 
@@ -115,27 +123,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // Si cambia de usuario o inicia sesión fresca, limpiar datos residuales
-    const previousUserRaw = sessionStorage.getItem(USER_KEY);
-    if (previousUserRaw) {
-      try {
-        const prevUser = JSON.parse(previousUserRaw);
-        if (prevUser.usuarioId !== data.usuarioId) {
-          localStorage.removeItem('tecnico_firma_url');
-          localStorage.removeItem('ordenes_finalizadas_ids');
-        }
-      } catch {}
+    const previousUser = getStoredUser();
+    if (previousUser && previousUser.usuarioId !== data.usuarioId) {
+      localStorage.removeItem('tecnico_firma_url');
+      localStorage.removeItem('ordenes_finalizadas_ids');
     }
 
-    // Limpieza defensiva en localStorage
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem('auth_user');
-
-    sessionStorage.setItem(TOKEN_KEY, data.token);
-    sessionStorage.setItem(AUTH_TOKEN_KEY, data.token);
-    sessionStorage.setItem(USER_KEY, JSON.stringify(authenticatedUser));
-    sessionStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+    // Guardar en localStorage + sessionStorage para que la sesión sobreviva
+    // a la apertura de la app desde una notificación push.
+    saveAuthSession(data.token, authenticatedUser);
 
     setToken(data.token);
     setUser(authenticatedUser);
@@ -178,10 +174,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const resetTimer = () => {
       const now = Date.now();
-      const lastActivityRaw = sessionStorage.getItem(LAST_ACTIVITY_KEY);
+      const lastActivity = getStoredLastActivity();
 
       // Si el dispositivo estuvo suspendido en segundo plano por más del tiempo permitido
-      if (lastActivityRaw && now - Number(lastActivityRaw) >= currentTimeout) {
+      if (lastActivity !== null && now - lastActivity >= currentTimeout) {
         handleInactivityExpire();
         return;
       }
@@ -192,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       lastRecordedActivity = now;
 
-      sessionStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+      updateLastActivity(now);
 
       if (inactivityTimerRef.current) {
         clearTimeout(inactivityTimerRef.current);
