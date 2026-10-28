@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useOrdenes } from '../../context/OrdenesContext';
@@ -85,6 +85,55 @@ export const ValidacionCierre: React.FC = () => {
   const [comprimiendoInicial, setComprimiendoInicial] = useState<boolean>(false);
   const [comprimiendoFinal, setComprimiendoFinal] = useState<boolean>(false);
 
+  // Limpieza defensiva y liberación de memoria (Garbage Collection de blob URLs)
+  const handleEliminarFotoInicial = useCallback(() => {
+    setFotoInicial((prev) => {
+      if (prev && prev.startsWith('blob:')) {
+        try { URL.revokeObjectURL(prev); } catch {}
+      }
+      return null;
+    });
+  }, []);
+
+  const handleEliminarFotoFinal = useCallback(() => {
+    setFotoFinal((prev) => {
+      if (prev && prev.startsWith('blob:')) {
+        try { URL.revokeObjectURL(prev); } catch {}
+      }
+      return null;
+    });
+  }, []);
+
+  const updateFotoInicial = useCallback((newUrl: string) => {
+    setFotoInicial((prev) => {
+      if (prev && prev.startsWith('blob:') && prev !== newUrl) {
+        try { URL.revokeObjectURL(prev); } catch {}
+      }
+      return newUrl;
+    });
+  }, []);
+
+  const updateFotoFinal = useCallback((newUrl: string) => {
+    setFotoFinal((prev) => {
+      if (prev && prev.startsWith('blob:') && prev !== newUrl) {
+        try { URL.revokeObjectURL(prev); } catch {}
+      }
+      return newUrl;
+    });
+  }, []);
+
+  // Revocación automática al desmontar el componente para evitar fugas de memoria
+  useEffect(() => {
+    return () => {
+      if (fotoInicial && fotoInicial.startsWith('blob:')) {
+        try { URL.revokeObjectURL(fotoInicial); } catch {}
+      }
+      if (fotoFinal && fotoFinal.startsWith('blob:')) {
+        try { URL.revokeObjectURL(fotoFinal); } catch {}
+      }
+    };
+  }, [fotoInicial, fotoFinal]);
+
   // Calificaciones
   const [califPuntualidad, setCalifPuntualidad] = useState(5);
   const [califSolucion, setCalifSolucion] = useState(5);
@@ -105,22 +154,24 @@ export const ValidacionCierre: React.FC = () => {
     tipo: 'inicial' | 'final'
   ) => {
     const file = e.target.files?.[0];
+    // Limpieza inmediata del input para liberar la referencia al objeto File del DOM
+    e.target.value = '';
     if (!file) return;
 
     setLoadingState(true);
     try {
-      const { base64Url, pesoFinalKB } = await comprimirImagenConDetalle(file, 1280, 1280, 0.72);
+      const { base64Url, pesoFinalKB } = await comprimirImagenConDetalle(file, 1280, 1280, 0.80);
       setter(base64Url);
       toast.success(
         `Foto ${tipo === 'inicial' ? 'inicial' : 'final'} optimizada (${pesoFinalKB} KB)`,
         { duration: 3000 }
       );
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Error al procesar la imagen:', err);
-      toast.error('No se pudo procesar la imagen seleccionada');
+      const msg = err?.message || 'No se pudo procesar la imagen seleccionada por memoria insuficiente.';
+      toast.error(msg);
     } finally {
       setLoadingState(false);
-      e.target.value = '';
     }
   };
 
@@ -448,7 +499,7 @@ export const ValidacionCierre: React.FC = () => {
                 multiple={false}
                 ref={cameraInputInicialRef}
                 className="hidden"
-                onChange={(e) => handleImageUpload(e, setFotoInicial, setComprimiendoInicial, 'inicial')}
+                onChange={(e) => handleImageUpload(e, updateFotoInicial, setComprimiendoInicial, 'inicial')}
               />
               <input
                 type="file"
@@ -456,7 +507,7 @@ export const ValidacionCierre: React.FC = () => {
                 multiple={false}
                 ref={galleryInputInicialRef}
                 className="hidden"
-                onChange={(e) => handleImageUpload(e, setFotoInicial, setComprimiendoInicial, 'inicial')}
+                onChange={(e) => handleImageUpload(e, updateFotoInicial, setComprimiendoInicial, 'inicial')}
               />
 
               {/* Inputs ocultos para Slot 2 (Después): Cámara directa y Galería */}
@@ -467,7 +518,7 @@ export const ValidacionCierre: React.FC = () => {
                 multiple={false}
                 ref={cameraInputFinalRef}
                 className="hidden"
-                onChange={(e) => handleImageUpload(e, setFotoFinal, setComprimiendoFinal, 'final')}
+                onChange={(e) => handleImageUpload(e, updateFotoFinal, setComprimiendoFinal, 'final')}
               />
               <input
                 type="file"
@@ -475,7 +526,7 @@ export const ValidacionCierre: React.FC = () => {
                 multiple={false}
                 ref={galleryInputFinalRef}
                 className="hidden"
-                onChange={(e) => handleImageUpload(e, setFotoFinal, setComprimiendoFinal, 'final')}
+                onChange={(e) => handleImageUpload(e, updateFotoFinal, setComprimiendoFinal, 'final')}
               />
 
               <div className="grid grid-cols-1 gap-3.5">
@@ -528,7 +579,7 @@ export const ValidacionCierre: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFotoInicial(null)}
+                          onClick={handleEliminarFotoInicial}
                           className="p-1.5 rounded-lg bg-rose-600/95 hover:bg-rose-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
                           title="Eliminar foto inicial"
                         >
@@ -617,7 +668,7 @@ export const ValidacionCierre: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFotoFinal(null)}
+                          onClick={handleEliminarFotoFinal}
                           className="p-1.5 rounded-lg bg-rose-600/95 hover:bg-rose-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
                           title="Eliminar foto final"
                         >
