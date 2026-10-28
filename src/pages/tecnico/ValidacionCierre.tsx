@@ -723,7 +723,7 @@ export const ValidacionCierre: React.FC = () => {
               </h3>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  DNI del cliente <span className="text-slate-400 font-normal">(opcional)</span>
+                  DNI del cliente
                 </label>
                 <input
                   type="text"
@@ -737,9 +737,6 @@ export const ValidacionCierre: React.FC = () => {
                   placeholder="Ej. 70920543"
                   className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] transition-all"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Puedes completarlo si el cliente lo proporciona. No es obligatorio para cerrar la orden.
-                </p>
               </div>
             </div>
 
