@@ -193,13 +193,13 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
                 maxLength={15}
                 value={formData.dni}
                 onChange={handleChange}
-                placeholder="70920543"
+                placeholder="Número de documento"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
               />
             </div>
             <div>
               <label className="block font-bold text-slate-700 uppercase mb-1">
-                Teléfono <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+                Teléfono <span className="text-slate-400 font-normal lowercase"></span>
               </label>
               <input
                 type="tel"
@@ -208,7 +208,7 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
                 maxLength={15}
                 value={formData.telefono}
                 onChange={handleChange}
-                placeholder="987556321"
+                placeholder="Ingresa el celular..."
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
               />
             </div>
@@ -229,7 +229,7 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
               required
               value={formData.direccion}
               onChange={handleChange}
-              placeholder="Av. Central 120"
+              placeholder="Ingresa la dirección exacta..."
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
             />
           </div>
@@ -298,7 +298,7 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
               name="referencia"
               value={formData.referencia || ''}
               onChange={handleChange}
-              placeholder="Ej. Frente al parque, portón blanco, timbre 2"
+              placeholder="Ingresa una breve referencia"
               className="w-full text-sm rounded-xl border border-slate-200 px-4 py-2.5 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-400"
             />
           </div>

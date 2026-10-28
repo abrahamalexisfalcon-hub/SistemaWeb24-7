@@ -605,12 +605,9 @@ export const AtencionTecnica: React.FC = () => {
                   dniEditadoRef.current = true;
                   setDniAfiliado(e.target.value);
                 }}
-                placeholder="Ej. 70920543 (si el cliente lo proporciona)"
+                placeholder="Ingresa el DNI..."
                 className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] transition-all"
               />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Puedes dejarlo en blanco si el cliente prefiere no brindarlo o no lo tiene a la mano.
-              </p>
             </div>
 
             {/* EVALUACIÓN */}
