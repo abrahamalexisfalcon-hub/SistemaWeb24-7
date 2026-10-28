@@ -174,6 +174,14 @@ export const ValidacionCierre: React.FC = () => {
       return;
     }
 
+    const dniLimpio = dniAfiliado.trim();
+    if (dniLimpio && (dniLimpio.length < 8 || !/^[0-9A-Za-z]+$/.test(dniLimpio))) {
+      const msg = 'El DNI del cliente debe contener al menos 8 dígitos válidos.';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+
     if (sigPadRef.current?.isEmpty()) {
       toast.error('Por favor solicita la firma del afiliado antes de finalizar.');
       return;
@@ -184,6 +192,15 @@ export const ValidacionCierre: React.FC = () => {
   const handleFinalizar = async () => {
     if (!fotoInicial || !fotoFinal) {
       const msg = 'Debes adjuntar obligatoriamente la foto de antes y la foto de después del servicio.';
+      setError(msg);
+      toast.error(msg);
+      setConfirmDialogOpen(false);
+      return;
+    }
+
+    const dniLimpio = dniAfiliado.trim();
+    if (dniLimpio && (dniLimpio.length < 8 || !/^[0-9A-Za-z]+$/.test(dniLimpio))) {
+      const msg = 'El DNI del cliente debe contener al menos 8 dígitos válidos.';
       setError(msg);
       toast.error(msg);
       setConfirmDialogOpen(false);
@@ -715,7 +732,7 @@ export const ValidacionCierre: React.FC = () => {
                   value={dniAfiliado}
                   onChange={(e) => {
                     dniEditadoRef.current = true;
-                    setDniAfiliado(e.target.value);
+                    setDniAfiliado(e.target.value.replace(/[^0-9A-Za-z]/g, ''));
                   }}
                   placeholder="Ej. 70920543"
                   className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] transition-all"
