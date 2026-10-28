@@ -590,7 +590,7 @@ export const AtencionTecnica: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  DNI DEL CLIENTE <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+                  DNI DEL CLIENTE <span className="text-slate-400 font-normal lowercase"></span>
                 </label>
                 {dniAfiliado.trim() && (
                   <span className="text-[10px] text-emerald-600 font-semibold">Registrado</span>

@@ -261,7 +261,7 @@ export const ReaperturarOrdenModal: React.FC<ReaperturarOrdenModalProps> = ({
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide">
               <FileText className="w-3.5 h-3.5 text-slate-400" />
-              <span>Nota u Observación de Reapertura (Opcional)</span>
+              <span>Nota u Observación de Reapertura</span>
             </label>
             <textarea
               rows={2}

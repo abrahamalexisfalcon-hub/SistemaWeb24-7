@@ -184,7 +184,7 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block font-bold text-slate-700 uppercase mb-1">
-                DNI N° <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+                DNI N° <span className="text-slate-400 font-normal lowercase"></span>
               </label>
               <input
                 type="text"
@@ -291,7 +291,7 @@ export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = ({
           {/* Campo Referencia Opcional */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-              REFERENCIA <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+              REFERENCIA <span className="text-slate-400 font-normal lowercase"></span>
             </label>
             <input
               type="text"
