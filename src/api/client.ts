@@ -9,8 +9,8 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Interceptor de solicitud: Inyecta el token Bearer JWT desde el almacenamiento
-// compartido (localStorage) con respaldo en sessionStorage.
+// Interceptor de solicitud: Inyecta el token Bearer JWT persistido en
+// localStorage (sessionStorage solo se consulta para migrar sesiones antiguas).
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getStoredToken();

@@ -10,6 +10,7 @@ import { formatearHoraLocal, calcularDuracionServicio } from '../../utils/dateFo
 import type { OrdenResumenTecnico, CierreHojaServicioRequest } from '../../types';
 import { ChevronLeft, Camera, Image as ImageIcon, Star, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getStoredUser } from '../../utils/authStorage';
 
 export const ValidacionCierre: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -204,8 +205,8 @@ export const ValidacionCierre: React.FC = () => {
 
           const storedFirma = localStorage.getItem('tecnico_firma_url');
           if (storedFirma) return storedFirma;
-          const raw = sessionStorage.getItem('auth_user') || sessionStorage.getItem('user');
-          if (raw) return JSON.parse(raw).firmaUrl || null;
+          const storedUser = getStoredUser();
+          if (storedUser?.firmaUrl) return storedUser.firmaUrl;
         } catch {}
         return orden?.tecnicoFirmaUrl || null;
       })();
@@ -275,8 +276,8 @@ export const ValidacionCierre: React.FC = () => {
       const tecnicoNombre = (() => {
         if (user?.nombreCompleto) return user.nombreCompleto;
         try {
-          const raw = sessionStorage.getItem('auth_user') || sessionStorage.getItem('user');
-          if (raw) return JSON.parse(raw).nombreCompleto || 'Técnico';
+          const storedUser = getStoredUser();
+          if (storedUser?.nombreCompleto) return storedUser.nombreCompleto;
         } catch { /* ignore */ }
         return orden?.tecnicoNombre || 'Técnico Asistencias 24/7';
       })();

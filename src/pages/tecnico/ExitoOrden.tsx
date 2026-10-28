@@ -9,6 +9,7 @@ import { ChevronLeft, Check, Star, FileText, Download } from 'lucide-react';
 import logo247 from '../../assets/Logo_negro.png';
 import { EvidenciasGaleria } from '../../components/EvidenciasGaleria';
 import { calcularDuracionServicio } from '../../utils/dateFormatter';
+import { getStoredUser } from '../../utils/authStorage';
 
 /* ─────────────── Tipos del state recibido desde ValidacionCierre ─────────────── */
 interface HojaServicioData {
@@ -188,13 +189,12 @@ export const ExitoOrden: React.FC = () => {
     (orden as any)?.tecnicoFirma ||
     (() => {
       try {
-        const u = sessionStorage.getItem('user');
-        if (u) {
-          const parsed = JSON.parse(u);
-          const userKey = `tecnico_${parsed.usuarioId}_firma_url`;
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          const userKey = `tecnico_${storedUser.usuarioId}_firma_url`;
           const firma = localStorage.getItem(userKey);
           if (firma) return firma;
-          if (parsed.firmaUrl) return parsed.firmaUrl;
+          if (storedUser.firmaUrl) return storedUser.firmaUrl;
         }
       } catch {}
       return null;

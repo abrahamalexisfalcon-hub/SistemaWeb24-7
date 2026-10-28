@@ -1,16 +1,14 @@
 import type { Usuario } from '../types';
 
 /**
- * Almacenamiento de sesión compartido entre pestañas y ventanas de la PWA.
+ * Almacenamiento de sesión persistente de la PWA.
  *
- * La sesión se mantiene en localStorage para que, cuando el usuario abra la
- * aplicación desde una notificación push (lo que puede crear una nueva
- * pestaña/ventana), el contexto de autenticación pueda restaurarse sin exigir
- * un nuevo login. sessionStorage se conserva como respaldo de compatibilidad y
- * para los componentes que ya leen directamente desde allí.
+ * La sesión se guarda EXCLUSIVAMENTE en localStorage para sobrevivir al cierre
+ * de pestañas, la suspensión de la app móvil/PWA y la apertura desde una
+ * notificación push. sessionStorage solo se lee para migrar sesiones antiguas.
  *
- * La expiración por inactividad se sigue validando con `last_activity_ts`:
- * una sesión antigua nunca se restaura solo por existir en localStorage.
+ * Para el rol TÉCNICO no se aplica expiración por inactividad: la sesión solo
+ * se destruye mediante el botón “Cerrar Sesión” o ante un 401 real del backend.
  */
 export const TOKEN_KEY = 'token';
 export const AUTH_TOKEN_KEY = 'auth_token';
@@ -42,15 +40,23 @@ const removeItem = (storage: Storage, key: string): void => {
   }
 };
 
+const clearSessionStorageAuth = (): void => {
+  removeItem(window.sessionStorage, TOKEN_KEY);
+  removeItem(window.sessionStorage, AUTH_TOKEN_KEY);
+  removeItem(window.sessionStorage, USER_KEY);
+  removeItem(window.sessionStorage, AUTH_USER_KEY);
+  removeItem(window.sessionStorage, LAST_ACTIVITY_KEY);
+};
+
 export const getStoredToken = (): string | null => {
   if (typeof window === 'undefined') return null;
-  // Prioridad a la sesión de la pestaña actual; localStorage se usa como
-  // respaldo para pestañas nuevas abiertas desde una notificación.
+  // localStorage es la fuente principal. sessionStorage se consulta solo para
+  // migrar sesiones creadas por versiones anteriores de la aplicación.
   return (
-    getItem(window.sessionStorage, TOKEN_KEY) ||
-    getItem(window.sessionStorage, AUTH_TOKEN_KEY) ||
     getItem(window.localStorage, TOKEN_KEY) ||
-    getItem(window.localStorage, AUTH_TOKEN_KEY)
+    getItem(window.localStorage, AUTH_TOKEN_KEY) ||
+    getItem(window.sessionStorage, TOKEN_KEY) ||
+    getItem(window.sessionStorage, AUTH_TOKEN_KEY)
   );
 };
 
@@ -58,10 +64,10 @@ export const getStoredUser = (): Usuario | null => {
   if (typeof window === 'undefined') return null;
 
   const raw =
-    getItem(window.sessionStorage, USER_KEY) ||
-    getItem(window.sessionStorage, AUTH_USER_KEY) ||
     getItem(window.localStorage, USER_KEY) ||
-    getItem(window.localStorage, AUTH_USER_KEY);
+    getItem(window.localStorage, AUTH_USER_KEY) ||
+    getItem(window.sessionStorage, USER_KEY) ||
+    getItem(window.sessionStorage, AUTH_USER_KEY);
 
   if (!raw) return null;
 
@@ -76,8 +82,8 @@ export const getStoredLastActivity = (): number | null => {
   if (typeof window === 'undefined') return null;
 
   const raw =
-    getItem(window.sessionStorage, LAST_ACTIVITY_KEY) ||
-    getItem(window.localStorage, LAST_ACTIVITY_KEY);
+    getItem(window.localStorage, LAST_ACTIVITY_KEY) ||
+    getItem(window.sessionStorage, LAST_ACTIVITY_KEY);
 
   if (!raw) return null;
   const timestamp = Number(raw);
@@ -85,8 +91,8 @@ export const getStoredLastActivity = (): number | null => {
 };
 
 /**
- * Guarda la sesión en localStorage (compartida entre pestañas) y en
- * sessionStorage (compatibilidad con la sesión de la pestaña actual).
+ * Persiste la sesión únicamente en localStorage y elimina cualquier copia
+ * heredada de sessionStorage.
  */
 export const saveAuthSession = (
   token: string,
@@ -98,30 +104,29 @@ export const saveAuthSession = (
   const serializedUser = JSON.stringify(user);
   const activity = String(lastActivity);
 
-  [window.localStorage, window.sessionStorage].forEach((storage) => {
-    setItem(storage, TOKEN_KEY, token);
-    setItem(storage, AUTH_TOKEN_KEY, token);
-    setItem(storage, USER_KEY, serializedUser);
-    setItem(storage, AUTH_USER_KEY, serializedUser);
-    setItem(storage, LAST_ACTIVITY_KEY, activity);
-  });
+  setItem(window.localStorage, TOKEN_KEY, token);
+  setItem(window.localStorage, AUTH_TOKEN_KEY, token);
+  setItem(window.localStorage, USER_KEY, serializedUser);
+  setItem(window.localStorage, AUTH_USER_KEY, serializedUser);
+  setItem(window.localStorage, LAST_ACTIVITY_KEY, activity);
+
+  clearSessionStorageAuth();
 };
 
 export const updateLastActivity = (timestamp: number = Date.now()): void => {
   if (typeof window === 'undefined') return;
   const value = String(timestamp);
   setItem(window.localStorage, LAST_ACTIVITY_KEY, value);
-  setItem(window.sessionStorage, LAST_ACTIVITY_KEY, value);
+  removeItem(window.sessionStorage, LAST_ACTIVITY_KEY);
 };
 
 export const clearAuthSession = (): void => {
   if (typeof window === 'undefined') return;
 
-  [window.localStorage, window.sessionStorage].forEach((storage) => {
-    removeItem(storage, TOKEN_KEY);
-    removeItem(storage, AUTH_TOKEN_KEY);
-    removeItem(storage, USER_KEY);
-    removeItem(storage, AUTH_USER_KEY);
-    removeItem(storage, LAST_ACTIVITY_KEY);
-  });
+  removeItem(window.localStorage, TOKEN_KEY);
+  removeItem(window.localStorage, AUTH_TOKEN_KEY);
+  removeItem(window.localStorage, USER_KEY);
+  removeItem(window.localStorage, AUTH_USER_KEY);
+  removeItem(window.localStorage, LAST_ACTIVITY_KEY);
+  clearSessionStorageAuth();
 };

@@ -20,6 +20,7 @@ import {
   Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getStoredToken, getStoredUser, saveAuthSession } from '../../utils/authStorage';
 
 export const Perfil: React.FC = () => {
   const { user, logout } = useAuth();
@@ -129,13 +130,16 @@ export const Perfil: React.FC = () => {
       }
       localStorage.setItem('tecnico_firma_url', nuevaUrl);
 
-      // Actualizar sesión almacenada en sessionStorage
+      // Actualizar la sesión persistente en localStorage
       try {
-        const stored = sessionStorage.getItem('user');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          parsed.firmaUrl = nuevaUrl;
-          sessionStorage.setItem('user', JSON.stringify(parsed));
+        const storedUser = getStoredUser();
+        const storedToken = getStoredToken();
+        if (storedUser && storedToken) {
+          saveAuthSession(storedToken, {
+            ...storedUser,
+            firmaUrl: nuevaUrl,
+            firmaDigitalUrl: nuevaUrl,
+          });
         }
       } catch {}
 
@@ -360,7 +364,7 @@ export const Perfil: React.FC = () => {
                   {guardandoFirma ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Guardando en Cloudinary...</span>
+                      <span>Guardando...</span>
                     </>
                   ) : (
                     <>

@@ -26,11 +26,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Expiración por inactividad diferenciada por rol:
-// Administrador: 2 horas (7,200,000 ms)
-// Técnico: 12 horas (43,200,000 ms)
+// Expiración por inactividad:
+// - Administrador: 2 horas (7,200,000 ms)
+// - Técnico: sin expiración por inactividad (solo cierre de sesión manual)
 export const INACTIVITY_TIMEOUT_ADMIN = 2 * 60 * 60 * 1000;
-export const INACTIVITY_TIMEOUT_TECNICO = 12 * 60 * 60 * 1000;
+export const INACTIVITY_TIMEOUT_TECNICO = Number.POSITIVE_INFINITY;
 
 export const getInactivityTimeoutForRole = (rol?: RolUsuario | string | null): number => {
   if (rol === 'ADMINISTRADOR') return INACTIVITY_TIMEOUT_ADMIN;
@@ -39,7 +39,7 @@ export const getInactivityTimeoutForRole = (rol?: RolUsuario | string | null): n
 };
 
 export const getInactivityLabelForRole = (rol?: RolUsuario | string | null): string => {
-  return rol === 'TECNICO' ? '12 horas' : '2 horas';
+  return rol === 'TECNICO' ? 'sin expiración' : '2 horas';
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -60,14 +60,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (storedToken && parsedUser) {
         const timeout = getInactivityTimeoutForRole(parsedUser.rol);
         const now = Date.now();
+        const esTecnico = parsedUser.rol === 'TECNICO';
+        const sesionExpirada = !esTecnico && (lastActivity === null || now - lastActivity >= timeout);
 
-        if (lastActivity === null || now - lastActivity >= timeout) {
-          // La sesión existía, pero ya superó el tiempo de inactividad permitido
-          // o no tiene una marca de actividad válida.
+        if (sesionExpirada) {
+          // Solo administración expira por inactividad. Los técnicos conservan
+          // la sesión hasta que pulsen explícitamente “Cerrar Sesión”.
           clearAuthSession();
         } else {
-          // Migra sesiones antiguas de sessionStorage y mantiene sincronizadas
-          // todas las pestañas con el mismo usuario autenticado.
+          // Migra sesiones antiguas de sessionStorage a localStorage.
           saveAuthSession(storedToken, parsedUser, now);
           setToken(storedToken);
           setUser(parsedUser);
@@ -129,8 +130,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('ordenes_finalizadas_ids');
     }
 
-    // Guardar en localStorage + sessionStorage para que la sesión sobreviva
-    // a la apertura de la app desde una notificación push.
+    // Guardar únicamente en localStorage para que la sesión sobreviva al cierre
+    // de la pestaña/app y a la apertura desde una notificación push.
     saveAuthSession(data.token, authenticatedUser);
 
     setToken(data.token);
@@ -145,10 +146,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!token && !!user;
 
-  // Control automático de expiración por inactividad diferenciada por roles:
-  // Administrador: 2 horas | Técnico: 12 horas
+  // Expiración por inactividad solo para administración. El técnico conserva
+  // su sesión hasta que ejecute “Cerrar Sesión”.
   useEffect(() => {
     if (!isAuthenticated || !user) {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+      return;
+    }
+
+    // El técnico mantiene su sesión de forma indefinida. No se registran
+    // temporizadores ni listeners que puedan cerrarla al suspender la app,
+    // cambiar de pestaña o abrir una notificación.
+    if (user.rol === 'TECNICO') {
       if (inactivityTimerRef.current) {
         clearTimeout(inactivityTimerRef.current);
         inactivityTimerRef.current = null;
