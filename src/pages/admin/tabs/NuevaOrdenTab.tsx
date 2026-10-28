@@ -337,7 +337,6 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
                       type="text"
                       required
                       maxLength={50}
-                      placeholder="Ej: CASO-8942"
                       value={nuevaOrden.numeroCaso || ''}
                       onChange={(e) =>
                         onNuevaOrdenChange({ ...nuevaOrden, numeroCaso: e.target.value })
@@ -361,7 +360,6 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
                       type="text"
                       required
                       maxLength={50}
-                      placeholder="Ej: OT-1045"
                       value={nuevaOrden.numeroOt || ''}
                       onChange={(e) =>
                         onNuevaOrdenChange({ ...nuevaOrden, numeroOt: e.target.value })
