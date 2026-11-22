@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { Afiliado } from '../../../types';
-import { Plus, MapPin, Phone, Search, X, Edit2, Trash2, AlertTriangle, Users, Home } from 'lucide-react';
+import { Plus, MapPin, Phone, Search, X, Edit2, Trash2, AlertTriangle, Users, User, Home } from 'lucide-react';
 import { AdminClienteTable } from '../components';
 import { obtenerDireccionesAfiliado, obtenerDireccionPrincipal } from '../../../utils/afiliadoDirecciones';
 import { useModalBackButton } from '../../../hooks';
@@ -10,6 +10,7 @@ interface ClientesTabProps {
   onNuevoAfiliado: () => void;
   onEditarAfiliado?: (afiliado: Afiliado) => void;
   onEliminarAfiliado?: (id: number) => Promise<void>;
+  onOpenPerfil?: () => void;
 }
 
 export const ClientesTab: React.FC<ClientesTabProps> = ({
@@ -17,6 +18,7 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
   onNuevoAfiliado,
   onEditarAfiliado,
   onEliminarAfiliado,
+  onOpenPerfil,
 }) => {
   const [busqueda, setBusqueda] = useState('');
   const [paginaActual, setPaginaActual] = useState(1);
@@ -81,21 +83,35 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
   return (
     <div className="w-full space-y-4 lg:space-y-6">
       {/* Cabecera y Controles */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-1 lg:pb-2 w-full">
-        <div>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight lg:text-3xl">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pb-1 lg:pb-2 w-full">
+        <div className="min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight lg:text-3xl truncate">
               Clientes Afiliados
             </h1>
-            {/* Botón Nuevo Afiliado en móvil */}
-            <button
-              type="button"
-              onClick={onNuevoAfiliado}
-              className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl px-3 py-2 text-xs shadow-sm transition-colors flex items-center gap-1.5 active:scale-95 sm:hidden cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nuevo</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0 lg:hidden">
+              {/* Botón Nuevo Afiliado en móvil */}
+              <button
+                type="button"
+                onClick={onNuevoAfiliado}
+                className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl px-3 py-2 text-xs shadow-sm transition-colors flex items-center gap-1.5 active:scale-95 sm:hidden cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuevo</span>
+              </button>
+              {onOpenPerfil && (
+                <button
+                  type="button"
+                  onClick={onOpenPerfil}
+                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-100 transition-colors shadow-xs active:scale-95 cursor-pointer text-xs font-bold"
+                  title="Perfil Administrador"
+                  aria-label="Perfil Administrador"
+                >
+                  <User className="w-4 h-4 text-sky-600" />
+                  <span className="hidden sm:inline">Perfil</span>
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Padrón de afiliados activos en 24/7 Asistencias ({(afiliados || []).length})
@@ -103,7 +119,7 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
         </div>
 
         {/* Buscador y Botón */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
           {/* Barra de Búsqueda */}
           <div className="relative flex-1 w-full sm:w-72 lg:w-80">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />

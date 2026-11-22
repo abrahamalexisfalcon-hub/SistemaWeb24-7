@@ -1,23 +1,39 @@
 import React from 'react';
 import type { OrdenDetalleAdmin } from '../../../types';
-import { TrendingUp, CheckCircle, Award } from 'lucide-react';
+import { TrendingUp, CheckCircle, Award, User } from 'lucide-react';
 
 interface ReportesTabProps {
   ordenes: OrdenDetalleAdmin[];
+  onOpenPerfil?: () => void;
 }
 
-export const ReportesTab: React.FC<ReportesTabProps> = ({ ordenes }) => {
+export const ReportesTab: React.FC<ReportesTabProps> = ({ ordenes, onOpenPerfil }) => {
   const listado = ordenes || [];
 
   return (
     <div className="w-full space-y-4 lg:space-y-6">
-      <div className="pb-1">
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight lg:text-3xl">
-          Métricas Operativas
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Resumen general del rendimiento del servicio
-        </p>
+      <div className="flex items-start justify-between gap-3 pb-1">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight lg:text-3xl">
+            Métricas Operativas
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Resumen general del rendimiento del servicio
+          </p>
+        </div>
+
+        {onOpenPerfil && (
+          <button
+            type="button"
+            onClick={onOpenPerfil}
+            className="lg:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-100 transition-colors shadow-xs active:scale-95 shrink-0 cursor-pointer text-xs font-bold"
+            title="Perfil Administrador"
+            aria-label="Perfil Administrador"
+          >
+            <User className="w-4 h-4 text-sky-600" />
+            <span>Perfil</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">

@@ -62,6 +62,7 @@ interface NuevaOrdenTabProps {
   onAbrirMateriales: () => void;
   onAbrirEspecialidades: () => void;
   onAbrirCuentas: () => void;
+  onOpenPerfil?: () => void;
 }
 
 const HORAS_12 = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
@@ -105,6 +106,7 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
   onAbrirMateriales,
   onAbrirEspecialidades,
   onAbrirCuentas,
+  onOpenPerfil,
 }) => {
   const [minDateTime, setMinDateTime] = useState<string>(() => obtenerFechaHoraActualLocal());
 
@@ -489,14 +491,28 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
   return (
     <div className="w-full space-y-4 lg:space-y-6">
       {/* Cabecera del Centro de Despacho */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-1">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight lg:text-3xl">
-            Registrar Nueva Orden
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Crea y asigna una asistencia técnica vinculada a su cuenta, caso, OT y horario pactado (AM / PM)
-          </p>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pb-1">
+        <div className="flex items-start justify-between gap-3 min-w-0 w-full lg:w-auto">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight lg:text-3xl">
+              Registrar Nueva Orden
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Crea y asigna una asistencia técnica vinculada a su cuenta, caso, OT y horario pactado (AM / PM)
+            </p>
+          </div>
+          {onOpenPerfil && (
+            <button
+              type="button"
+              onClick={onOpenPerfil}
+              className="lg:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-100 transition-colors shadow-xs active:scale-95 shrink-0 cursor-pointer text-xs font-bold"
+              title="Perfil Administrador"
+              aria-label="Perfil Administrador"
+            >
+              <User className="w-4 h-4 text-sky-600" />
+              <span>Perfil</span>
+            </button>
+          )}
         </div>
 
         {/* Badge de estado del formulario (Desktop) */}

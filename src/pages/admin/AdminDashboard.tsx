@@ -52,6 +52,7 @@ export const AdminDashboard: React.FC = () => {
             }}
             onToggleEstadoTecnico={d.handleToggleEstadoTecnico}
             togglingTecnicoId={d.togglingTecnicoId}
+            onOpenPerfil={() => d.setModalPerfilAdmin(true)}
           />
         );
       case 'nuevo':
@@ -77,6 +78,7 @@ export const AdminDashboard: React.FC = () => {
             onAbrirMateriales={() => d.setModalGestionMateriales(true)}
             onAbrirEspecialidades={() => d.setModalNuevaEspecialidad(true)}
             onAbrirCuentas={() => d.setModalGestionCuentas(true)}
+            onOpenPerfil={() => d.setModalPerfilAdmin(true)}
           />
         );
       case 'clientes':
@@ -94,10 +96,16 @@ export const AdminDashboard: React.FC = () => {
               d.setModalNuevoAfiliado(true);
             }}
             onEliminarAfiliado={d.handleEliminarAfiliado}
+            onOpenPerfil={() => d.setModalPerfilAdmin(true)}
           />
         );
       case 'reportes':
-        return <ReportesTab ordenes={d.ordenes} />;
+        return (
+          <ReportesTab
+            ordenes={d.ordenes}
+            onOpenPerfil={() => d.setModalPerfilAdmin(true)}
+          />
+        );
       default:
         return null;
     }

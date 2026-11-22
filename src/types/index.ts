@@ -376,3 +376,9 @@ export interface ActualizarMaterialRequest {
   activo?: boolean;
 }
 
+export interface CambiarPasswordAdminRequest {
+  passwordActual: string;
+  nuevaPassword: string;
+  confirmarPassword?: string;
+}
+

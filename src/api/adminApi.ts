@@ -12,7 +12,8 @@ import type {
   MaterialCatalogo,
   EstadoOrden,
   Especialidad,
-  Cuenta
+  Cuenta,
+  CambiarPasswordAdminRequest,
 } from '../types';
 
 export const adminApi = {
@@ -169,6 +170,12 @@ export const adminApi = {
 
   eliminarCuenta: async (id: number): Promise<{ mensaje: string }> => {
     const response = await api.delete<{ mensaje: string }>(`/admin/cuentas/${id}`);
+    return response.data;
+  },
+
+  // Perfil Administrador
+  cambiarPasswordAdmin: async (data: CambiarPasswordAdminRequest): Promise<{ mensaje: string }> => {
+    const response = await api.patch<{ mensaje: string }>('/admin/perfil/password', data);
     return response.data;
   },
 };

@@ -392,7 +392,7 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
             <div>
               <div className="flex items-center justify-between gap-1 mb-1">
                 <label className="block font-bold text-slate-700 uppercase">
-                  TELÉFONO / CELULAR
+                  CELULAR
                 </label>
                 <span className="text-[10px] font-semibold text-slate-400">
                   {formData.telefono.length}/9 dígitos
