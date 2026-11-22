@@ -4,7 +4,8 @@ import type {
   CrearTecnicoRequest,
   ActualizarTecnicoRequest,
 } from '../../../types';
-import { X, RefreshCw, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { X, RefreshCw, AlertCircle, Eye, EyeOff, Check } from 'lucide-react';
+import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
 
 interface TecnicoFormModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [correo, setCorreo] = useState('');
   const [telefono, setTelefono] = useState('');
-  const [especialidad, setEspecialidad] = useState('');
+  const [especialidadesSeleccionadas, setEspecialidadesSeleccionadas] = useState<string[]>([]);
   const [pin, setPin] = useState('');
   const [mostrarPin, setMostrarPin] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -55,18 +56,41 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
       setNombreCompleto(tecnicoAEditar.nombreCompleto || '');
       setCorreo(tecnicoAEditar.correo || '');
       setTelefono((tecnicoAEditar.telefono || '').replace(/\D/g, '').slice(0, 9));
-      setEspecialidad(tecnicoAEditar.especialidad || (especialidades[0] || ''));
+      const inicial = obtenerEspecialidadesTecnico(tecnicoAEditar, []).map(
+        (item) => especialidades.find((esp) => esp.toLowerCase() === item.toLowerCase()) || item
+      );
+      setEspecialidadesSeleccionadas(
+        inicial.length > 0
+          ? Array.from(new Set(inicial))
+          : especialidades.length > 0
+            ? [especialidades[0]]
+            : []
+      );
       setPin('');
     } else {
       setNombreCompleto('');
       setCorreo('');
       setTelefono('');
-      setEspecialidad(especialidades[0] || '');
+      setEspecialidadesSeleccionadas(especialidades[0] ? [especialidades[0]] : []);
       setPin('');
     }
   }, [modo, tecnicoAEditar, especialidades, isOpen]);
 
   if (!isOpen) return null;
+
+  const estaEspecialidadSeleccionada = (nombre: string) =>
+    especialidadesSeleccionadas.some((item) => item.toLowerCase() === nombre.toLowerCase());
+
+  const toggleEspecialidad = (nombre: string) => {
+    setLocalError(null);
+    setEspecialidadesSeleccionadas((prev) => {
+      const existe = prev.some((item) => item.toLowerCase() === nombre.toLowerCase());
+      if (existe) {
+        return prev.filter((item) => item.toLowerCase() !== nombre.toLowerCase());
+      }
+      return [...prev, nombre];
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +101,11 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
 
     if (!/^\d{9}$/.test(telefonoLimpio)) {
       setLocalError('El número de teléfono / celular debe contener exactamente 9 dígitos numéricos.');
+      return;
+    }
+
+    if (especialidadesSeleccionadas.length === 0) {
+      setLocalError('Selecciona al menos una especialidad.');
       return;
     }
 
@@ -91,7 +120,8 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
           correo: correo.trim(),
           password: pinLimpio,
           telefono: telefonoLimpio,
-          especialidad: especialidad.trim(),
+          especialidad: especialidadesSeleccionadas.join(', '),
+          especialidades: especialidadesSeleccionadas,
         });
       }
     } else if (modo === 'editar' && onGuardarEdicion) {
@@ -107,7 +137,8 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
         nombreCompleto: nombreCompleto.trim(),
         correo: correo.trim().toLowerCase(),
         telefono: telefonoLimpio,
-        especialidad: especialidad.trim(),
+        especialidad: especialidadesSeleccionadas.join(', '),
+        especialidades: especialidadesSeleccionadas,
       };
       if (pinLimpio.length === 4) {
         payload.password = pinLimpio;
@@ -117,11 +148,15 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
   };
 
   const errorMostrado = localError || error;
+  const cantidadSeleccionadasTexto =
+    especialidadesSeleccionadas.length === 1
+      ? '1 seleccionada'
+      : `${especialidadesSeleccionadas.length} seleccionadas`;
 
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-        <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-3 max-h-[85vh] overflow-y-auto border border-slate-100">
+        <div className="bg-white w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-2xl space-y-3.5 max-h-[88vh] overflow-y-auto border border-slate-100">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <div>
               <span className="font-black text-base text-slate-900 block">
@@ -188,7 +223,7 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
               <div>
                 <label htmlFor="tecnico_telefono" className="block font-bold text-slate-700 uppercase mb-1">
                   Teléfono / Celular <span className="text-red-500">*</span>
@@ -208,69 +243,120 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
                 />
               </div>
+
               <div>
-                <label htmlFor="tecnico_especialidad" className="block font-bold text-slate-700 uppercase mb-1">
-                  Especialidad <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="tecnico_especialidad"
-                  name="tecnico_especialidad"
-                  value={especialidad}
-                  onChange={(e) => setEspecialidad(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
-                >
-                  {cargandoEspecialidades ? (
-                    <option value="" disabled>Cargando especialidades...</option>
-                  ) : especialidades.length === 0 ? (
-                    <option value="" disabled>No hay especialidades registradas</option>
+                <label htmlFor="tecnico_pin" className="block font-bold text-slate-700 uppercase mb-1">
+                  {modo === 'crear' ? (
+                    <>PIN DE ACCESO (4 DÍGITOS) <span className="text-red-500">*</span></>
                   ) : (
-                    especialidades.map((esp) => (
-                      <option key={esp} value={esp}>
-                        {esp}
-                      </option>
-                    ))
+                    'PIN DE ACCESO (OPCIONAL)'
                   )}
-                </select>
+                </label>
+                <div className="relative">
+                  <input
+                    id="tecnico_pin"
+                    name="tecnico_pin"
+                    type={mostrarPin ? 'text' : 'password'}
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="[0-9]{4}"
+                    autoComplete="new-password"
+                    required={modo === 'crear'}
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    placeholder={modo === 'crear' ? 'Ej: 1234' : 'Mantener actual'}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-9 font-semibold text-slate-800 tracking-widest placeholder:tracking-normal focus:outline-none focus:border-sky-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarPin((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 px-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    tabIndex={-1}
+                    title={mostrarPin ? 'Ocultar PIN' : 'Mostrar PIN'}
+                  >
+                    {mostrarPin ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1 leading-snug">
+                  {modo === 'crear'
+                    ? 'Iniciará sesión con su celular y este PIN.'
+                    : 'Déjalo vacío para mantener el PIN actual.'}
+                </p>
               </div>
             </div>
 
             <div>
-              <label htmlFor="tecnico_pin" className="block font-bold text-slate-700 uppercase mb-1">
-                {modo === 'crear' ? (
-                  <>PIN DE ACCESO (4 DÍGITOS) <span className="text-red-500">*</span></>
-                ) : (
-                  'CAMBIAR PIN DE ACCESO (4 DÍGITOS)'
-                )}
-              </label>
-              <div className="relative">
-                <input
-                  id="tecnico_pin"
-                  name="tecnico_pin"
-                  type={mostrarPin ? 'text' : 'password'}
-                  inputMode="numeric"
-                  maxLength={4}
-                  pattern="[0-9]{4}"
-                  autoComplete="new-password"
-                  required={modo === 'crear'}
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder={modo === 'crear' ? 'Ej: 1234' : 'Dejar vacío para mantener PIN actual'}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-9 font-semibold text-slate-800 tracking-widest placeholder:tracking-normal focus:outline-none focus:border-sky-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setMostrarPin((prev) => !prev)}
-                  className="absolute inset-y-0 right-0 px-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                  tabIndex={-1}
-                  title={mostrarPin ? 'Ocultar PIN' : 'Mostrar PIN'}
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="block font-bold text-slate-700 uppercase">
+                  ESPECIALIDADES <span className="text-red-500">*</span>
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                    especialidadesSeleccionadas.length > 0
+                      ? 'bg-[#2b7de9]/10 text-[#2b7de9] border-[#2b7de9]/25'
+                      : 'bg-slate-100 text-slate-500 border-slate-200'
+                  }`}
                 >
-                  {mostrarPin ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
+                  {cantidadSeleccionadasTexto}
+                </span>
               </div>
+
+              {especialidadesSeleccionadas.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {especialidadesSeleccionadas.map((esp) => (
+                    <span
+                      key={esp}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#2b7de9]/10 text-[#2b7de9] border border-[#2b7de9]/25"
+                    >
+                      <Check className="w-3 h-3 shrink-0" />
+                      <span>{esp}</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleEspecialidad(esp)}
+                        aria-label={`Quitar ${esp}`}
+                        className="p-0.5 rounded-full hover:bg-[#2b7de9]/15 text-[#2b7de9] transition-colors cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                {cargandoEspecialidades ? (
+                  <span className="text-[11px] text-slate-400 font-medium py-1">
+                    Cargando especialidades...
+                  </span>
+                ) : especialidades.length === 0 ? (
+                  <span className="text-[11px] text-slate-400 font-medium py-1">
+                    No hay especialidades registradas
+                  </span>
+                ) : (
+                  especialidades.map((esp) => {
+                    const seleccionada = estaEspecialidadSeleccionada(esp);
+                    return (
+                      <button
+                        key={esp}
+                        type="button"
+                        onClick={() => toggleEspecialidad(esp)}
+                        aria-pressed={seleccionada}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                          seleccionada
+                            ? 'bg-[#2b7de9] text-white shadow-sm'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:border-[#2b7de9]/40 hover:text-[#2b7de9]'
+                        }`}
+                      >
+                        {seleccionada && <Check className="w-3 h-3 shrink-0" />}
+                        <span>{esp}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
               <p className="text-[10px] text-slate-400 mt-1">
-                {modo === 'crear'
-                  ? 'El técnico iniciará sesión con su Número de Celular y este PIN de 4 dígitos.'
-                  : 'Si no deseas cambiar el PIN del técnico, déjalo vacío.'}
+                Puedes seleccionar una o varias especialidades para este técnico.
               </p>
             </div>
 

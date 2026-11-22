@@ -1,6 +1,7 @@
 import React from 'react';
 import type { TecnicoResumen, OrdenDetalleAdmin } from '../../../types';
 import { Mail, Phone, Edit2 } from 'lucide-react';
+import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
 
 interface AdminTecnicoCardProps {
   tecnico: TecnicoResumen;
@@ -18,11 +19,12 @@ export const AdminTecnicoCard: React.FC<AdminTecnicoCardProps> = ({
   const tieneOrdenEnCurso = ordenes.some(
     (o) => o.tecnicoId === tecnico.id && (o.estado === 'EN_DOMICILIO' || o.estado === 'PENDIENTE')
   );
+  const listaEspecialidades = obtenerEspecialidadesTecnico(tecnico);
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 transition-all flex flex-col justify-between h-full">
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1 min-w-0 flex-1">
+        <div className="space-y-1.5 min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
             <span
               className={`w-2.5 h-2.5 rounded-full shrink-0 ${
@@ -42,17 +44,21 @@ export const AdminTecnicoCard: React.FC<AdminTecnicoCardProps> = ({
                   : 'No disponible'
               }
             />
-            <span className="font-bold text-slate-900 text-sm truncate shrink">
+            <span className="font-bold text-slate-900 text-sm truncate">
               {tecnico.nombreCompleto}
             </span>
-            <span
-              title={tecnico.especialidad || 'General'}
-              className="shrink-0 inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 whitespace-nowrap max-w-[140px] truncate border border-sky-100/80"
-            >
-              {tecnico.especialidad === 'Climatización y Aire Acondicionado'
-                ? 'Climatización'
-                : (tecnico.especialidad || 'General')}
-            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
+            {listaEspecialidades.map((esp) => (
+              <span
+                key={esp}
+                title={esp}
+                className="inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100/80 max-w-full truncate"
+              >
+                {esp === 'Climatización y Aire Acondicionado' ? 'Climatización' : esp}
+              </span>
+            ))}
           </div>
 
           <div className="flex flex-col gap-0.5 text-xs text-slate-500 pt-0.5">

@@ -30,7 +30,8 @@ export const TecnicosTab: React.FC<TecnicosTabProps> = ({
         t.nombreCompleto?.toLowerCase().includes(q) ||
         t.correo?.toLowerCase().includes(q) ||
         t.telefono?.toLowerCase().includes(q) ||
-        t.especialidad?.toLowerCase().includes(q)
+        t.especialidad?.toLowerCase().includes(q) ||
+        t.especialidades?.some((esp) => esp.toLowerCase().includes(q))
     );
   }, [tecnicos, busqueda]);
 

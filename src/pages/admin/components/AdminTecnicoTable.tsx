@@ -1,6 +1,7 @@
 import React from 'react';
 import type { TecnicoResumen, OrdenDetalleAdmin } from '../../../types';
 import { Mail, Phone, Edit2, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
 
 export interface AdminTecnicoTableProps {
   tecnicos: TecnicoResumen[];
@@ -34,7 +35,7 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <th className="py-3 px-4">Técnico</th>
-              <th className="py-3 px-4">Especialidad</th>
+              <th className="py-3 px-4">Especialidades</th>
               <th className="py-3 px-4">Contacto</th>
               <th className="py-3 px-4">Disponibilidad</th>
               <th className="py-3 px-4">Estado</th>
@@ -57,6 +58,7 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
                   (o) => o.tecnicoId === tecnico.id && (o.estado === 'EN_DOMICILIO' || o.estado === 'PENDIENTE')
                 );
                 const tieneOrdenEnCurso = ordenesTecnico.length > 0;
+                const listaEspecialidades = obtenerEspecialidadesTecnico(tecnico);
 
                 return (
                   <tr
@@ -73,10 +75,17 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100/80">
-                        {tecnico.especialidad || 'General'}
-                      </span>
+                    <td className="py-3.5 px-4 max-w-[260px]">
+                      <div className="flex flex-wrap gap-1.5">
+                        {listaEspecialidades.map((esp) => (
+                          <span
+                            key={esp}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100/80 whitespace-nowrap"
+                          >
+                            {esp}
+                          </span>
+                        ))}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 text-slate-600">
                       <div className="flex flex-col gap-0.5">

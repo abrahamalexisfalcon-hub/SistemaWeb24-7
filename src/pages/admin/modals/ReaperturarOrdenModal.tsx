@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { OrdenDetalleAdmin, TecnicoResumen, ReaperturarOrdenRequest } from '../../../types';
 import { X, RotateCcw, CalendarClock, UserCheck, FileText, AlertCircle, RefreshCw } from 'lucide-react';
 import { formatearFechaOrden } from '../../../utils/dateFormatter';
+import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
 
 interface ReaperturarOrdenModalProps {
   isOpen: boolean;
@@ -247,13 +248,16 @@ export const ReaperturarOrdenModal: React.FC<ReaperturarOrdenModalProps> = ({
               <option value={0} disabled>
                 Selecciona un técnico operativo...
               </option>
-              {tecnicosActivos.map((tec) => (
-                <option key={tec.id} value={tec.id}>
-                  {tec.nombreCompleto}
-                  {tec.especialidad ? ` — ${tec.especialidad}` : ''}
-                  {tec.disponible === false ? ' (En atención)' : ' (Disponible)'}
-                </option>
-              ))}
+              {tecnicosActivos.map((tec) => {
+                const especialidadesLabel = obtenerEspecialidadesTecnico(tec, []).join(', ');
+                return (
+                  <option key={tec.id} value={tec.id}>
+                    {tec.nombreCompleto}
+                    {especialidadesLabel ? ` — ${especialidadesLabel}` : ''}
+                    {tec.disponible === false ? ' (En atención)' : ' (Disponible)'}
+                  </option>
+                );
+              })}
             </select>
           </div>
 

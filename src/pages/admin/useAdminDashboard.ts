@@ -503,11 +503,36 @@ export function useAdminDashboard() {
     }
   };
 
+  const resolverEspecialidadIds = useCallback(
+    (nombres?: string[], idsActuales?: number[]): number[] | undefined => {
+      if (idsActuales && idsActuales.length > 0) return idsActuales;
+      if (!nombres || nombres.length === 0) return undefined;
+      const ids = nombres
+        .map(
+          (nombre) =>
+            especialidadesObj.find(
+              (e) => e.nombre.trim().toLowerCase() === nombre.trim().toLowerCase()
+            )?.id
+        )
+        .filter((id): id is number => typeof id === 'number');
+      return ids.length === nombres.length && ids.length > 0 ? ids : undefined;
+    },
+    [especialidadesObj]
+  );
+
   const handleCrearTecnico = async (nuevoTecnico: CrearTecnicoRequest) => {
     setFormError(null);
     setSubmitting(true);
     try {
-      const creado = await adminApi.crearTecnico(nuevoTecnico);
+      const especialidadIds = resolverEspecialidadIds(
+        nuevoTecnico.especialidades,
+        nuevoTecnico.especialidadIds
+      );
+      const payload: CrearTecnicoRequest = {
+        ...nuevoTecnico,
+        ...(especialidadIds ? { especialidadIds } : {}),
+      };
+      const creado = await adminApi.crearTecnico(payload);
       setTecnicos((prev) => [creado, ...prev]);
       setModalNuevoTecnico(false);
     } catch (err: any) {
@@ -552,7 +577,15 @@ export function useAdminDashboard() {
     setFormError(null);
     setSubmitting(true);
     try {
-      const actualizado = await adminApi.actualizarTecnico(tecnicoAEditar.id, datos);
+      const especialidadIds = resolverEspecialidadIds(
+        datos.especialidades,
+        datos.especialidadIds
+      );
+      const payload: ActualizarTecnicoRequest = {
+        ...datos,
+        ...(especialidadIds ? { especialidadIds } : {}),
+      };
+      const actualizado = await adminApi.actualizarTecnico(tecnicoAEditar.id, payload);
       setTecnicos((prev) =>
         prev.map((t) => (t.id === tecnicoAEditar.id ? { ...t, ...actualizado } : t))
       );

@@ -15,6 +15,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { obtenerFechaHoraActualLocal } from '../useAdminDashboard';
+import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
 
 interface NuevaOrdenTabProps {
   nuevaOrden: CrearOrdenRequest;
@@ -643,7 +644,7 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
                     .filter((t) => t && t.activo !== false)
                     .map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.nombreCompleto} ({t.especialidad || 'General'}) -{' '}
+                        {t.nombreCompleto} ({obtenerEspecialidadesTecnico(t).join(', ')}) -{' '}
                         {t.disponible ? 'Disponible' : 'En atención'}
                       </option>
                     ))}

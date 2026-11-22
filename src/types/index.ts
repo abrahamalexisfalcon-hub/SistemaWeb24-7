@@ -297,6 +297,8 @@ export interface TecnicoResumen {
   correo: string;
   telefono: string;
   especialidad?: string;
+  especialidades?: string[];
+  especialidadIds?: number[];
   activo: boolean;
   disponible?: boolean;
 }
@@ -307,6 +309,8 @@ export interface CrearTecnicoRequest {
   password: string;
   telefono: string;
   especialidad: string;
+  especialidades?: string[];
+  especialidadIds?: number[];
 }
 
 export interface ActualizarTecnicoRequest {
@@ -314,6 +318,8 @@ export interface ActualizarTecnicoRequest {
   correo?: string;
   telefono?: string;
   especialidad?: string;
+  especialidades?: string[];
+  especialidadIds?: number[];
   password?: string;
 }
 

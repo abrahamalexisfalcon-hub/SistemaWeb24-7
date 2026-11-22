@@ -1,34 +1,76 @@
-# AGENTS.md — Directrices y Reglas de Ingeniería (24/7 Asistencias Generales)
+# AGENTS.md — Directrices Técnicas de Frontend
+# Ubicación: `frontend/` | Stack: React 19 + TypeScript + Vite + Tailwind CSS + PWA
 
-Proyecto integral para la gestión de asistencias técnicas domiciliarias (Backend REST Spring Boot + Frontend React PWA desplegados en Hostinger VPS con Docker Compose).
-
----
-
-## Reglas Críticas Obligatorias
-
-- **Regla 1 (Testing y DI):** Cada vez que se agregue o modifique un repositorio/servicio inyectado en un `Service`, actualizar inmediatamente los constructores en los tests unitarios (ej. [`CoreServicesUnitTests.java`](file:///c:/Users/USER/Desktop/asistencias247/Backend/src/test/java/com/asistencias247/api/service/CoreServicesUnitTests.java)).
-- **Regla 2 (Docker Build):** En `backend/Dockerfile` siempre usar `RUN mvn clean package -Dmaven.test.skip=true` para empaquetado de producción.
-- **Regla 3 (Validación de tipos):** Mantener sincronizados los DTOs de Spring Boot con las interfaces TypeScript del frontend (`frontend/src/types/index.ts`).
-- **Regla 4 (CI/CD):** Todo commit a `main` dispara el despliegue automático en el VPS mediante GitHub Actions. No subir cambios sin verificar antes `mvn compile` en backend y `npm run build` en frontend.
+Esta capa alberga la interfaz de usuario del sistema 24/7 Asistencias, estructurada en dos portales diferenciados: la experiencia Mobile-First para técnicos en campo y el Centro de Control de Escritorio para coordinadores y administradores.
 
 ---
 
-## Stack y Estructura
-- **Backend (`Backend/`):** Java 21 (LTS), Spring Boot 3.4.x, Spring Data JPA, Hibernate, PostgreSQL 16 (`asistencias_db`), Spring Security 6 + JJWT.
-  - Entidades en `com.asistencias247.api.entity` (`Afiliado`, `Usuario`, `Especialidad`, `Material`, `MaterialServicio`, `Cuenta`, `OrdenServicio`, `HojaServicio`).
-  - Repositorios en `com.asistencias247.api.repository`.
-  - Servicios en `com.asistencias247.api.service`.
-  - Controladores en `com.asistencias247.api.controller`.
-- **Frontend (`frontend/`):** React 19, TypeScript, Vite, Tailwind CSS, `vite-plugin-pwa`, `react-router-dom`, `lucide-react`, `axios`.
-  - Cliente HTTP en `src/api/client.ts` (`baseURL: import.meta.env.VITE_API_URL || '/api'`).
-  - Modelos TypeScript en `src/types/index.ts`.
-  - Vistas y pestañas modulares en `src/pages/admin/` y `src/pages/tecnico/`.
+## 1. Arquitectura de Componentes y Separación de Capas
+
+```
+frontend/src/
+├── api/            # Configuración de Axios (client.ts), interceptores de JWT y endpoints organizados por dominio.
+├── components/     # Componentes visuales reutilizables (Botones, Modales, Badges, Loaders, SignatureCanvas).
+├── context/        # Contextos globales de React (AuthContext, OrdenesContext) para estado compartido.
+├── hooks/          # Custom hooks con la lógica de negocio, llamados asíncronos y ciclo de vida (useEspecialidades, useOrdenes).
+├── pages/          # Páginas principales del router:
+│   ├── admin/      # Vistas de escritorio (Dashboard, Asignaciones, Cuentas, Afiliados, Catálogo de Materiales).
+│   └── tecnico/    # Vistas mobile-first (Login PIN, Mis Órdenes, Detalle, Atención Técnica, Cierre y Firma).
+├── types/          # Definición canónica de tipos TypeScript (index.ts) sincronizada con el Backend.
+└── utils/          # Helpers de formato de fechas, compresión de imágenes y generación de PDF.
+```
+
+### Reglas de Diseño de Componentes
+- **Separación Lógica/UI:** Los componentes visuales no deben ejecutar consultas HTTP directas. Deben consumir hooks o funciones de servicio de `src/api/`.
+- **Pureza de Renderizado:** No invocar funciones con efectos colaterales (ej. `new Date()` sin memoizar o llamadas a `setState`) durante la fase de render. Usar `useMemo`, `useCallback` y `useEffect` adecuadamente.
+- **Tipado Fuerte:** Prohibido el uso de `any` en interfaces públicas y props. Mantener `src/types/index.ts` rigurosamente sincronizado con los DTOs de Spring Boot.
 
 ---
 
-## Reglas de Dominio y Negocio
-- **Privacidad del Afiliado:** Los técnicos NUNCA deben tener acceso al número de teléfono del afiliado. El contacto directo lo gestiona exclusivamente administración.
-- **Correlativo de Orden:** `codigoOrden` se genera automáticamente en formato `ORD-YYYY-XXX`.
-- **Campos Obligatorios de `OrdenServicio`:** Toda orden requiere `numeroCaso` (alfanumérico único), `numeroOt` (alfanumérico único), `fechaPactada` (`LocalDateTime` futura/presente obligatoria) y relación `@ManyToOne` con `Cuenta` (`cuenta_id` no nulo).
-- **Precios y Materiales:** Los técnicos NO registran ni ven precios ni montos de dinero; solo reportan `material` (catálogo o personalizado) y `cantidad`.
-- **Seguridad:** Nunca almacenar contraseñas en texto plano (usar `BCryptPasswordEncoder`) ni versionar secretos en texto plano dentro del repositorio.
+## 2. Reglas de Diseño UI/UX y Responsividad
+
+### Experiencia Técnico en Campo (Mobile-First Obligatorio)
+- **Ergonomía Táctil:** Botones de acción principales con `Touch Target` mínimo de 48px de alto, tipografías legibles y paleta de colores de alto contraste con Tailwind CSS.
+- **Flujo de Asistencia Paso a Paso:**
+  1. Identificación y llegada: Botones de geolocalización ("Abrir en Waze" / "Google Maps") y confirmación de llegada.
+  2. Evidencia fotográfica: Captura directa desde cámara o galería de fotos ("Antes" y "Después").
+  3. Compresión obligatoria en cliente (`browser-image-compression`) antes de subir a Cloudinary para garantizar fluidez en conexiones móviles 3G/4G inestables.
+  4. Cierre y Firma: Lienzo táctil con `react-signature-canvas`, captura de DNI del recepcionante, generación de Acta/Hoja de Servicio en PDF y opción de envío a WhatsApp.
+- **Resiliencia Local:** Persistencia automática de borradores de atención en `localStorage` para prevenir pérdida de datos si la aplicación se recarga o pierde cobertura en ruta.
+
+### Centro de Control Administrativo (Escritorio Limpio)
+- Tableros densos en información: Tablas con scroll virtualizado, filtros rápidos por aseguradora/cuenta, estado de orden, fecha pactada y asignación de técnicos en tiempo real.
+- Modales sin desbordamiento de pantalla con validaciones visuales inmediatas (`sonner` toasts).
+
+---
+
+## 3. Protocolo de Verificación y Compilación Obligatoria
+
+> [!CRITICAL]
+> **Calidad de Compilación, Tipado y Cero Errores en Consola:**
+> Ningún componente, hook o estilo debe entregarse sin superar la compilación estricta de TypeScript y el linter.
+
+### Comandos de Verificación Local (desde `frontend/`)
+```powershell
+# 1. Compilación de tipos TypeScript y empaquetado de producción con Vite:
+npm run build
+
+# 2. Análisis estático de código y reglas de calidad:
+npm run lint
+
+# 3. Verificación de servidor de desarrollo (si se requiere validar visualmente):
+npm run dev
+```
+
+### Criterios de Aceptación UI/UX (Inspección Visual y Consola)
+- **Cero Desbordamientos:** No debe existir scroll horizontal accidental (*overflow-x*) en resoluciones móviles (360px a 430px de ancho).
+- **Manejo de Estados de Carga:** Skeleton loaders o spinners claros durante peticiones asíncronas a la API o subidas a Cloudinary.
+- **Alertas y Toasts:** Notificaciones claras al usuario ante errores de red, fallos de autenticación o validaciones de formulario incompletas.
+- **Consola Limpia:** Sin advertencias de React (`missing key`, variables no utilizadas o bucles en efectos).
+
+---
+
+## 4. Requisitos para Despliegue en Producción (Hostinger VPS)
+
+- **Dockerfile de Producción:** Ejecuta `npm run build` y empaqueta los estáticos en Nginx Alpine con `nginx.conf` (`try_files $uri $uri/ /index.html`).
+- **Compatibilidad con CI/CD:** El empaquetado no debe contener advertencias de tipos fallidas para no romper el paso `docker compose up -d --build` en el pipeline de GitHub Actions `Deploy to Hostinger VPS`.
