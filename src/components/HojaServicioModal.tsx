@@ -7,7 +7,7 @@ import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 import logo247 from '../assets/Logo_negro.png';
 import { tecnicoApi } from '../api';
-import { useEspecialidades } from '../hooks';
+import { useEspecialidades, useModalBackButton } from '../hooks';
 import type { OrdenDetalleAdmin, OrdenResumenTecnico, MaterialConsumido } from '../types';
 import { EvidenciasGaleria } from './EvidenciasGaleria';
 
@@ -95,6 +95,7 @@ const RenglonesTexto: React.FC<{ texto?: string; minLineas?: number }> = ({ text
 
 /* ═══════════════════════════════════════════════════════════════════════════════ */
 export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onClose }) => {
+  useModalBackButton(Boolean(orden), onClose);
   const [detalleExtra, setDetalleExtra] = useState<OrdenResumenTecnico | null>(null);
   const [compartiendoWa, setCompartiendoWa] = useState(false);
   const { especialidades: espObjs } = useEspecialidades();

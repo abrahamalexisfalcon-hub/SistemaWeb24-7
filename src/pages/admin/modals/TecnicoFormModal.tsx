@@ -6,6 +6,7 @@ import type {
 } from '../../../types';
 import { X, RefreshCw, AlertCircle, Eye, EyeOff, Check } from 'lucide-react';
 import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
+import { useModalBackButton } from '../../../hooks';
 
 interface TecnicoFormModalProps {
   isOpen: boolean;
@@ -48,6 +49,16 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
   // Confirmación de suspensión / reactivación
   const [modalConfirmarEstado, setModalConfirmarEstado] = useState(false);
   const [accionConfirmar, setAccionConfirmar] = useState<'suspender' | 'reactivar' | null>(null);
+
+  useModalBackButton(isOpen, () => {
+    if (!submitting) onClose();
+  });
+  useModalBackButton(modalConfirmarEstado, () => {
+    if (!togglingId) {
+      setModalConfirmarEstado(false);
+      setAccionConfirmar(null);
+    }
+  });
 
   useEffect(() => {
     setLocalError(null);

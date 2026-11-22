@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, ZoomIn, X, RotateCw, Download, ChevronLeft, ChevronRight, Share2, RefreshCw } from 'lucide-react';
+import { useModalBackButton } from '../hooks';
 
 export interface EvidenciasGaleriaProps {
   fotos?: (string | null | undefined)[];
@@ -72,6 +73,8 @@ export const EvidenciasGaleria: React.FC<EvidenciasGaleriaProps> = ({
     setFotoActivaIndex(null);
     setRotacion(0);
   }, []);
+
+  useModalBackButton(Boolean(fotoActual), cerrarLightbox);
 
   const fotoSiguiente = useCallback(() => {
     if (fotoActivaIndex === null || fotosValidas.length <= 1) return;

@@ -3,6 +3,7 @@ import type { OrdenDetalleAdmin, TecnicoResumen, ReaperturarOrdenRequest } from 
 import { X, RotateCcw, CalendarClock, UserCheck, FileText, AlertCircle, RefreshCw } from 'lucide-react';
 import { formatearFechaOrden } from '../../../utils/dateFormatter';
 import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
+import { useModalBackButton } from '../../../hooks';
 
 interface ReaperturarOrdenModalProps {
   isOpen: boolean;
@@ -32,6 +33,10 @@ export const ReaperturarOrdenModal: React.FC<ReaperturarOrdenModalProps> = ({
   const [tecnicoId, setTecnicoId] = useState<number>(0);
   const [observacion, setObservacion] = useState<string>('');
   const [localError, setLocalError] = useState<string | null>(null);
+
+  useModalBackButton(Boolean(isOpen && orden), () => {
+    if (!reaperturando) onClose();
+  });
 
   const tecnicosActivos = useMemo(
     () => (tecnicos || []).filter((t) => t.activo !== false),

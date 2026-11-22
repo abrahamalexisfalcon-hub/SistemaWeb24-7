@@ -13,6 +13,7 @@ import {
   Power,
 } from 'lucide-react';
 import { adminApi } from '../../../api';
+import { useModalBackButton } from '../../../hooks';
 import type { Cuenta } from '../../../types';
 
 interface CuentasModalProps {
@@ -40,6 +41,11 @@ export const CuentasModal: React.FC<CuentasModalProps> = ({
   // Confirmación para deshabilitar cuenta
   const [cuentaADesactivar, setCuentaADesactivar] = useState<Cuenta | null>(null);
   const [procesandoId, setProcesandoId] = useState<number | null>(null);
+
+  useModalBackButton(isOpen, onClose);
+  useModalBackButton(Boolean(cuentaADesactivar), () => {
+    if (procesandoId === null) setCuentaADesactivar(null);
+  });
 
   const cargarCuentas = useCallback(async () => {
     setCargando(true);

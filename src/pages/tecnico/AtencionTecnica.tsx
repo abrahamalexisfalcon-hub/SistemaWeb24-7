@@ -7,6 +7,7 @@ import type { OrdenResumenTecnico, MaterialCatalogo, MaterialConsumido } from '.
 import { ChevronLeft, Plus, Trash2, Minus, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatearHoraLocal } from '../../utils/dateFormatter';
+import { useModalBackButton } from '../../hooks';
 
 interface BorradorAtencion {
   evaluacion: string;
@@ -116,6 +117,10 @@ export const AtencionTecnica: React.FC = () => {
   const [modalAnulacionOpen, setModalAnulacionOpen] = useState(false);
   const [motivoAnulacion, setMotivoAnulacion] = useState('');
   const [anulando, setAnulando] = useState(false);
+
+  useModalBackButton(modalAnulacionOpen, () => {
+    if (!anulando) setModalAnulacionOpen(false);
+  });
 
   // 1 & 2. Clave dinámica por orden y carga del estado inicial desde localStorage
   const ordenId = id || orden?.id || '1';

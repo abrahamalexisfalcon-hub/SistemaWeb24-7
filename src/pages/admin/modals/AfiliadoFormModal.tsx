@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useModalBackButton } from '../../../hooks';
 import type {
   Afiliado,
   AfiliadoDireccion,
@@ -106,6 +107,9 @@ const construirDireccionesIniciales = (
 };
 
 export const AfiliadoFormModal: React.FC<AfiliadoFormModalProps> = (props) => {
+  useModalBackButton(props.isOpen, () => {
+    if (!props.submitting) props.onClose();
+  });
   if (!props.isOpen) return null;
   const modoEfectivo: 'crear' | 'editar' =
     props.modo ?? (props.afiliadoAEditar ? 'editar' : 'crear');

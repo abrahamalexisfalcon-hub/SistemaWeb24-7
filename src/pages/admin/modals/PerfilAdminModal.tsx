@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Shield, LogOut } from 'lucide-react';
+import { useModalBackButton } from '../../../hooks';
 
 interface PerfilAdminModalProps {
   isOpen: boolean;
@@ -15,6 +16,8 @@ export const PerfilAdminModal: React.FC<PerfilAdminModalProps> = ({
   user,
   onLogout,
 }) => {
+  useModalBackButton(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const modalElement = (

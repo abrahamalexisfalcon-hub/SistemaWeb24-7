@@ -13,6 +13,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { materialApi, adminApi } from '../../api';
+import { useModalBackButton } from '../../hooks';
 import type { Material, Especialidad } from '../../types';
 
 interface GestionMaterialesModalProps {
@@ -49,6 +50,11 @@ export const GestionMaterialesModal: React.FC<GestionMaterialesModalProps> = ({
   // Modal de confirmación para eliminar
   const [materialAEliminar, setMaterialAEliminar] = useState<Material | null>(null);
   const [eliminando, setEliminando] = useState<boolean>(false);
+
+  useModalBackButton(isOpen, onClose);
+  useModalBackButton(Boolean(materialAEliminar), () => {
+    if (!eliminando) setMaterialAEliminar(null);
+  });
 
   // 1. Cargar especialidades
   const cargarEspecialidades = useCallback(async () => {

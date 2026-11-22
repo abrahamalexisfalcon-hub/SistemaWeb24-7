@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { OrdenDetalleAdmin } from '../../../types';
 import { X, RefreshCw } from 'lucide-react';
+import { useModalBackButton } from '../../../hooks';
 
 interface AnularOrdenModalProps {
   isOpen: boolean;
@@ -20,6 +21,10 @@ export const AnularOrdenModal: React.FC<AnularOrdenModalProps> = ({
   error,
 }) => {
   const [motivo, setMotivo] = useState('');
+
+  useModalBackButton(Boolean(isOpen && orden), () => {
+    if (!anulando) onClose();
+  });
 
   if (!isOpen || !orden) return null;
 

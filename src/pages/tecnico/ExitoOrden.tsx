@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { tecnicoApi } from '../../api';
-import { useEspecialidades } from '../../hooks';
+import { useEspecialidades, useModalBackButton } from '../../hooks';
 import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import type { OrdenResumenTecnico, MaterialConsumido } from '../../types';
 import { ChevronLeft, Check, Star, FileText, Download } from 'lucide-react';
@@ -111,6 +111,8 @@ export const ExitoOrden: React.FC = () => {
 
   const [modalPdfOpen, setModalPdfOpen] = useState(false);
   const [ordenDetalle, setOrdenDetalle] = useState<OrdenResumenTecnico | null>(null);
+
+  useModalBackButton(modalPdfOpen, () => setModalPdfOpen(false));
 
   const orden = ordenDetalle || ordenFromState;
   const duracion =

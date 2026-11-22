@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, AlertCircle, Info, RefreshCw } from 'lucide-react';
+import { useModalBackButton } from '../hooks';
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -27,6 +28,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  useModalBackButton(isOpen, () => {
+    if (!isLoading) onCancel();
+  });
+
   // Bloquear scroll del body mientras el modal esté abierto para prevenir desbordes
   useEffect(() => {
     if (!isOpen) return;

@@ -4,6 +4,7 @@ import { X, Phone, Clock, AlertCircle, FileText, Pencil, Check, RefreshCw, Rotat
 import { formatearFechaHora, getBadgeConfig } from '../utils';
 import { EvidenciasGaleria } from '../../../components';
 import { adminApi } from '../../../api';
+import { useModalBackButton } from '../../../hooks';
 import { toast } from 'sonner';
 
 interface OrdenDetalleModalProps {
@@ -28,6 +29,8 @@ export const OrdenDetalleModal: React.FC<OrdenDetalleModalProps> = ({
   const [editandoObs, setEditandoObs] = useState(false);
   const [observacionTexto, setObservacionTexto] = useState('');
   const [guardandoObs, setGuardandoObs] = useState(false);
+
+  useModalBackButton(Boolean(orden), onClose);
 
   useEffect(() => {
     setEditandoObs(false);

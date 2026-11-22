@@ -3,6 +3,7 @@ import type { Afiliado } from '../../../types';
 import { Plus, MapPin, Phone, Search, X, Edit2, Trash2, AlertTriangle, Users, Home } from 'lucide-react';
 import { AdminClienteTable } from '../components';
 import { obtenerDireccionesAfiliado, obtenerDireccionPrincipal } from '../../../utils/afiliadoDirecciones';
+import { useModalBackButton } from '../../../hooks';
 
 interface ClientesTabProps {
   afiliados: Afiliado[];
@@ -22,6 +23,10 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
   const [tamanioPagina, setTamanioPagina] = useState(10);
   const [afiliadoAEliminar, setAfiliadoAEliminar] = useState<Afiliado | null>(null);
   const [eliminando, setEliminando] = useState(false);
+
+  useModalBackButton(Boolean(afiliadoAEliminar), () => {
+    if (!eliminando) setAfiliadoAEliminar(null);
+  });
 
   // Filtrado instantáneo en tiempo real por nombre, DNI, teléfono o dirección/distrito
   const afiliadosFiltrados = useMemo(() => {

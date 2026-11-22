@@ -12,6 +12,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { adminApi } from '../../../api';
+import { useModalBackButton } from '../../../hooks';
 import type { Especialidad } from '../../../types';
 
 interface EspecialidadesModalProps {
@@ -42,6 +43,11 @@ export const EspecialidadesModal: React.FC<EspecialidadesModalProps> = ({
   // Modal de confirmación para eliminar
   const [especialidadAEliminar, setEspecialidadAEliminar] = useState<Especialidad | null>(null);
   const [eliminando, setEliminando] = useState<boolean>(false);
+
+  useModalBackButton(isOpen, onClose);
+  useModalBackButton(Boolean(especialidadAEliminar), () => {
+    if (!eliminando) setEspecialidadAEliminar(null);
+  });
 
   // Cargar especialidades activas desde Backend
   const cargarEspecialidades = useCallback(async () => {
