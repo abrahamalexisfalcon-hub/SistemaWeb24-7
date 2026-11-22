@@ -279,23 +279,119 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
 
     const codigoSanitizado = codigoSinHash.replace(/[^a-zA-Z0-9_-]/g, '_');
 
+    // Clonar en un contenedor auxiliar fijo de 794px (formato oficial A4) para que móvil y escritorio generen el mismo PDF
+    const clon = elemento.cloneNode(true) as HTMLElement;
+    clon.removeAttribute('id');
+
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-10000px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '794px';
+    wrapper.style.backgroundColor = '#ffffff';
+    wrapper.style.zIndex = '-1';
+    wrapper.style.pointerEvents = 'none';
+
+    clon.style.width = '794px';
+    clon.style.maxWidth = '794px';
+    clon.style.minWidth = '794px';
+    clon.style.boxSizing = 'border-box';
+    clon.style.backgroundColor = '#ffffff';
+    clon.style.padding = '20px 28px';
+    clon.style.fontSize = '10px';
+    clon.style.lineHeight = '1.45';
+    clon.style.overflow = 'visible';
+
+    clon.querySelectorAll<HTMLElement>('[data-pdf-header="desktop"]').forEach((el) => {
+      el.style.setProperty('display', 'flex', 'important');
+    });
+    clon.querySelectorAll<HTMLElement>('[data-pdf-header="mobile"]').forEach((el) => {
+      el.style.setProperty('display', 'none', 'important');
+    });
+    clon.querySelectorAll<HTMLElement>('[data-pdf-row="nowrap"]').forEach((el) => {
+      el.style.setProperty('flex-wrap', 'nowrap', 'important');
+    });
+
+    wrapper.appendChild(clon);
+    document.body.appendChild(wrapper);
+
     try {
+      // Esperar carga y decodificación de todas las imágenes del clon con límite de seguridad
+      const imagenes = Array.from(clon.querySelectorAll('img'));
+      if (imagenes.length > 0) {
+        const esperarImagen = (img: HTMLImageElement) =>
+          new Promise<void>((resolve) => {
+            if (!img.getAttribute('src')) {
+              resolve();
+              return;
+            }
+
+            const finalizar = () => {
+              if (typeof img.decode === 'function') {
+                img.decode().catch(() => undefined).finally(resolve);
+              } else {
+                resolve();
+              }
+            };
+
+            if (img.complete) {
+              if (img.naturalWidth > 0) {
+                finalizar();
+              } else {
+                resolve();
+              }
+              return;
+            }
+
+            const onLoad = () => {
+              img.removeEventListener('error', onError);
+              finalizar();
+            };
+            const onError = () => {
+              img.removeEventListener('load', onLoad);
+              resolve();
+            };
+
+            img.addEventListener('load', onLoad, { once: true });
+            img.addEventListener('error', onError, { once: true });
+          });
+
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([
+          Promise.all(imagenes.map(esperarImagen)),
+          new Promise<void>((resolve) => {
+            timeoutId = setTimeout(resolve, 2000);
+          }),
+        ]);
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+        }
+      }
+
+      // Permitir recálculo completo del layout a 794px antes de capturar
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      });
+
       let canvas: HTMLCanvasElement;
       try {
         // Renderizado nativo con modern-screenshot: conserva al 100% los íconos SVG, checks, subrayados y fuentes de la web
-        canvas = await domToCanvas(elemento, {
-          scale: 3,
+        canvas = await domToCanvas(clon, {
+          scale: 2.5,
+          width: 794,
           backgroundColor: '#ffffff',
         });
       } catch {
-        canvas = await html2canvas(elemento, {
+        canvas = await html2canvas(clon, {
           scale: 2,
+          width: 794,
+          windowWidth: 794,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
           logging: false,
-          height: elemento.offsetHeight,
-          windowHeight: elemento.scrollHeight,
         });
       }
 
@@ -325,6 +421,8 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
       return new File([pdfBlob], nombrePdf, { type: 'application/pdf' });
     } catch {
       return null;
+    } finally {
+      wrapper.remove();
     }
   };
 
@@ -509,7 +607,10 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
           className="px-5 py-4 text-[10px] leading-[1.45] text-gray-900 space-y-2.5 overflow-hidden print:px-6 print:py-3 print:text-[9.5px] print:max-h-[278mm] print:overflow-hidden"
         >
           {/* ===== CABECERA ESCRITORIO / IMPRESIÓN (Intacta) ===== */}
-          <div className="hidden sm:flex print:flex items-center justify-between w-full pb-3 border-b-2 border-sky-600 mb-4">
+          <div
+            data-pdf-header="desktop"
+            className="hidden sm:flex print:flex items-center justify-between w-full pb-3 border-b-2 border-sky-600 mb-4"
+          >
             {/* Logo institucional (15% de ancho, alineado a la izquierda) */}
             <div className="w-[15%] flex items-center justify-start">
               <img src={logo247} alt="24/7 Asistencias" className="h-[100px] w-auto object-contain" />
@@ -523,7 +624,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
             </div>
 
             {/* Datos de contacto con logos oficiales locales */}
-            <div className="flex flex-col items-end space-y-1.5 text-s text-sky-600 print:text-sky-700">
+            <div className="flex flex-col items-end space-y-1.5 text-xs text-sky-600 print:text-sky-700">
               {/* Fila 1: WhatsApp */}
               <div className="flex items-center gap-1.5 font-medium">
                 <img
@@ -563,7 +664,10 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
           </div>
 
           {/* ===== CABECERA MÓVIL (2 niveles apilados, oculta en escritorio e impresión) ===== */}
-          <div className="flex sm:hidden print:hidden flex-col w-full pb-3 border-b-2 border-sky-600 mb-3 gap-2.5">
+          <div
+            data-pdf-header="mobile"
+            className="flex sm:hidden print:hidden flex-col w-full pb-3 border-b-2 border-sky-600 mb-3 gap-2.5"
+          >
             {/* Nivel 1 (Fila superior): Logo a la izquierda + Título al centro exacto */}
             <div className="flex items-center justify-between w-full">
               {/* Logo a la izquierda */}
@@ -625,22 +729,28 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
               DATOS DEL AFILIADO:
             </h3>
             <div className="text-[10px] space-y-1 text-gray-900">
-              <div className="flex gap-4">
+              <div
+                data-pdf-row="nowrap"
+                className="flex items-baseline justify-between gap-3 flex-wrap sm:flex-nowrap"
+              >
                 <div className="flex-1">
                   <span className="font-bold">APELLIDOS Y NOMBRES: </span>
                   <span className="border-b border-gray-300 pb-0.5">{nombreAfiliado}</span>
                 </div>
-                <div>
+                <div className="shrink-0 whitespace-nowrap">
                   <span className="font-bold">FECHA: </span>
                   <span className="border-b border-gray-300 pb-0.5">{fechaMostrar}</span>
                 </div>
               </div>
-              <div className="flex gap-4">
+              <div
+                data-pdf-row="nowrap"
+                className="flex items-baseline justify-between gap-3 flex-wrap sm:flex-nowrap"
+              >
                 <div className="flex-1">
                   <span className="font-bold">CUENTA: </span>
                   <span className="border-b border-gray-300 pb-0.5">{nombreCuenta}</span>
                 </div>
-                <div>
+                <div className="shrink-0 whitespace-nowrap">
                   <span className="font-bold">D.N.I. N°: </span>
                   <span className="border-b border-gray-300 pb-0.5">{dniAfiliado || '—'}</span>
                 </div>
@@ -762,8 +872,8 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
               </div>
 
               {/* Calificación Presentación */}
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="font-bold mr-1">Presentación y Puntualidad:</span>
+              <div className="flex items-center gap-x-1 gap-y-1.5 flex-wrap leading-normal">
+                <span className="font-bold mr-1 shrink-0 whitespace-nowrap">Presentación y Puntualidad:</span>
                 {(['Excelente', 'Regular', 'Malo'] as const).map((lbl) => (
                   <CheckBox
                     key={`pres-${lbl}`}
@@ -774,8 +884,8 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
               </div>
 
               {/* Calificación Trabajo */}
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="font-bold mr-1">Trabajo Realizado:</span>
+              <div className="flex items-center gap-x-1 gap-y-1.5 flex-wrap leading-normal">
+                <span className="font-bold mr-1 shrink-0 whitespace-nowrap">Trabajo Realizado:</span>
                 {(['Excelente', 'Regular', 'Malo'] as const).map((lbl) => (
                   <CheckBox
                     key={`trab-${lbl}`}
@@ -801,6 +911,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
                   <img
                     src={tecnicoFirmaUrl}
                     alt="Firma del técnico"
+                    crossOrigin="anonymous"
                     className="max-h-14 md:max-h-16 w-auto object-contain pointer-events-none"
                   />
                 ) : (
@@ -819,6 +930,7 @@ export const HojaServicioModal: React.FC<HojaServicioModalProps> = ({ orden, onC
                   <img
                     src={firmaClienteUrl}
                     alt="Firma Afiliado"
+                    crossOrigin="anonymous"
                     className="h-14 md:h-16 object-contain mx-auto"
                   />
                 ) : (
