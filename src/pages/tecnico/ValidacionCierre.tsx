@@ -192,23 +192,13 @@ export const ValidacionCierre: React.FC = () => {
       const saved = localStorage.getItem(DRAFT_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        const listaMateriales = (parsed.materialesSeleccionados || []).map((m: {
-          materialId?: number | null;
-          descripcion?: string | null;
-          cantidad?: number;
-          esPersonalizado?: boolean;
-        }) => ({
-          materialId: m.esPersonalizado ? null : m.materialId,
-          descripcion: m.esPersonalizado ? m.descripcion : null,
-          cantidad: m.cantidad || 1,
-        }));
-        if (listaMateriales.length === 0 && parsed.descripcionMateriales?.trim()) {
-          listaMateriales.push({
-            materialId: null,
-            descripcion: parsed.descripcionMateriales.trim(),
-            cantidad: 1,
-          });
-        }
+        const listaMateriales = (parsed.materialesSeleccionados || [])
+          .filter((m: { materialId?: number | null; esPersonalizado?: boolean }) => !m.esPersonalizado && m.materialId != null)
+          .map((m: { materialId: number; cantidad?: number }) => ({
+            materialId: m.materialId,
+            descripcion: null,
+            cantidad: m.cantidad || 1,
+          }));
         return {
           evaluacionAveria: parsed.evaluacion || '',
           detalleSolucion: parsed.solucion || '',
