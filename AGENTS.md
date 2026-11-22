@@ -71,6 +71,7 @@ npm run dev
 ---
 
 ## 4. Requisitos para Despliegue en Producción (Hostinger VPS)
+-Nunca despliegues sin autorización
 
 - **Dockerfile de Producción:** Ejecuta `npm run build` y empaqueta los estáticos en Nginx Alpine con `nginx.conf` (`try_files $uri $uri/ /index.html`).
 - **Compatibilidad con CI/CD:** El empaquetado no debe contener advertencias de tipos fallidas para no romper el paso `docker compose up -d --build` en el pipeline de GitHub Actions `Deploy to Hostinger VPS`.

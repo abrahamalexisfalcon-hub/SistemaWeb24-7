@@ -4,7 +4,18 @@ import { catalogoApi, materialApi, tecnicoApi } from '../../api';
 import { useOrdenes } from '../../context/OrdenesContext';
 import { TecnicoLayout, OrderStepper } from '../../components/tecnico';
 import type { OrdenResumenTecnico, MaterialCatalogo, MaterialConsumido } from '../../types';
-import { ChevronLeft, Plus, Trash2, Minus, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronDown,
+  Plus,
+  Trash2,
+  Minus,
+  AlertCircle,
+  RefreshCw,
+  AlertTriangle,
+  Package,
+  PenLine,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { formatearHoraLocal } from '../../utils/dateFormatter';
 import { useModalBackButton } from '../../hooks';
@@ -234,26 +245,35 @@ export const AtencionTecnica: React.FC = () => {
         console.warn('Error al obtener materiales por especialidad:', err);
       }
 
-      // Fallback a catalogo general
+      // Segundo intento: catálogo general de materiales activos (/api/materiales sin filtro)
+      try {
+        const todosMateriales = await materialApi.getMateriales();
+        if (todosMateriales && todosMateriales.length > 0) {
+          setCatalogo(
+            todosMateriales.map((m) => ({
+              id: m.id,
+              nombre: `${m.nombre} (${m.unidad || 'Unidad'})`,
+              activo: m.activo,
+            }))
+          );
+          return;
+        }
+      } catch (err) {
+        console.warn('Error al obtener catálogo general de materiales:', err);
+      }
+
+      // Fallback final a endpoint legado
       catalogoApi
         .getMaterialesActivos()
         .then((data) => {
-          setCatalogo(data);
+          setCatalogo(Array.isArray(data) ? data : []);
         })
-        .catch((err) => {
-          console.warn('Usando catálogo inicial local:', err);
-          setCatalogo([
-            { id: 1, nombre: 'Cable eléctrico 2.5mm (metro)' },
-            { id: 2, nombre: 'Interruptor termomagnético 20A' },
-            { id: 3, nombre: 'Cinta aislante 3M' },
-            { id: 4, nombre: 'Toma corriente doble' },
-            { id: 5, nombre: 'Tubo conduit 1/2' },
-            { id: 6, nombre: 'Empaque de jebe para grifería' },
-          ]);
+        .catch(() => {
+          setCatalogo([]);
         });
     };
 
-    fetchMateriales();
+    void fetchMateriales();
   }, [orden?.tipoServicio]);
 
   const getCatalogoNombre = (materialId: number | null): string => {
@@ -321,6 +341,45 @@ export const AtencionTecnica: React.FC = () => {
     toast.info(`Se sumaron ${cantASumar} unidad(es) a "${targetName}" para evitar duplicados.`);
   };
 
+  const handleAddMaterialPersonalizado = () => {
+    setMaterialesSeleccionados((prev) => [
+      ...prev,
+      {
+        materialId: null,
+        descripcion: '',
+        cantidad: 1,
+        esPersonalizado: true,
+      },
+    ]);
+  };
+
+  const handleQuickAddCatalogo = (catId: number) => {
+    const catObj = catalogo.find((c) => c.id === catId);
+    if (!catObj) return;
+
+    setMaterialesSeleccionados((prev) => {
+      const idxExistente = prev.findIndex(
+        (m) =>
+          (!m.esPersonalizado && m.materialId === catId) ||
+          (m.esPersonalizado && normalizar(m.descripcion) === normalizar(catObj.nombre))
+      );
+      if (idxExistente !== -1) {
+        return prev.map((m, idx) =>
+          idx === idxExistente ? { ...m, cantidad: m.cantidad + 1 } : m
+        );
+      }
+      return [
+        ...prev,
+        {
+          materialId: catId,
+          descripcion: '',
+          cantidad: 1,
+          esPersonalizado: false,
+        },
+      ];
+    });
+  };
+
   const handleAddMaterial = () => {
     const selectedCatIds = new Set(
       materialesSeleccionados
@@ -349,15 +408,7 @@ export const AtencionTecnica: React.FC = () => {
       ]);
     } else {
       // Si todos los del catálogo ya están seleccionados, agregar como personalizado
-      setMaterialesSeleccionados((prev) => [
-        ...prev,
-        {
-          materialId: null,
-          descripcion: '',
-          cantidad: 1,
-          esPersonalizado: true,
-        },
-      ]);
+      handleAddMaterialPersonalizado();
     }
   };
 
@@ -385,12 +436,22 @@ export const AtencionTecnica: React.FC = () => {
 
   const handleUpdateDescripcion = (index: number, descripcion: string) => {
     const updated = [...materialesSeleccionados];
-    updated[index] = { ...updated[index], descripcion };
+    updated[index] = {
+      ...updated[index],
+      descripcion,
+      esPersonalizado: true,
+      materialId: null,
+    };
     setMaterialesSeleccionados(updated);
   };
 
   const handleTogglePersonalizado = (index: number, esPersonalizado: boolean) => {
     if (!esPersonalizado) {
+      if (catalogo.length === 0) {
+        toast.info('No hay materiales en el catálogo para esta especialidad.');
+        return;
+      }
+
       const selectedCatIds = new Set(
         materialesSeleccionados
           .filter((m, i) => i !== index && !m.esPersonalizado && m.materialId !== null)
@@ -406,7 +467,7 @@ export const AtencionTecnica: React.FC = () => {
         (cat) => !selectedCatIds.has(cat.id) && !manualNormalizedNames.has(normalizar(cat.nombre))
       );
 
-      if (!primerDisponible && catalogo.length > 0) {
+      if (!primerDisponible) {
         toast.info('Todos los ítems del catálogo ya están seleccionados en la lista.');
         return;
       }
@@ -415,7 +476,7 @@ export const AtencionTecnica: React.FC = () => {
       updated[index] = {
         ...updated[index],
         esPersonalizado: false,
-        materialId: primerDisponible ? primerDisponible.id : (catalogo[0]?.id ?? null),
+        materialId: primerDisponible.id,
         descripcion: '',
       };
       setMaterialesSeleccionados(updated);
@@ -448,6 +509,15 @@ export const AtencionTecnica: React.FC = () => {
       return;
     }
 
+    // Validar que ningún material personalizado haya quedado vacío o solo con espacios
+    const tieneMaterialPersonalizadoVacio = materialesSeleccionados.some(
+      (m) => (m.esPersonalizado || m.materialId === null) && !m.descripcion.trim()
+    );
+    if (tieneMaterialPersonalizadoVacio) {
+      toast.error('Por favor escribe el nombre del material personalizado o elimínalo de la lista.');
+      return;
+    }
+
     setSubmitting(true);
 
     // Sanitizar cualquier duplicado residual antes de procesar
@@ -458,10 +528,10 @@ export const AtencionTecnica: React.FC = () => {
 
     // Estructurar array de materiales para Spring Boot
     const listaMateriales: MaterialConsumido[] = materialesLimpios.map((m) => {
-      if (m.esPersonalizado) {
+      if (m.esPersonalizado || m.materialId === null) {
         return {
           materialId: null,
-          descripcion: m.descripcion || 'Material personalizado',
+          descripcion: m.descripcion.trim() || 'Material personalizado',
           cantidad: m.cantidad,
         };
       }
@@ -632,23 +702,89 @@ export const AtencionTecnica: React.FC = () => {
             </div>
 
             {/* MATERIALES EMPLEADOS */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  MATERIALES EMPLEADOS
-                </label>
-                <button
-                  type="button"
-                  onClick={handleAddMaterial}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#0ea5e9] hover:underline active:scale-95 transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Agregar Ítem
-                </button>
+            <div className="space-y-3">
+              {/* Cabecera de sección */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-[#0ea5e9] shrink-0">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-600 leading-tight">
+                      MATERIALES EMPLEADOS
+                    </label>
+                    <span className="block text-[10px] text-slate-400 font-medium">
+                      {materialesSeleccionados.length === 0
+                        ? 'Opcional — registra repuestos o insumos usados'
+                        : `${materialesSeleccionados.length} ${
+                            materialesSeleccionados.length === 1 ? 'material registrado' : 'materiales registrados'
+                          }`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {catalogo.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleAddMaterial}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#0284c7] border border-sky-200/80 text-[11px] font-bold active:scale-95 transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Catálogo</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleAddMaterialPersonalizado}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200 text-[11px] font-bold active:scale-95 transition-all"
+                  >
+                    <PenLine className="w-3 h-3" />
+                    <span>{catalogo.length > 0 ? 'Otro' : '+ Agregar'}</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Chips rápidos del catálogo en 1 toque */}
+              {catalogo.length > 0 && (
+                <div className="p-2.5 rounded-2xl bg-slate-50/90 border border-slate-200/70 space-y-1.5">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 px-0.5">
+                    Toque rápido para agregar o sumar (+1):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {catalogo.slice(0, 8).map((cat) => {
+                      const seleccionado = materialesSeleccionados.find(
+                        (m) => !m.esPersonalizado && m.materialId === cat.id
+                      );
+                      const nombreCorto = cat.nombre.replace(/\s*\([^)]*\)\s*$/, '');
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => handleQuickAddCatalogo(cat.id)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
+                            seleccionado
+                              ? 'bg-[#0ea5e9] text-white shadow-xs shadow-sky-500/20'
+                              : 'bg-white text-slate-700 border border-slate-200/90 hover:border-sky-300 hover:bg-sky-50/40'
+                          }`}
+                        >
+                          <Plus className="w-3 h-3 stroke-[2.5] shrink-0" />
+                          <span className="truncate max-w-[180px]">{nombreCorto}</span>
+                          {seleccionado && (
+                            <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-white/25 text-white text-[10px] font-extrabold">
+                              x{seleccionado.cantidad}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Lista de Tarjetas Individuales de Materiales */}
               {materialesSeleccionados.length > 0 ? (
-                <div className="space-y-1">
+                <div className="space-y-2.5">
                   {materialesSeleccionados.map((item, idx) => {
                     // Filtrar opciones del catálogo excluyendo las ya seleccionadas en otras filas
                     const opcionesDisponibles = catalogo.filter((cat) => {
@@ -669,72 +805,123 @@ export const AtencionTecnica: React.FC = () => {
                       return true;
                     });
 
+                    // Si no hay opciones de catálogo disponibles o no tiene materialId válido, forzar vista manual para evitar <select> vacío con "Personalizado..."
+                    const usarVistaPersonalizada =
+                      item.esPersonalizado || opcionesDisponibles.length === 0 || item.materialId === null;
+
+                    // Extraer unidad de medida si está en el nombre del catálogo "Material (Unidad)"
+                    const catActual = !usarVistaPersonalizada
+                      ? catalogo.find((c) => c.id === item.materialId)
+                      : null;
+                    const matchUnidad = catActual?.nombre.match(/\(([^)]+)\)\s*$/);
+                    const unidadTexto = matchUnidad ? matchUnidad[1] : 'Unid.';
+
                     // Validar si la descripción manual coincide con otro ítem
-                    const dupInfo = item.esPersonalizado
+                    const dupInfo = usarVistaPersonalizada
                       ? findDuplicateIndex(idx, item.descripcion)
                       : null;
 
                     return (
                       <div
                         key={idx}
-                        className={`p-3 rounded-xl border mb-2.5 space-y-2.5 transition-all ${
+                        className={`p-3.5 rounded-2xl border space-y-2.5 transition-all shadow-2xs ${
                           dupInfo
-                            ? 'bg-rose-50/50 border-rose-300'
-                            : 'bg-gray-50/70 border-gray-200'
+                            ? 'bg-rose-50/60 border-rose-300'
+                            : 'bg-white border-slate-200/90'
                         }`}
                       >
-                        {/* Fila superior: Selector de material o input si es "Otro", y botón de eliminar */}
+                        {/* Fila 1: Cabecera de tarjeta (Índice + Modo + Cambio de Modo + Eliminar) */}
                         <div className="flex items-center justify-between gap-2">
-                          {item.esPersonalizado ? (
-                            <div className="flex-1 flex flex-col gap-1.5 min-w-0">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <input
-                                  type="text"
-                                  required
-                                  placeholder="Describe el material personalizado..."
-                                  value={item.descripcion}
-                                  onChange={(e) => handleUpdateDescripcion(idx, e.target.value)}
-                                  onBlur={() => {
-                                    if (dupInfo) {
-                                      handleFusionarDuplicado(idx, dupInfo.targetIndex);
-                                    }
-                                  }}
-                                  className={`flex-1 bg-white border ${
-                                    dupInfo
-                                      ? 'border-rose-400 focus:ring-2 focus:ring-rose-400 bg-rose-50/30 text-rose-900'
-                                      : 'border-gray-300 focus:ring-2 focus:ring-[#0ea5e9] text-gray-800'
-                                  } rounded-lg px-2.5 py-1.5 text-xs placeholder:text-gray-400 focus:outline-none transition-colors`}
-                                />
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="inline-flex items-center justify-center px-2 h-5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-extrabold">
+                              #{idx + 1}
+                            </span>
+                            {usarVistaPersonalizada ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/70 text-[10px] font-bold">
+                                <PenLine className="w-2.5 h-2.5" />
+                                Personalizado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200/70 text-[10px] font-bold">
+                                <Package className="w-2.5 h-2.5" />
+                                Catálogo
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {usarVistaPersonalizada && opcionesDisponibles.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePersonalizado(idx, false)}
+                                className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#0284c7] border border-sky-200/80 text-[11px] font-bold transition-colors active:scale-95"
+                              >
+                                Usar catálogo
+                              </button>
+                            )}
+                            {!usarVistaPersonalizada && (
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePersonalizado(idx, true)}
+                                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/80 text-slate-600 border border-slate-200 text-[11px] font-semibold transition-colors active:scale-95"
+                              >
+                                Escribir otro
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMaterial(idx)}
+                              title="Eliminar material"
+                              aria-label="Eliminar material"
+                              className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-600 flex items-center justify-center transition-colors active:scale-95 shrink-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Fila 2: Input o Select a 100% de ancho (sin recortes en móvil) */}
+                        {usarVistaPersonalizada ? (
+                          <div className="space-y-1.5">
+                            <input
+                              type="text"
+                              required
+                              placeholder="Ej: Tomacorriente doble, Cinta teflón..."
+                              value={item.descripcion}
+                              onChange={(e) => handleUpdateDescripcion(idx, e.target.value)}
+                              onBlur={() => {
+                                if (dupInfo) {
+                                  handleFusionarDuplicado(idx, dupInfo.targetIndex);
+                                }
+                              }}
+                              className={`w-full min-h-[44px] bg-slate-50/70 focus:bg-white border ${
+                                dupInfo
+                                  ? 'border-rose-400 focus:ring-2 focus:ring-rose-400/20 bg-rose-50/30 text-rose-900'
+                                  : 'border-slate-200 focus:ring-2 focus:ring-[#0ea5e9]/20 focus:border-[#0ea5e9] text-slate-800'
+                              } rounded-xl px-3.5 py-2.5 text-sm font-medium placeholder:text-slate-400 focus:outline-none transition-all`}
+                            />
+
+                            {/* Alerta interactiva de duplicado */}
+                            {dupInfo && (
+                              <div className="flex items-center justify-between gap-2 bg-rose-100/90 border border-rose-200 rounded-xl px-3 py-2 text-[11px] text-rose-800">
+                                <span className="font-medium">
+                                  ⚠️ Este material ya está en la lista.
+                                </span>
                                 <button
                                   type="button"
-                                  onClick={() => handleTogglePersonalizado(idx, false)}
-                                  className="text-[11px] text-[#0ea5e9] hover:underline font-semibold whitespace-nowrap px-1"
-                                  title="Elegir del catálogo"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleFusionarDuplicado(idx, dupInfo.targetIndex);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-rose-700 text-white text-[11px] font-bold whitespace-nowrap active:scale-95"
                                 >
-                                  Catálogo
+                                  Sumar (+{item.cantidad})
                                 </button>
                               </div>
-
-                              {/* Alerta interactiva de duplicado */}
-                              {dupInfo && (
-                                <div className="flex items-center justify-between bg-rose-100/90 border border-rose-200 rounded-lg px-2.5 py-1 text-[11px] text-rose-800">
-                                  <span className="font-medium">
-                                    ⚠️ Este material ya está registrado en la lista.
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      handleFusionarDuplicado(idx, dupInfo.targetIndex);
-                                    }}
-                                    className="text-[11px] font-bold text-rose-700 underline hover:text-rose-900 ml-1.5 whitespace-nowrap"
-                                  >
-                                    Sumar (+{item.cantidad})
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
+                            )}
+                          </div>
+                        ) : (
+                          <div className="relative">
                             <select
                               value={item.materialId ?? ''}
                               onChange={(e) => {
@@ -744,74 +931,99 @@ export const AtencionTecnica: React.FC = () => {
                                   handleUpdateMaterialId(idx, Number(e.target.value));
                                 }
                               }}
-                              className="flex-1 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9]"
+                              className="w-full min-h-[44px] appearance-none bg-slate-50/70 focus:bg-white border border-slate-200 rounded-xl pl-3.5 pr-9 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9]/20 focus:border-[#0ea5e9] transition-all"
                             >
                               {opcionesDisponibles.map((cat) => (
                                 <option key={cat.id} value={cat.id}>
                                   {cat.nombre}
                                 </option>
                               ))}
-                              <option value="OTRO">Personalizado...</option>
+                              <option value="OTRO">✏️ Escribir otro material...</option>
                             </select>
-                          )}
+                            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
+                        )}
 
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveMaterial(idx)}
-                            title="Eliminar material"
-                            className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        {/* Fila 3: Control de Cantidad Stepper Ergonómico */}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-slate-500 font-semibold">
+                              Cantidad
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold">
+                              {unidadTexto}
+                            </span>
+                          </div>
 
-                        {/* Fila inferior: Control de Cantidad Stepper */}
-                        <div className="flex items-center justify-between pt-1 border-t border-gray-200/60">
-                          <span className="text-xs text-gray-500 font-medium">
-                            Cantidad:
-                          </span>
-
-                          <div className="inline-flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
+                          <div className="inline-flex items-center bg-slate-100/80 border border-slate-200/80 rounded-xl p-0.5">
                             <button
                               type="button"
                               disabled={item.cantidad <= 1}
                               onClick={() => handleCambiarCantidad(idx, item.cantidad - 1)}
-                              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:scale-95 disabled:opacity-30 rounded-l-lg"
+                              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white text-slate-700 shadow-2xs hover:bg-slate-50 active:scale-90 disabled:opacity-35 disabled:shadow-none transition-all"
                               title="Disminuir cantidad"
+                              aria-label="Disminuir cantidad"
                             >
-                              <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <Minus className="w-4 h-4 stroke-[2.5]" />
                             </button>
-                            <span className="w-10 text-center font-bold text-gray-800 select-none text-sm">
+                            <span className="min-w-[42px] px-2 text-center font-extrabold text-slate-900 select-none text-sm">
                               {item.cantidad}
                             </span>
                             <button
                               type="button"
                               onClick={() => handleCambiarCantidad(idx, item.cantidad + 1)}
-                              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:scale-95 rounded-r-lg"
+                              className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#0ea5e9] text-white shadow-2xs hover:bg-[#0284c7] active:scale-90 transition-all"
                               title="Aumentar cantidad"
+                              aria-label="Aumentar cantidad"
                             >
-                              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <Plus className="w-4 h-4 stroke-[2.5]" />
                             </button>
                           </div>
                         </div>
                       </div>
                     );
                   })}
+
+                  {/* Botón inferior para agregar otro material sin subir el scroll */}
+                  <button
+                    type="button"
+                    onClick={handleAddMaterialPersonalizado}
+                    className="w-full py-2.5 border border-dashed border-slate-300 hover:border-sky-400 rounded-xl flex items-center justify-center gap-1.5 text-slate-600 hover:text-[#0284c7] bg-slate-50/50 hover:bg-sky-50/40 text-xs font-bold transition-all active:scale-[0.99]"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Agregar otro material</span>
+                  </button>
                 </div>
               ) : (
                 /* Estado vacío limpio cuando no se han registrado materiales */
-                <div className="space-y-2 py-1">
-                  <button
-                    type="button"
-                    onClick={handleAddMaterial}
-                    className="w-full py-3.5 border-2 border-dashed border-sky-300 hover:border-sky-500 rounded-xl flex items-center justify-center gap-2 text-sky-600 bg-sky-50/50 hover:bg-sky-50 text-sm font-semibold transition-all active:scale-[0.99]"
-                  >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
-                    <span> Agregar Material Utilizado</span>
-                  </button>
-                  <p className="text-[11px] text-center text-slate-400">
+                <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 text-center space-y-2.5">
+                  <p className="text-xs text-slate-500 font-medium">
                     No se han registrado materiales para este servicio
                   </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {catalogo.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleAddMaterial}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#0ea5e9] hover:bg-[#0284c7] text-white text-xs font-bold shadow-xs shadow-sky-500/20 transition-all active:scale-95"
+                      >
+                        <Package className="w-3.5 h-3.5" />
+                        <span>Elegir del Catálogo</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleAddMaterialPersonalizado}
+                      className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                        catalogo.length > 0
+                          ? 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                          : 'w-full py-3 bg-sky-50 hover:bg-sky-100 text-[#0284c7] border border-sky-200'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4 stroke-[2.5]" />
+                      <span>Agregar Material Utilizado</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
