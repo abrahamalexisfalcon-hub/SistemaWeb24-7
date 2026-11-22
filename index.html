@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="theme-color" content="#020617" />
     <meta name="description" content="Plataforma de gestión de asistencias técnicas domiciliarias 24/7" />
     
@@ -38,6 +41,55 @@
           }
           updateFavicon();
         } catch (err) {}
+
+        // Limpieza temprana de Service Workers antiguos (Workbox) y CacheStorage en móviles
+        try {
+          var cleanupPromises = [];
+          var foundLegacyCacheOrSw = false;
+
+          if ('serviceWorker' in navigator) {
+            cleanupPromises.push(
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                var unregPromises = [];
+                for (var i = 0; i < registrations.length; i++) {
+                  var reg = registrations[i];
+                  var scriptUrl =
+                    (reg.active && reg.active.scriptURL) ||
+                    (reg.installing && reg.installing.scriptURL) ||
+                    (reg.waiting && reg.waiting.scriptURL) ||
+                    '';
+                  if (scriptUrl && scriptUrl.indexOf('OneSignalSDKWorker.js') === -1) {
+                    foundLegacyCacheOrSw = true;
+                    unregPromises.push(reg.unregister());
+                  }
+                }
+                return Promise.all(unregPromises);
+              })
+            );
+          }
+
+          if ('caches' in window) {
+            cleanupPromises.push(
+              caches.keys().then(function(keys) {
+                var delPromises = [];
+                for (var j = 0; j < keys.length; j++) {
+                  foundLegacyCacheOrSw = true;
+                  delPromises.push(caches.delete(keys[j]));
+                }
+                return Promise.all(delPromises);
+              })
+            );
+          }
+
+          if (cleanupPromises.length > 0) {
+            Promise.all(cleanupPromises).then(function() {
+              if (foundLegacyCacheOrSw && !sessionStorage.getItem('sw_cache_purged_v1')) {
+                sessionStorage.setItem('sw_cache_purged_v1', '1');
+                window.location.reload();
+              }
+            }).catch(function() {});
+          }
+        } catch (swErr) {}
       })();
     </script>
   </head>
