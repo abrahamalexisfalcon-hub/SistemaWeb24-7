@@ -3,12 +3,10 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 
-// Desregistrar cualquier Service Worker antiguo (sw.js de Workbox) y purgar CacheStorage residual
-// sin tocar OneSignalSDKWorker.js
+// Asegurar que OneSignalSDKWorker.js esté registrado en "/" con updateViaCache: 'none'
+// para todos los roles (incluyendo ADMINISTRADOR), interceptando navegaciones HTML sin caché
 if (typeof window !== 'undefined') {
-  const purgeLegacySwAndCaches = async () => {
-    let cleaned = false;
-
+  const setupNavigationWorkerAndPurgeCaches = async () => {
     if ('serviceWorker' in navigator) {
       try {
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -19,12 +17,16 @@ if (typeof window !== 'undefined') {
             registration.waiting?.scriptURL ||
             '';
           if (scriptUrl && !scriptUrl.includes('OneSignalSDKWorker.js')) {
-            const ok = await registration.unregister();
-            if (ok) cleaned = true;
+            await registration.unregister();
           }
         }
+        const reg = await navigator.serviceWorker.register('/OneSignalSDKWorker.js', {
+          scope: '/',
+          updateViaCache: 'none',
+        });
+        await reg.update();
       } catch {
-        // Ignorar errores de acceso a serviceWorker
+        // Ignorar errores de serviceWorker
       }
     }
 
@@ -33,20 +35,14 @@ if (typeof window !== 'undefined') {
         const keys = await window.caches.keys();
         if (keys.length > 0) {
           await Promise.all(keys.map((key) => window.caches.delete(key)));
-          cleaned = true;
         }
       } catch {
         // Ignorar errores de CacheStorage
       }
     }
-
-    if (cleaned && !sessionStorage.getItem('sw_cache_purged_v1')) {
-      sessionStorage.setItem('sw_cache_purged_v1', '1');
-      window.location.reload();
-    }
   };
 
-  void purgeLegacySwAndCaches();
+  void setupNavigationWorkerAndPurgeCaches();
 }
 
 createRoot(document.getElementById('root')!).render(

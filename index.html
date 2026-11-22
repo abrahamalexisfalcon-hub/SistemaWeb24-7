@@ -42,66 +42,40 @@
           updateFavicon();
         } catch (err) {}
 
-        // Invalidar en el HTTP disk cache del móvil la ruta raíz "/" (start_url de la PWA)
-        // y "/OneSignalSDKWorker.js" (que además emite Clear-Site-Data: "cache")
+        // Registrar y actualizar OneSignalSDKWorker.js para TODOS los roles (incluyendo ADMINISTRADOR)
+        // de modo que intercepte todas las navegaciones (mode === 'navigate') con cache: 'no-store'
         try {
-          if (window.fetch) {
-            var htmlHeaders = { 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' };
-            window.fetch('/', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
-            window.fetch('/index.html', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
-            window.fetch('/login', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
-            window.fetch('/admin', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
-            window.fetch('/tecnico/ordenes', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
-            window.fetch('/OneSignalSDKWorker.js', { cache: 'reload', credentials: 'same-origin' }).catch(function() {});
-          }
-        } catch (fetchErr) {}
-
-        // Limpieza temprana de Service Workers antiguos (Workbox) y actualización forzada de OneSignalSDKWorker.js
-        try {
-          var cleanupPromises = [];
-          var foundLegacyCacheOrSw = false;
-
           if ('serviceWorker' in navigator) {
-            cleanupPromises.push(
-              navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                var actionPromises = [];
-                for (var i = 0; i < registrations.length; i++) {
-                  var reg = registrations[i];
-                  var scriptUrl =
-                    (reg.active && reg.active.scriptURL) ||
-                    (reg.installing && reg.installing.scriptURL) ||
-                    (reg.waiting && reg.waiting.scriptURL) ||
-                    '';
-                  if (scriptUrl && scriptUrl.indexOf('OneSignalSDKWorker.js') === -1) {
-                    foundLegacyCacheOrSw = true;
-                    actionPromises.push(reg.unregister());
-                  } else if (reg.update) {
-                    actionPromises.push(reg.update().catch(function() {}));
-                  }
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              var unregPromises = [];
+              for (var i = 0; i < registrations.length; i++) {
+                var reg = registrations[i];
+                var scriptUrl =
+                  (reg.active && reg.active.scriptURL) ||
+                  (reg.installing && reg.installing.scriptURL) ||
+                  (reg.waiting && reg.waiting.scriptURL) ||
+                  '';
+                if (scriptUrl && scriptUrl.indexOf('OneSignalSDKWorker.js') === -1) {
+                  unregPromises.push(reg.unregister());
                 }
-                return Promise.all(actionPromises);
-              })
-            );
+              }
+              return Promise.all(unregPromises);
+            }).then(function() {
+              return navigator.serviceWorker.register('/OneSignalSDKWorker.js', {
+                scope: '/',
+                updateViaCache: 'none'
+              });
+            }).then(function(reg) {
+              if (reg && reg.update) {
+                reg.update().catch(function() {});
+              }
+            }).catch(function() {});
           }
 
           if ('caches' in window) {
-            cleanupPromises.push(
-              caches.keys().then(function(keys) {
-                var delPromises = [];
-                for (var j = 0; j < keys.length; j++) {
-                  foundLegacyCacheOrSw = true;
-                  delPromises.push(caches.delete(keys[j]));
-                }
-                return Promise.all(delPromises);
-              })
-            );
-          }
-
-          if (cleanupPromises.length > 0) {
-            Promise.all(cleanupPromises).then(function() {
-              if (foundLegacyCacheOrSw && !sessionStorage.getItem('sw_cache_purged_v2')) {
-                sessionStorage.setItem('sw_cache_purged_v2', '1');
-                window.location.reload();
+            caches.keys().then(function(keys) {
+              for (var j = 0; j < keys.length; j++) {
+                caches.delete(keys[j]);
               }
             }).catch(function() {});
           }
