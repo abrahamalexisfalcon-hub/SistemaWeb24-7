@@ -19,7 +19,7 @@ interface TecnicoFormModalProps {
   onClose: () => void;
   onCrear?: (data: CrearTecnicoRequest) => Promise<void>;
   onGuardarEdicion?: (data: ActualizarTecnicoRequest) => Promise<void>;
-  onToggleEstado?: (tecnico: TecnicoResumen) => Promise<void>;
+  onToggleEstado?: (tecnico: TecnicoResumen) => Promise<boolean | void>;
   togglingId?: number | null;
 }
 
@@ -236,9 +236,14 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
               <div>
-                <label htmlFor="tecnico_telefono" className="block font-bold text-slate-700 uppercase mb-1">
-                  Teléfono / Celular <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <label htmlFor="tecnico_telefono" className="block font-bold text-slate-700 uppercase">
+                    Teléfono / Celular <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    {telefono.length}/9
+                  </span>
+                </div>
                 <input
                   id="tecnico_telefono"
                   name="tecnico_telefono"
@@ -249,7 +254,10 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
                   autoComplete="new-password"
                   required
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  onChange={(e) => {
+                    setLocalError(null);
+                    setTelefono(e.target.value.replace(/\D/g, '').slice(0, 9));
+                  }}
                   placeholder="987654321"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500"
                 />
@@ -471,8 +479,17 @@ export const TecnicoFormModal: React.FC<TecnicoFormModalProps> = ({
               <button
                 type="button"
                 onClick={async () => {
-                  await onToggleEstado(tecnicoAEditar);
-                  setModalConfirmarEstado(false);
+                  try {
+                    const ok = await onToggleEstado(tecnicoAEditar);
+                    setModalConfirmarEstado(false);
+                    setAccionConfirmar(null);
+                    if (ok !== false) {
+                      onClose();
+                    }
+                  } catch {
+                    setModalConfirmarEstado(false);
+                    setAccionConfirmar(null);
+                  }
                 }}
                 disabled={togglingId === tecnicoAEditar.id}
                 className={`flex-1 py-2.5 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer ${

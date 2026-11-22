@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import {
   X,
   Plus,
   Edit2,
-  Trash2,
   CheckCircle,
   AlertCircle,
   Building2,
@@ -15,6 +15,20 @@ import {
 import { adminApi } from '../../../api';
 import { useModalBackButton } from '../../../hooks';
 import type { Cuenta } from '../../../types';
+
+const extraerMensajeErrorCuenta = (err: unknown, fallback: string): string => {
+  const data = (
+    err as {
+      response?: {
+        data?: { validaciones?: unknown; mensaje?: string; message?: string };
+      };
+    }
+  )?.response?.data;
+  if (Array.isArray(data?.validaciones) && data.validaciones.length > 0) {
+    return data.validaciones.join(' | ');
+  }
+  return data?.mensaje || data?.message || fallback;
+};
 
 interface CuentasModalProps {
   isOpen: boolean;
@@ -120,22 +134,24 @@ export const CuentasModal: React.FC<CuentasModalProps> = ({
           nombreLimpio,
           cuentaEnEdicion.activo
         );
-        setExito(`Cuenta "${actualizada.nombre}" actualizada con éxito.`);
+        const msg = `Cuenta "${actualizada.nombre}" actualizada con éxito.`;
+        setExito(msg);
+        toast.success(msg);
       } else {
         const nueva = await adminApi.crearCuenta(nombreLimpio);
-        setExito(`Cuenta "${nueva.nombre}" registrada correctamente.`);
+        const msg = `Cuenta "${nueva.nombre}" registrada correctamente.`;
+        setExito(msg);
+        toast.success(msg);
       }
 
       handleCancelarFormulario();
       await cargarCuentas();
       onCuentasCambiadas?.();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al guardar cuenta:', err);
-      const msg =
-        err.response?.data?.mensaje ||
-        err.response?.data?.message ||
-        'Error al guardar la cuenta.';
+      const msg = extraerMensajeErrorCuenta(err, 'Error al guardar la cuenta.');
       setError(msg);
+      toast.error(msg);
     } finally {
       setGuardandoForm(false);
     }
@@ -147,18 +163,18 @@ export const CuentasModal: React.FC<CuentasModalProps> = ({
     setError(null);
 
     try {
-      await adminApi.eliminarCuenta(cuentaADesactivar.id);
-      setExito(`Cuenta "${cuentaADesactivar.nombre}" deshabilitada correctamente.`);
+      await adminApi.toggleCuenta(cuentaADesactivar.id);
+      const msg = `Cuenta "${cuentaADesactivar.nombre}" deshabilitada correctamente.`;
+      setExito(msg);
+      toast.success(msg);
       setCuentaADesactivar(null);
       await cargarCuentas();
       onCuentasCambiadas?.();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al deshabilitar cuenta:', err);
-      const msg =
-        err.response?.data?.mensaje ||
-        err.response?.data?.message ||
-        'Error al deshabilitar la cuenta.';
+      const msg = extraerMensajeErrorCuenta(err, 'Error al deshabilitar la cuenta.');
       setError(msg);
+      toast.error(msg);
     } finally {
       setProcesandoId(null);
     }
@@ -169,15 +185,15 @@ export const CuentasModal: React.FC<CuentasModalProps> = ({
     setError(null);
     try {
       await adminApi.toggleCuenta(cuenta.id);
-      setExito(`Cuenta "${cuenta.nombre}" habilitada nuevamente.`);
+      const msg = `Cuenta "${cuenta.nombre}" activada nuevamente.`;
+      setExito(msg);
+      toast.success(msg);
       await cargarCuentas();
       onCuentasCambiadas?.();
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.mensaje ||
-        err.response?.data?.message ||
-        'Error al cambiar el estado de la cuenta.';
+    } catch (err: unknown) {
+      const msg = extraerMensajeErrorCuenta(err, 'Error al cambiar el estado de la cuenta.');
       setError(msg);
+      toast.error(msg);
     } finally {
       setProcesandoId(null);
     }
@@ -353,8 +369,9 @@ export const CuentasModal: React.FC<CuentasModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button
+                        type="button"
                         onClick={() => handleEditarCuenta(cuenta)}
                         title="Editar cuenta"
                         className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
@@ -363,21 +380,33 @@ export const CuentasModal: React.FC<CuentasModalProps> = ({
                       </button>
                       {activa ? (
                         <button
+                          type="button"
                           onClick={() => setCuentaADesactivar(cuenta)}
                           disabled={procesandoId === cuenta.id}
-                          title="Deshabilitar cuenta"
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Desactivar cuenta"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 disabled:opacity-50 transition-colors cursor-pointer"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          {procesandoId === cuenta.id ? (
+                            <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Power className="w-3.5 h-3.5" />
+                          )}
+                          <span>Desactivar</span>
                         </button>
                       ) : (
                         <button
+                          type="button"
                           onClick={() => handleReactivarCuenta(cuenta)}
                           disabled={procesandoId === cuenta.id}
-                          title="Habilitar cuenta"
-                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                          title="Activar cuenta"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 disabled:opacity-50 transition-colors cursor-pointer"
                         >
-                          <Power className="w-4 h-4" />
+                          {procesandoId === cuenta.id ? (
+                            <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Power className="w-3.5 h-3.5" />
+                          )}
+                          <span>Activar</span>
                         </button>
                       )}
                     </div>

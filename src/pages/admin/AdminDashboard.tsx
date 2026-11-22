@@ -50,6 +50,8 @@ export const AdminDashboard: React.FC = () => {
               d.setFormError(null);
               d.setModalEditarTecnico(true);
             }}
+            onToggleEstadoTecnico={d.handleToggleEstadoTecnico}
+            togglingTecnicoId={d.togglingTecnicoId}
           />
         );
       case 'nuevo':

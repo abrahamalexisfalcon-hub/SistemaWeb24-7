@@ -8,6 +8,8 @@ interface TecnicosTabProps {
   ordenes: OrdenDetalleAdmin[];
   onNuevoTecnico: () => void;
   onEditarTecnico: (tec: TecnicoResumen) => void;
+  onToggleEstadoTecnico?: (tec: TecnicoResumen) => Promise<boolean | void> | void;
+  togglingTecnicoId?: number | null;
 }
 
 export const TecnicosTab: React.FC<TecnicosTabProps> = ({
@@ -15,6 +17,8 @@ export const TecnicosTab: React.FC<TecnicosTabProps> = ({
   ordenes,
   onNuevoTecnico,
   onEditarTecnico,
+  onToggleEstadoTecnico,
+  togglingTecnicoId,
 }) => {
   const [busqueda, setBusqueda] = useState('');
   const [paginaActual, setPaginaActual] = useState(1);
@@ -135,6 +139,8 @@ export const TecnicosTab: React.FC<TecnicosTabProps> = ({
                   tecnico={tec}
                   ordenes={ordenes}
                   onEditar={onEditarTecnico}
+                  onToggleEstado={onToggleEstadoTecnico}
+                  togglingId={togglingTecnicoId}
                 />
               ))}
             </div>
@@ -175,6 +181,8 @@ export const TecnicosTab: React.FC<TecnicosTabProps> = ({
               tecnicos={tecnicosPaginados}
               ordenes={ordenes}
               onEditar={onEditarTecnico}
+              onToggleEstado={onToggleEstadoTecnico}
+              togglingId={togglingTecnicoId}
               totalTecnicos={totalTecnicos}
               paginaActual={paginaValida}
               filasPorPagina={tamanioPagina}

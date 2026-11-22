@@ -53,8 +53,10 @@ export const ValidacionCierre: React.FC = () => {
   }, [id]);
 
   // DNI opcional del cliente: puede venir del paso de atención, del borrador o de la orden
-  const [dniAfiliado, setDniAfiliado] = useState<string>(
-    stateData?.formulario?.dniAfiliado || stateData?.orden?.dniAfiliado || ''
+  const [dniAfiliado, setDniAfiliado] = useState<string>(() =>
+    String(stateData?.formulario?.dniAfiliado || stateData?.orden?.dniAfiliado || '')
+      .replace(/\D/g, '')
+      .slice(0, 8)
   );
   const dniEditadoRef = useRef(false);
 
@@ -65,15 +67,21 @@ export const ValidacionCierre: React.FC = () => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed?.dniAfiliado) {
-          setDniAfiliado(parsed.dniAfiliado);
-          return;
+          const dniBorrador = String(parsed.dniAfiliado).replace(/\D/g, '').slice(0, 8);
+          if (dniBorrador) {
+            setDniAfiliado(dniBorrador);
+            return;
+          }
         }
       }
     } catch (e) {
       console.warn('No se pudo recuperar el DNI del borrador:', e);
     }
     if (orden?.dniAfiliado) {
-      setDniAfiliado(orden.dniAfiliado);
+      const dniOrden = String(orden.dniAfiliado).replace(/\D/g, '').slice(0, 8);
+      if (dniOrden) {
+        setDniAfiliado(dniOrden);
+      }
     }
   }, [id, orden?.id, orden?.dniAfiliado, dniAfiliado]);
 
@@ -225,9 +233,9 @@ export const ValidacionCierre: React.FC = () => {
       return;
     }
 
-    const dniLimpio = dniAfiliado.trim();
-    if (dniLimpio && (dniLimpio.length < 8 || !/^[0-9A-Za-z]+$/.test(dniLimpio))) {
-      const msg = 'El DNI del cliente debe contener al menos 8 dígitos válidos.';
+    const dniLimpio = dniAfiliado.replace(/\D/g, '');
+    if (dniLimpio.length > 0 && !/^\d{8}$/.test(dniLimpio)) {
+      const msg = 'El DNI del cliente debe contener exactamente 8 dígitos numéricos.';
       setError(msg);
       toast.error(msg);
       return;
@@ -249,9 +257,9 @@ export const ValidacionCierre: React.FC = () => {
       return;
     }
 
-    const dniLimpio = dniAfiliado.trim();
-    if (dniLimpio && (dniLimpio.length < 8 || !/^[0-9A-Za-z]+$/.test(dniLimpio))) {
-      const msg = 'El DNI del cliente debe contener al menos 8 dígitos válidos.';
+    const dniLimpio = dniAfiliado.replace(/\D/g, '');
+    if (dniLimpio.length > 0 && !/^\d{8}$/.test(dniLimpio)) {
+      const msg = 'El DNI del cliente debe contener exactamente 8 dígitos numéricos.';
       setError(msg);
       toast.error(msg);
       setConfirmDialogOpen(false);
@@ -285,7 +293,7 @@ export const ValidacionCierre: React.FC = () => {
         sugerencias: formularioEfectivo?.sugerencias || 'Revisión técnica periódica recomendada.',
         calificacion: promedioCalificacion,
         calificacionAfiliado: promedioCalificacion,
-        dniAfiliado: dniAfiliado.trim() || undefined,
+        dniAfiliado: dniLimpio || undefined,
         fotoInicialUrl: fotoInicial || undefined,
         fotoAntesUrl: fotoInicial || undefined,
         fotoFinalUrl: fotoFinal || undefined,
@@ -318,7 +326,7 @@ export const ValidacionCierre: React.FC = () => {
         fechaFinalizacion: fechaFinFinal,
         firmaDigitalUrl: firmaClienteUrl,
         firmaAfiliadoUrl: firmaClienteUrl,
-        dniAfiliado: dniAfiliado.trim() || orden?.dniAfiliado || '',
+        dniAfiliado: dniLimpio || orden?.dniAfiliado || '',
       });
       invalidarCache();
 
@@ -379,7 +387,7 @@ export const ValidacionCierre: React.FC = () => {
             tipoServicio: orden?.tipoServicio || 'Mantenimiento Eléctrico Preventivo',
             direccion: orden?.direccion || 'Av. Central 120',
             distrito: orden?.distrito || 'Villa El Salvador',
-            dniAfiliado: dniAfiliado.trim() || orden?.dniAfiliado || '',
+            dniAfiliado: dniLimpio || orden?.dniAfiliado || '',
             numeroOt: orden?.numeroOt || '',
             numeroCaso: orden?.numeroCaso || '',
             cuentaId: orden?.cuentaId,
@@ -773,19 +781,25 @@ export const ValidacionCierre: React.FC = () => {
                 DATOS DEL AFILIADO
               </h3>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  DNI del cliente
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    DNI del cliente
+                  </label>
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    {dniAfiliado.length}/8 dígitos
+                  </span>
+                </div>
                 <input
                   type="text"
                   inputMode="numeric"
-                  maxLength={15}
+                  pattern="[0-9]{8}"
+                  maxLength={8}
                   value={dniAfiliado}
                   onChange={(e) => {
                     dniEditadoRef.current = true;
-                    setDniAfiliado(e.target.value.replace(/[^0-9A-Za-z]/g, ''));
+                    setDniAfiliado(e.target.value.replace(/\D/g, '').slice(0, 8));
                   }}
-                  placeholder="Ej. 70920543"
+                  placeholder="8 dígitos (Ej. 70920543)"
                   className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0ea5e9] transition-all"
                 />
               </div>

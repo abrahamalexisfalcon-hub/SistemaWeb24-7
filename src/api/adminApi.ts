@@ -114,13 +114,14 @@ export const adminApi = {
   },
 
   toggleMaterial: async (id: number): Promise<MaterialCatalogo> => {
-    const response = await api.patch<MaterialCatalogo>(`/admin/catalogo/materiales/${id}/toggle`);
+    const response = await api.patch<MaterialCatalogo>(`/admin/catalogo/materiales/${id}/toggle`, {});
     return response.data;
   },
 
   // Especialidades
-  getEspecialidades: async (): Promise<Especialidad[]> => {
-    const response = await api.get<Especialidad[]>('/especialidades');
+  getEspecialidades: async (todas = false): Promise<Especialidad[]> => {
+    const params = todas ? { todas: true } : undefined;
+    const response = await api.get<Especialidad[]>('/especialidades', { params });
     return response.data;
   },
 
@@ -131,6 +132,11 @@ export const adminApi = {
 
   actualizarEspecialidad: async (id: number, nombre: string): Promise<Especialidad> => {
     const response = await api.put<Especialidad>(`/admin/especialidades/${id}`, { nombre });
+    return response.data;
+  },
+
+  toggleEspecialidad: async (id: number): Promise<Especialidad> => {
+    const response = await api.patch<Especialidad>(`/admin/especialidades/${id}/toggle`, {});
     return response.data;
   },
 
@@ -157,7 +163,7 @@ export const adminApi = {
   },
 
   toggleCuenta: async (id: number): Promise<Cuenta> => {
-    const response = await api.patch<Cuenta>(`/admin/cuentas/${id}/toggle`);
+    const response = await api.patch<Cuenta>(`/admin/cuentas/${id}/toggle`, {});
     return response.data;
   },
 

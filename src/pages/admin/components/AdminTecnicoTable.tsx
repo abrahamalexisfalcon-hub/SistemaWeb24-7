@@ -1,12 +1,14 @@
 import React from 'react';
 import type { TecnicoResumen, OrdenDetalleAdmin } from '../../../types';
-import { Mail, Phone, Edit2, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { Mail, Phone, Edit2, ChevronLeft, ChevronRight, User, Power, RefreshCw } from 'lucide-react';
 import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
 
 export interface AdminTecnicoTableProps {
   tecnicos: TecnicoResumen[];
   ordenes: OrdenDetalleAdmin[];
   onEditar: (tec: TecnicoResumen) => void;
+  onToggleEstado?: (tec: TecnicoResumen) => Promise<boolean | void> | void;
+  togglingId?: number | null;
   totalTecnicos: number;
   paginaActual: number;
   filasPorPagina: number;
@@ -18,6 +20,8 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
   tecnicos,
   ordenes,
   onEditar,
+  onToggleEstado,
+  togglingId,
   totalTecnicos,
   paginaActual,
   filasPorPagina,
@@ -134,14 +138,36 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right whitespace-nowrap pr-6">
-                      <button
-                        type="button"
-                        onClick={() => onEditar(tecnico)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Editar</span>
-                      </button>
+                      <div className="inline-flex items-center justify-end gap-1.5">
+                        {onToggleEstado && (
+                          <button
+                            type="button"
+                            onClick={() => onToggleEstado(tecnico)}
+                            disabled={togglingId === tecnico.id}
+                            title={esActivo ? 'Desactivar cuenta del técnico' : 'Activar cuenta del técnico'}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-colors disabled:opacity-50 cursor-pointer ${
+                              esActivo
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                            }`}
+                          >
+                            {togglingId === tecnico.id ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Power className="w-3.5 h-3.5" />
+                            )}
+                            <span>{esActivo ? 'Desactivar' : 'Activar'}</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => onEditar(tecnico)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Editar</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

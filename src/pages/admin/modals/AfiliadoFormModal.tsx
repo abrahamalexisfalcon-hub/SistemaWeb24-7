@@ -136,8 +136,8 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
     nombreCompleto: esEdicion
       ? afiliadoAEditar?.nombreCompleto || afiliadoAEditar?.nombre || ''
       : '',
-    dni: esEdicion ? afiliadoAEditar?.dni || '' : '',
-    telefono: esEdicion ? afiliadoAEditar?.telefono || '' : '',
+    dni: esEdicion ? (afiliadoAEditar?.dni || '').replace(/\D/g, '').slice(0, 8) : '',
+    telefono: esEdicion ? (afiliadoAEditar?.telefono || '').replace(/\D/g, '').slice(0, 9) : '',
   }));
 
   const inicialDirecciones = useMemo(
@@ -174,7 +174,13 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
   const handleChangeDatosPersonales = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setLocalError(null);
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    let valorLimpio = value;
+    if (name === 'dni') {
+      valorLimpio = value.replace(/\D/g, '').slice(0, 8);
+    } else if (name === 'telefono') {
+      valorLimpio = value.replace(/\D/g, '').slice(0, 9);
+    }
+    setFormData((prev) => ({ ...prev, [name]: valorLimpio }));
   };
 
   const actualizarDireccionActiva = (cambios: Partial<DireccionFormItem>) => {
@@ -250,6 +256,19 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
       return;
     }
 
+    const dniLimpio = formData.dni.replace(/\D/g, '');
+    const telefonoLimpio = formData.telefono.replace(/\D/g, '');
+
+    if (dniLimpio.length > 0 && dniLimpio.length !== 8) {
+      setLocalError('El DNI debe contener exactamente 8 dígitos numéricos (o déjalo vacío si aún no se conoce).');
+      return;
+    }
+
+    if (telefonoLimpio.length > 0 && telefonoLimpio.length !== 9) {
+      setLocalError('El número de teléfono / celular debe contener exactamente 9 dígitos numéricos (o déjalo vacío si aún no se conoce).');
+      return;
+    }
+
     for (let i = 0; i < listaDirecciones.length; i += 1) {
       const dir = listaDirecciones[i];
       if (!dir.direccion.trim() || !dir.distrito.trim()) {
@@ -280,8 +299,8 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
     if (esEdicion && afiliadoAEditar && onEditar) {
       await onEditar(afiliadoAEditar.id, {
         nombreCompleto: nombreLimpio,
-        dni: formData.dni.trim(),
-        telefono: formData.telefono.trim(),
+        dni: dniLimpio,
+        telefono: telefonoLimpio,
         direccion: principal.direccion,
         referencia: principal.referencia || '',
         distrito: principal.distrito,
@@ -290,8 +309,8 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
     } else {
       await onSubmit({
         nombreCompleto: nombreLimpio,
-        dni: formData.dni.trim(),
-        telefono: formData.telefono.trim(),
+        dni: dniLimpio,
+        telefono: telefonoLimpio,
         direccion: principal.direccion,
         referencia: principal.referencia || '',
         distrito: principal.distrito,
@@ -350,30 +369,44 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
-              <label className="block font-bold text-slate-700 uppercase mb-1">DNI N°</label>
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <label className="block font-bold text-slate-700 uppercase">DNI N°</label>
+                <span className="text-[10px] font-semibold text-slate-400">
+                  {formData.dni.length}/8 dígitos
+                </span>
+              </div>
               <input
                 type="text"
                 name="dni"
                 inputMode="numeric"
-                maxLength={15}
+                pattern="[0-9]{8}"
+                maxLength={8}
                 value={formData.dni}
                 onChange={handleChangeDatosPersonales}
-                placeholder="Número de documento"
+                placeholder="8 dígitos (Ej. 77800236)"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 uppercase mb-1">Teléfono</label>
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <label className="block font-bold text-slate-700 uppercase">
+                  TELÉFONO / CELULAR
+                </label>
+                <span className="text-[10px] font-semibold text-slate-400">
+                  {formData.telefono.length}/9 dígitos
+                </span>
+              </div>
               <input
                 type="tel"
                 name="telefono"
-                inputMode="tel"
-                maxLength={15}
+                inputMode="numeric"
+                pattern="[0-9]{9}"
+                maxLength={9}
                 value={formData.telefono}
                 onChange={handleChangeDatosPersonales}
-                placeholder="Ingresa el celular..."
+                placeholder="9 dígitos (Ej. 987654321)"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
               />
             </div>

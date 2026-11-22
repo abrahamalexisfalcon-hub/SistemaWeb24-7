@@ -35,6 +35,20 @@ const extraerDireccionPrincipalOrden = (afiliado?: Afiliado | null) => {
   };
 };
 
+const extraerMensajeError = (err: unknown, fallback: string): string => {
+  const data = (
+    err as {
+      response?: {
+        data?: { validaciones?: unknown; message?: string; mensaje?: string };
+      };
+    }
+  )?.response?.data;
+  if (Array.isArray(data?.validaciones) && data.validaciones.length > 0) {
+    return data.validaciones.join(' | ');
+  }
+  return data?.message || data?.mensaje || fallback;
+};
+
 export function useAdminDashboard() {
   // Tabs y Filtros
   const [activeTab, setActiveTab] = useState<AdminTab>('ordenes');
@@ -319,14 +333,12 @@ export function useAdminDashboard() {
         setFormExito(null);
         setActiveTab('ordenes');
       }, 1500);
-    } catch (err: any) {
-      const validaciones = Array.isArray(err?.response?.data?.validaciones)
-        ? err.response.data.validaciones.join(' | ')
-        : null;
+    } catch (err: unknown) {
       setFormError(
-        validaciones ||
-          err?.response?.data?.message ||
+        extraerMensajeError(
+          err,
           'Error al crear la orden. Verifica que el Número de Caso y OT no estén duplicados.'
+        )
       );
     } finally {
       setSubmitting(false);
@@ -346,8 +358,11 @@ export function useAdminDashboard() {
       }));
       setModalNuevoAfiliado(false);
       setAfiliadoAEditar(null);
-    } catch (err: any) {
-      setFormError(err?.response?.data?.message || 'Error al registrar el afiliado.');
+      toast.success('Afiliado registrado correctamente.');
+    } catch (err: unknown) {
+      const msg = extraerMensajeError(err, 'Error al registrar el afiliado.');
+      setFormError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -409,8 +424,11 @@ export function useAdminDashboard() {
 
       setModalNuevoAfiliado(false);
       setAfiliadoAEditar(null);
-    } catch (err: any) {
-      setFormError(err?.response?.data?.message || 'Error al actualizar el afiliado.');
+      toast.success('Datos del afiliado actualizados correctamente.');
+    } catch (err: unknown) {
+      const msg = extraerMensajeError(err, 'Error al actualizar el afiliado.');
+      setFormError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -448,8 +466,9 @@ export function useAdminDashboard() {
     try {
       await adminApi.eliminarAfiliado(id);
       setAfiliados((prev) => prev.filter((a) => a.id !== id));
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Error al dar de baja al afiliado.');
+      toast.success('Afiliado dado de baja correctamente.');
+    } catch (err: unknown) {
+      toast.error(extraerMensajeError(err, 'Error al dar de baja al afiliado.'));
     }
   };
 
@@ -595,21 +614,33 @@ export function useAdminDashboard() {
       const creado = await adminApi.crearTecnico(payload);
       setTecnicos((prev) => [creado, ...prev]);
       setModalNuevoTecnico(false);
-    } catch (err: any) {
-      setFormError(err?.response?.data?.message || 'Error al registrar técnico.');
+      toast.success('Técnico registrado correctamente.');
+    } catch (err: unknown) {
+      const msg = extraerMensajeError(err, 'Error al registrar técnico.');
+      setFormError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleToggleEstadoTecnico = async (tecnico: TecnicoResumen) => {
+  const handleToggleEstadoTecnico = async (tecnico: TecnicoResumen): Promise<boolean> => {
     setTogglingTecnicoId(tecnico.id);
-    const nuevoEstado = !tecnico.activo;
+    const estadoActual = tecnico.activo !== false;
+    const nuevoEstado = !estadoActual;
     setTecnicos((prev) =>
-      prev.map((t) => (t.id === tecnico.id ? { ...t, activo: nuevoEstado, disponible: nuevoEstado ? t.disponible : false } : t))
+      prev.map((t) =>
+        t.id === tecnico.id
+          ? { ...t, activo: nuevoEstado, disponible: nuevoEstado ? t.disponible : false }
+          : t
+      )
     );
     if (tecnicoAEditar && tecnicoAEditar.id === tecnico.id) {
-      setTecnicoAEditar((prev) => (prev ? { ...prev, activo: nuevoEstado, disponible: nuevoEstado ? prev.disponible : false } : null));
+      setTecnicoAEditar((prev) =>
+        prev
+          ? { ...prev, activo: nuevoEstado, disponible: nuevoEstado ? prev.disponible : false }
+          : null
+      );
     }
     try {
       const res = await adminApi.actualizarEstadoTecnico(tecnico.id, nuevoEstado);
@@ -619,14 +650,27 @@ export function useAdminDashboard() {
       if (tecnicoAEditar && tecnicoAEditar.id === tecnico.id) {
         setTecnicoAEditar((prev) => (prev ? { ...prev, ...res } : null));
       }
-    } catch (err: any) {
+      toast.success(
+        nuevoEstado
+          ? `Cuenta de ${tecnico.nombreCompleto} activada.`
+          : `Cuenta de ${tecnico.nombreCompleto} desactivada.`
+      );
+      return true;
+    } catch (err: unknown) {
       setTecnicos((prev) =>
-        prev.map((t) => (t.id === tecnico.id ? { ...t, activo: tecnico.activo } : t))
+        prev.map((t) =>
+          t.id === tecnico.id
+            ? { ...t, activo: tecnico.activo, disponible: tecnico.disponible }
+            : t
+        )
       );
       if (tecnicoAEditar && tecnicoAEditar.id === tecnico.id) {
-        setTecnicoAEditar((prev) => (prev ? { ...prev, activo: tecnico.activo } : null));
+        setTecnicoAEditar((prev) =>
+          prev ? { ...prev, activo: tecnico.activo, disponible: tecnico.disponible } : null
+        );
       }
-      alert(err?.response?.data?.message || 'Error al actualizar el estado del técnico.');
+      toast.error(extraerMensajeError(err, 'Error al actualizar el estado del técnico.'));
+      return false;
     } finally {
       setTogglingTecnicoId(null);
     }
@@ -651,8 +695,11 @@ export function useAdminDashboard() {
       );
       setModalEditarTecnico(false);
       setTecnicoAEditar(null);
-    } catch (err: any) {
-      setFormError(err?.response?.data?.message || 'Error al actualizar datos del técnico.');
+      toast.success('Datos del técnico actualizados correctamente.');
+    } catch (err: unknown) {
+      const msg = extraerMensajeError(err, 'Error al actualizar datos del técnico.');
+      setFormError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -666,8 +713,9 @@ export function useAdminDashboard() {
       const nombreFinal = creada.nombre || nombreLimpio;
       setNuevaOrden((prev) => ({ ...prev, tipoServicio: nombreFinal }));
       setModalNuevaEspecialidad(false);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Error al crear la especialidad.');
+      toast.success(`Especialidad "${nombreFinal}" creada correctamente.`);
+    } catch (err: unknown) {
+      toast.error(extraerMensajeError(err, 'Error al crear la especialidad.'));
     } finally {
       setGuardandoEspecialidad(false);
     }

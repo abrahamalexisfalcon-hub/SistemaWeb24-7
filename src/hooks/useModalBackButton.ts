@@ -10,6 +10,7 @@ interface ModalStackEntry {
 const activeModalStack: ModalStackEntry[] = [];
 let modalCounter = 0;
 let ignorePopStateCount = 0;
+let ignorePopStateResetTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingBackSteps = 0;
 let pendingBackTimer: ReturnType<typeof setTimeout> | null = null;
 let popStateListenerAttached = false;
@@ -17,6 +18,10 @@ let popStateListenerAttached = false;
 function handleGlobalPopState() {
   if (ignorePopStateCount > 0) {
     ignorePopStateCount--;
+    if (ignorePopStateCount === 0 && ignorePopStateResetTimer !== null) {
+      clearTimeout(ignorePopStateResetTimer);
+      ignorePopStateResetTimer = null;
+    }
     return;
   }
 
@@ -116,8 +121,15 @@ export function useModalBackButton(isOpen: boolean, onClose: () => void): void {
           '__modalDepth' in currentState;
 
         if (window.location.pathname === expectedPathname && hasModalHistoryState) {
-          ignorePopStateCount++;
+          ignorePopStateCount = 1;
           window.history.go(-stepsToRevert);
+          if (ignorePopStateResetTimer !== null) {
+            clearTimeout(ignorePopStateResetTimer);
+          }
+          ignorePopStateResetTimer = setTimeout(() => {
+            ignorePopStateResetTimer = null;
+            ignorePopStateCount = 0;
+          }, 200);
         }
       }, 40);
     };
