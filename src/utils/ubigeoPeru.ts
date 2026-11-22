@@ -602,3 +602,20 @@ export function buscarUbicacionPorDistrito(nombreDistrito?: string | null): {
     distrito: nombreDistrito.trim(),
   };
 }
+
+export const encontrarUbigeoPorDistrito = buscarUbicacionPorDistrito;
+
+export function obtenerDepartamentos(): string[] {
+  return UBIGEO_PERU.map((d) => d.nombre);
+}
+
+export function obtenerProvincias(departamento: string): string[] {
+  const dep = UBIGEO_PERU.find((d) => d.nombre === departamento);
+  return dep ? dep.provincias.map((p) => p.nombre) : [];
+}
+
+export function obtenerDistritos(departamento: string, provincia: string): string[] {
+  const dep = UBIGEO_PERU.find((d) => d.nombre === departamento);
+  const prov = dep?.provincias.find((p) => p.nombre === provincia);
+  return prov ? prov.distritos : [];
+}

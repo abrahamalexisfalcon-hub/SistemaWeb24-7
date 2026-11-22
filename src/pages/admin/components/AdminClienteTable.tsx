@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Afiliado } from '../../../types';
-import { MapPin, Phone, Edit2, Trash2, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { MapPin, Phone, Edit2, Trash2, ChevronLeft, ChevronRight, User, Home } from 'lucide-react';
+import { obtenerDireccionesAfiliado, obtenerDireccionPrincipal } from '../../../utils/afiliadoDirecciones';
 
 export interface AdminClienteTableProps {
   afiliados: Afiliado[];
@@ -52,6 +53,13 @@ export const AdminClienteTable: React.FC<AdminClienteTableProps> = ({
               (afiliados || []).map((afiliado) => {
                 const nombre = afiliado.nombreCompleto || afiliado.nombre || 'Afiliado Sin Nombre';
                 const esActivo = afiliado.activo !== false;
+                const direcciones = obtenerDireccionesAfiliado(afiliado);
+                const principal = obtenerDireccionPrincipal(afiliado);
+                const direccionPrincipal = principal?.direccion || afiliado.direccion || 'Sin dirección';
+                const distritoPrincipal = principal?.distrito || afiliado.distrito || 'Lima';
+                const referenciaPrincipal = principal?.referencia || afiliado.referencia;
+                const direccionesAdicionales =
+                  direcciones.length > 1 ? direcciones.filter((d) => d !== principal) : [];
 
                 return (
                   <tr
@@ -81,19 +89,49 @@ export const AdminClienteTable: React.FC<AdminClienteTableProps> = ({
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-slate-600">
-                      <div className="flex items-start gap-1.5 max-w-[220px] xl:max-w-[280px]">
+                      <div className="flex items-start gap-1.5 max-w-[260px] xl:max-w-[320px]">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-medium text-slate-800 truncate" title={afiliado.direccion}>
-                            {afiliado.direccion || 'Sin dirección'}
+                        <div className="flex flex-col min-w-0 gap-0.5">
+                          <span className="font-medium text-slate-800 truncate" title={direccionPrincipal}>
+                            {direccionPrincipal}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-medium">
-                            {afiliado.distrito || 'Lima'}
-                          </span>
-                          {afiliado.referencia && (
-                            <span className="text-xs text-slate-400 block truncate" title={afiliado.referencia}>
-                              Ref: {afiliado.referencia}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              {distritoPrincipal}
                             </span>
+                            {direccionesAdicionales.length > 0 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                +{direccionesAdicionales.length}{' '}
+                                {direccionesAdicionales.length === 1
+                                  ? 'dirección más'
+                                  : 'direcciones más'}
+                              </span>
+                            )}
+                          </div>
+                          {referenciaPrincipal && (
+                            <span className="text-xs text-slate-400 block truncate" title={referenciaPrincipal}>
+                              Ref: {referenciaPrincipal}
+                            </span>
+                          )}
+                          {direccionesAdicionales.length > 0 && (
+                            <div className="mt-1 space-y-0.5 border-l-2 border-sky-100 pl-2">
+                              {direccionesAdicionales.map((dir, idx) => (
+                                <div
+                                  key={`${dir.id ?? 'extra'}-${idx}`}
+                                  className="flex items-center gap-1 text-[10px] text-slate-500 truncate"
+                                  title={`${dir.etiqueta || `Dirección ${idx + 2}`}: ${dir.direccion}${dir.distrito ? ` (${dir.distrito})` : ''}`}
+                                >
+                                  <Home className="w-2.5 h-2.5 text-sky-500 shrink-0" />
+                                  <span className="font-bold text-slate-700 shrink-0">
+                                    {dir.etiqueta?.trim() || `Dirección ${idx + 2}`}
+                                  </span>
+                                  <span className="text-slate-400 shrink-0">·</span>
+                                  <span className="truncate">
+                                    {dir.distrito || dir.direccion}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>

@@ -249,6 +249,15 @@ export interface Cuenta {
   updatedAt?: string;
 }
 
+export interface AfiliadoDireccion {
+  id?: number;
+  etiqueta?: string;
+  direccion: string;
+  distrito: string;
+  referencia?: string;
+  esPrincipal?: boolean;
+}
+
 export interface CrearOrdenRequest {
   tipoServicio: string;
   afiliadoId: number;
@@ -257,6 +266,11 @@ export interface CrearOrdenRequest {
   numeroCaso: string;
   numeroOt: string;
   fechaPactada: string;
+  direccionId?: number;
+  direccionServicio?: string;
+  distritoServicio?: string;
+  referenciaServicio?: string;
+  etiquetaDireccion?: string;
 }
 
 export interface Afiliado {
@@ -270,6 +284,7 @@ export interface Afiliado {
   distrito: string;
   numeroCuenta?: string;
   activo?: boolean;
+  direcciones?: AfiliadoDireccion[];
 }
 
 export interface CrearAfiliadoRequest {
@@ -280,6 +295,7 @@ export interface CrearAfiliadoRequest {
   referencia?: string;
   distrito: string;
   numeroCuenta?: string;
+  direcciones?: AfiliadoDireccion[];
 }
 
 export interface ActualizarAfiliadoRequest {
@@ -289,6 +305,7 @@ export interface ActualizarAfiliadoRequest {
   direccion: string;
   referencia?: string;
   distrito?: string;
+  direcciones?: AfiliadoDireccion[];
 }
 
 export interface TecnicoResumen {

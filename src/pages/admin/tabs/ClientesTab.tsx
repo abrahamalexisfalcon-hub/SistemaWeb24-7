@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import type { Afiliado } from '../../../types';
-import { Plus, MapPin, Phone, Search, X, Edit2, Trash2, AlertTriangle, Users } from 'lucide-react';
+import { Plus, MapPin, Phone, Search, X, Edit2, Trash2, AlertTriangle, Users, Home } from 'lucide-react';
 import { AdminClienteTable } from '../components';
+import { obtenerDireccionesAfiliado, obtenerDireccionPrincipal } from '../../../utils/afiliadoDirecciones';
 
 interface ClientesTabProps {
   afiliados: Afiliado[];
@@ -34,7 +35,14 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
         (a.telefono || '').toLowerCase().includes(q) ||
         (a.direccion || '').toLowerCase().includes(q) ||
         (a.referencia || '').toLowerCase().includes(q) ||
-        (a.distrito || '').toLowerCase().includes(q)
+        (a.distrito || '').toLowerCase().includes(q) ||
+        (a.direcciones || []).some(
+          (d) =>
+            (d.etiqueta || '').toLowerCase().includes(q) ||
+            (d.direccion || '').toLowerCase().includes(q) ||
+            (d.distrito || '').toLowerCase().includes(q) ||
+            (d.referencia || '').toLowerCase().includes(q)
+        )
     );
   }, [afiliados, busqueda]);
 
@@ -149,10 +157,19 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
           {/* 1. Vista Móvil y Tablet: Tarjetas con Paginación Táctil (< lg) */}
           <div className="block lg:hidden space-y-4 pb-28">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {afiliadosPaginados.map((a) => (
+              {afiliadosPaginados.map((a) => {
+                const direcciones = obtenerDireccionesAfiliado(a);
+                const principal = obtenerDireccionPrincipal(a);
+                const direccionPrincipal = principal?.direccion || a.direccion;
+                const distritoPrincipal = principal?.distrito || a.distrito;
+                const referenciaPrincipal = principal?.referencia || a.referencia;
+                const direccionesAdicionales =
+                  direcciones.length > 1 ? direcciones.filter((d) => d !== principal) : [];
+
+                return (
                 <div
                   key={a.id}
-                  className="bg-white rounded-3xl p-4 sm:p-5 shadow-xs border border-slate-100 hover:border-slate-200 transition-all space-y-2"
+                  className="bg-white rounded-3xl p-4 sm:p-5 shadow-xs border border-slate-100 hover:border-slate-200 transition-all space-y-2 min-w-0"
                 >
                   {/* Fila superior: Nombre, DNI y Botones de acción */}
                   <div className="flex items-start justify-between gap-2">
@@ -160,9 +177,19 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
                       <h4 className="font-bold text-slate-900 text-sm leading-snug truncate">
                         {a.nombreCompleto || a.nombre}
                       </h4>
-                      <span className="text-[11px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md inline-block mt-0.5">
-                        DNI: {a.dni?.trim() ? a.dni : 'Sin DNI'}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                        <span className="text-[11px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md inline-block">
+                          DNI: {a.dni?.trim() ? a.dni : 'Sin DNI'}
+                        </span>
+                        {direccionesAdicionales.length > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                            +{direccionesAdicionales.length}{' '}
+                            {direccionesAdicionales.length === 1
+                              ? 'dirección más'
+                              : 'direcciones más'}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-1 flex-shrink-0">
@@ -186,18 +213,37 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
                   </div>
 
                   {/* Fila de detalles: Dirección y Teléfono */}
-                  <div className="space-y-1 pt-1.5 border-t border-slate-50 text-xs">
-                    <p className="text-slate-600 flex items-center gap-2">
+                  <div className="space-y-1 pt-1.5 border-t border-slate-50 text-xs min-w-0">
+                    <p className="text-slate-600 flex items-center gap-2 min-w-0">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                       <span className="truncate">
-                        {a.direccion}
-                        {a.distrito ? ` - ${a.distrito}` : ''}
+                        {direccionPrincipal}
+                        {distritoPrincipal ? ` - ${distritoPrincipal}` : ''}
                       </span>
                     </p>
-                    {a.referencia && (
+                    {referenciaPrincipal && (
                       <span className="text-xs text-slate-400 block truncate pl-5.5">
-                        Ref: {a.referencia}
+                        Ref: {referenciaPrincipal}
                       </span>
+                    )}
+                    {direccionesAdicionales.length > 0 && (
+                      <div className="pl-5.5 pt-0.5 space-y-0.5">
+                        {direccionesAdicionales.map((dir, idx) => (
+                          <div
+                            key={`${dir.id ?? 'extra'}-${idx}`}
+                            className="flex items-center gap-1.5 text-[11px] text-slate-500 min-w-0"
+                          >
+                            <Home className="w-3 h-3 text-sky-500 flex-shrink-0" />
+                            <span className="font-bold text-slate-700 flex-shrink-0">
+                              {dir.etiqueta?.trim() || `Dirección ${idx + 2}`}:
+                            </span>
+                            <span className="truncate">
+                              {dir.direccion}
+                              {dir.distrito ? ` (${dir.distrito})` : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                     <p className="text-slate-500 flex items-center gap-2">
                       <Phone className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
@@ -205,7 +251,8 @@ export const ClientesTab: React.FC<ClientesTabProps> = ({
                     </p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Paginación Móvil */}

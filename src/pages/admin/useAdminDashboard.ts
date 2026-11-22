@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { adminApi } from '../../api';
 import { useEspecialidades, useAutoRefresh } from '../../hooks';
+import { obtenerDireccionPrincipal } from '../../utils/afiliadoDirecciones';
 import type {
   OrdenDetalleAdmin,
   Afiliado,
@@ -21,6 +22,17 @@ export const obtenerFechaHoraActualLocal = (): string => {
   const ahora = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${ahora.getFullYear()}-${pad(ahora.getMonth() + 1)}-${pad(ahora.getDate())}T${pad(ahora.getHours())}:${pad(ahora.getMinutes())}`;
+};
+
+const extraerDireccionPrincipalOrden = (afiliado?: Afiliado | null) => {
+  const principal = obtenerDireccionPrincipal(afiliado);
+  return {
+    direccionId: principal?.id && principal.id > 0 ? principal.id : undefined,
+    direccionServicio: principal?.direccion || '',
+    distritoServicio: principal?.distrito || '',
+    referenciaServicio: principal?.referencia || '',
+    etiquetaDireccion: undefined,
+  };
 };
 
 export function useAdminDashboard() {
@@ -166,16 +178,10 @@ export function useAdminDashboard() {
 
       if (afiliadosRes.status === 'fulfilled') {
         setAfiliados(afiliadosRes.value || []);
-        if ((afiliadosRes.value || []).length > 0) {
-          setNuevaOrden((prev) => ({ ...prev, afiliadoId: prev.afiliadoId || afiliadosRes.value[0].id }));
-        }
       }
 
       if (tecnicosRes.status === 'fulfilled') {
         setTecnicos(tecnicosRes.value || []);
-        if ((tecnicosRes.value || []).length > 0) {
-          setNuevaOrden((prev) => ({ ...prev, tecnicoId: prev.tecnicoId || tecnicosRes.value[0].id }));
-        }
       }
 
       if (cuentasRes.status === 'fulfilled') {
@@ -258,18 +264,55 @@ export function useAdminDashboard() {
 
     setSubmitting(true);
     try {
-      const creada = await adminApi.crearOrden({
-        ...nuevaOrden,
+      const payloadOrden: CrearOrdenRequest = {
+        tipoServicio: nuevaOrden.tipoServicio,
+        afiliadoId: nuevaOrden.afiliadoId,
+        tecnicoId: nuevaOrden.tecnicoId,
+        cuentaId: nuevaOrden.cuentaId,
         numeroCaso: casoLimpio,
         numeroOt: otLimpio,
         fechaPactada: fechaIsoPayload,
-      });
+        ...(nuevaOrden.direccionId && nuevaOrden.direccionId > 0
+          ? { direccionId: nuevaOrden.direccionId }
+          : {}),
+        ...(nuevaOrden.direccionServicio?.trim()
+          ? { direccionServicio: nuevaOrden.direccionServicio.trim() }
+          : {}),
+        ...(nuevaOrden.distritoServicio?.trim()
+          ? { distritoServicio: nuevaOrden.distritoServicio.trim() }
+          : {}),
+        ...(nuevaOrden.referenciaServicio?.trim()
+          ? { referenciaServicio: nuevaOrden.referenciaServicio.trim() }
+          : {}),
+        ...(nuevaOrden.etiquetaDireccion?.trim()
+          ? { etiquetaDireccion: nuevaOrden.etiquetaDireccion.trim() }
+          : {}),
+      };
+
+      const creada = await adminApi.crearOrden(payloadOrden);
       setOrdenes((prev) => [creada, ...prev]);
+
+      try {
+        const recargados = await adminApi.getAfiliados();
+        if (Array.isArray(recargados)) {
+          setAfiliados(recargados);
+        }
+      } catch (refreshErr) {
+        console.warn('No se pudo recargar afiliados tras crear la orden:', refreshErr);
+      }
+
       setNuevaOrden((prev) => ({
         ...prev,
+        afiliadoId: 0,
+        tecnicoId: 0,
         numeroCaso: '',
         numeroOt: '',
         fechaPactada: obtenerFechaHoraActualLocal(),
+        direccionId: undefined,
+        direccionServicio: undefined,
+        distritoServicio: undefined,
+        referenciaServicio: undefined,
+        etiquetaDireccion: undefined,
       }));
       setFormExito(`¡Orden #${creada.codigoOrden} (Caso: ${creada.numeroCaso || casoLimpio}) creada exitosamente!`);
       setTimeout(() => {
@@ -296,7 +339,11 @@ export function useAdminDashboard() {
     try {
       const creado = await adminApi.crearAfiliado(nuevoAfiliado);
       setAfiliados((prev) => [creado, ...prev]);
-      setNuevaOrden((prev) => ({ ...prev, afiliadoId: creado.id }));
+      setNuevaOrden((prev) => ({
+        ...prev,
+        afiliadoId: creado.id,
+        ...extraerDireccionPrincipalOrden(creado),
+      }));
       setModalNuevoAfiliado(false);
       setAfiliadoAEditar(null);
     } catch (err: any) {
@@ -315,36 +362,49 @@ export function useAdminDashboard() {
         prev.map((a) => (a.id === id ? { ...a, ...actualizado } : a))
       );
 
-      // Reflejar inmediatamente los datos complementados en las órdenes ya cargadas
-      const datosOrden: Partial<OrdenDetalleAdmin> = {
+      // Si el afiliado editado está seleccionado en Nueva Orden y no usa dirección manual, sincronizar su dirección seleccionada
+      setNuevaOrden((prev) => {
+        if (prev.afiliadoId !== id || prev.etiquetaDireccion) return prev;
+        const dirCoincidente = prev.direccionId
+          ? (actualizado.direcciones || []).find((d) => d.id === prev.direccionId)
+          : null;
+        if (dirCoincidente) {
+          return {
+            ...prev,
+            direccionServicio: dirCoincidente.direccion,
+            distritoServicio: dirCoincidente.distrito,
+            referenciaServicio: dirCoincidente.referencia || '',
+          };
+        }
+        return {
+          ...prev,
+          ...extraerDireccionPrincipalOrden(actualizado),
+        };
+      });
+
+      // Actualizar únicamente datos de identidad/contacto en órdenes cargadas sin sobrescribir direcciones históricas
+      const actualizarIdentidadEnOrden = (orden: OrdenDetalleAdmin): OrdenDetalleAdmin => ({
+        ...orden,
         dniAfiliado: actualizado.dni || '',
         afiliadoNombre: actualizado.nombreCompleto,
         nombreAfiliado: actualizado.nombreCompleto,
         afiliadoTelefono: actualizado.telefono || '',
         telefonoAfiliado: actualizado.telefono || '',
-        afiliadoDireccion: actualizado.direccion,
-        direccionAfiliado: actualizado.direccion,
-        direccion: actualizado.direccion,
-        afiliadoDistrito: actualizado.distrito,
-        distritoAfiliado: actualizado.distrito,
-        distrito: actualizado.distrito,
-        cliente: {
-          ...(ordenSeleccionada?.cliente || {}),
-          id,
-          nombre: actualizado.nombreCompleto,
-          direccion: actualizado.direccion,
-          referencia: actualizado.referencia,
-          distrito: actualizado.distrito,
-          telefono: actualizado.telefono,
-        },
-      };
-      (datosOrden as any).referenciaAfiliado = actualizado.referencia || '';
+        cliente: orden.cliente
+          ? {
+              ...orden.cliente,
+              id,
+              nombre: actualizado.nombreCompleto,
+              telefono: actualizado.telefono,
+            }
+          : orden.cliente,
+      });
 
       setOrdenes((prev) =>
-        prev.map((o) => (o.afiliadoId === id ? { ...o, ...datosOrden } : o))
+        prev.map((o) => (o.afiliadoId === id ? actualizarIdentidadEnOrden(o) : o))
       );
       setOrdenSeleccionada((prev) =>
-        prev && prev.afiliadoId === id ? { ...prev, ...datosOrden } : prev
+        prev && prev.afiliadoId === id ? actualizarIdentidadEnOrden(prev) : prev
       );
 
       setModalNuevoAfiliado(false);
