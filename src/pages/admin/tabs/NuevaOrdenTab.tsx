@@ -505,12 +505,12 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
             <button
               type="button"
               onClick={onOpenPerfil}
-              className="lg:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-100 transition-colors shadow-xs active:scale-95 shrink-0 cursor-pointer text-xs font-bold"
+              className="lg:hidden inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-100 transition-colors shadow-xs active:scale-95 shrink-0 cursor-pointer text-xs font-bold"
               title="Perfil Administrador"
               aria-label="Perfil Administrador"
             >
               <User className="w-4 h-4 text-sky-600" />
-              <span>Perfil</span>
+              <span className="hidden sm:inline">Perfil</span>
             </button>
           )}
         </div>

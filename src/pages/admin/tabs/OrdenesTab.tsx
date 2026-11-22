@@ -153,11 +153,14 @@ export const OrdenesTab: React.FC<OrdenesTabProps> = ({
           )}
         </div>
         <button
+          type="button"
           onClick={onOpenPerfil}
-          className="w-10 h-10 rounded-full bg-slate-200/90 flex items-center justify-center text-slate-800 hover:bg-slate-300 transition-colors shadow-xs active:scale-95 lg:hidden cursor-pointer"
+          className="lg:hidden inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-100 transition-colors shadow-xs active:scale-95 shrink-0 cursor-pointer text-xs font-bold"
           title="Perfil Administrador"
+          aria-label="Perfil Administrador"
         >
-          <User className="w-5 h-5 fill-slate-800 stroke-none" />
+          <User className="w-4 h-4 text-sky-600" />
+          <span className="hidden sm:inline">Perfil</span>
         </button>
       </div>
 
