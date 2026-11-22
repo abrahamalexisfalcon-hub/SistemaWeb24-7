@@ -41,45 +41,6 @@
           }
           updateFavicon();
         } catch (err) {}
-
-        // Registrar y actualizar OneSignalSDKWorker.js para TODOS los roles (incluyendo ADMINISTRADOR)
-        // de modo que intercepte todas las navegaciones (mode === 'navigate') con cache: 'no-store'
-        try {
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-              var unregPromises = [];
-              for (var i = 0; i < registrations.length; i++) {
-                var reg = registrations[i];
-                var scriptUrl =
-                  (reg.active && reg.active.scriptURL) ||
-                  (reg.installing && reg.installing.scriptURL) ||
-                  (reg.waiting && reg.waiting.scriptURL) ||
-                  '';
-                if (scriptUrl && scriptUrl.indexOf('OneSignalSDKWorker.js') === -1) {
-                  unregPromises.push(reg.unregister());
-                }
-              }
-              return Promise.all(unregPromises);
-            }).then(function() {
-              return navigator.serviceWorker.register('/OneSignalSDKWorker.js', {
-                scope: '/',
-                updateViaCache: 'none'
-              });
-            }).then(function(reg) {
-              if (reg && reg.update) {
-                reg.update().catch(function() {});
-              }
-            }).catch(function() {});
-          }
-
-          if ('caches' in window) {
-            caches.keys().then(function(keys) {
-              for (var j = 0; j < keys.length; j++) {
-                caches.delete(keys[j]);
-              }
-            }).catch(function() {});
-          }
-        } catch (swErr) {}
       })();
     </script>
   </head>
