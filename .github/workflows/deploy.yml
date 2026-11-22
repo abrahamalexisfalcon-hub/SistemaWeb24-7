@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: deploy-hostinger-vps
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Update & Rebuild Containers on VPS
@@ -19,14 +23,19 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 15m
           script_stop: true
           script: |
             set -e
+            exec 9>/tmp/deploy-app-24-7.lock
+            echo "⏳ Esperando turno de despliegue en VPS (flock)..."
+            flock -w 600 9
             echo "🚀 Iniciando despliegue automático en VPS..."
 
             if [ -d "/app-24-7/frontend" ]; then
               echo "📦 Actualizando repositorio Frontend..."
               cd /app-24-7/frontend
+              rm -f .git/index.lock
               git fetch origin main
               git reset --hard origin/main
               git pull origin main
@@ -35,12 +44,14 @@ jobs:
             if [ -d "/app-24-7/backend" ]; then
               echo "⚙️ Actualizando repositorio Backend (/app-24-7/backend)..."
               cd /app-24-7/backend
+              rm -f .git/index.lock
               git fetch origin main
               git reset --hard origin/main
               git pull origin main
             elif [ -d "/app-24-7/Backend" ]; then
               echo "⚙️ Actualizando repositorio Backend (/app-24-7/Backend)..."
               cd /app-24-7/Backend
+              rm -f .git/index.lock
               git fetch origin main
               git reset --hard origin/main
               git pull origin main
