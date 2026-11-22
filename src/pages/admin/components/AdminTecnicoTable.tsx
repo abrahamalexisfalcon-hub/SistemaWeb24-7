@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { TecnicoResumen, OrdenDetalleAdmin } from '../../../types';
-import { Mail, Phone, Edit2, ChevronLeft, ChevronRight, User, Power, RefreshCw } from 'lucide-react';
+import { Mail, Phone, Edit2, ChevronLeft, ChevronRight, User, Power, RefreshCw, AlertTriangle, X } from 'lucide-react';
 import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
+import { useModalBackButton } from '../../../hooks';
 
 export interface AdminTecnicoTableProps {
   tecnicos: TecnicoResumen[];
@@ -28,6 +29,12 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
   onPaginaChange,
   onFilasPorPaginaChange,
 }) => {
+  const [tecnicoAConfirmar, setTecnicoAConfirmar] = useState<TecnicoResumen | null>(null);
+
+  useModalBackButton(Boolean(tecnicoAConfirmar), () => {
+    if (!togglingId) setTecnicoAConfirmar(null);
+  });
+
   const totalPaginas = Math.ceil(totalTecnicos / filasPorPagina) || 1;
   const inicio = Math.min((paginaActual - 1) * filasPorPagina + 1, totalTecnicos);
   const fin = Math.min(paginaActual * filasPorPagina, totalTecnicos);
@@ -142,7 +149,7 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
                         {onToggleEstado && (
                           <button
                             type="button"
-                            onClick={() => onToggleEstado(tecnico)}
+                            onClick={() => setTecnicoAConfirmar(tecnico)}
                             disabled={togglingId === tecnico.id}
                             title={esActivo ? 'Desactivar cuenta del técnico' : 'Activar cuenta del técnico'}
                             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-colors disabled:opacity-50 cursor-pointer ${
@@ -222,6 +229,87 @@ export const AdminTecnicoTable: React.FC<AdminTecnicoTableProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Modal de Confirmación de Seguridad para Desactivar / Activar */}
+      {tecnicoAConfirmar && onToggleEstado && (
+        <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                    tecnicoAConfirmar.activo !== false
+                      ? 'bg-rose-100 text-rose-600'
+                      : 'bg-emerald-100 text-emerald-600'
+                  }`}
+                >
+                  <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
+                </div>
+                <span className="font-black text-base text-slate-900">
+                  {tecnicoAConfirmar.activo !== false
+                    ? '¿Desactivar cuenta?'
+                    : '¿Activar cuenta?'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTecnicoAConfirmar(null)}
+                disabled={togglingId === tecnicoAConfirmar.id}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {tecnicoAConfirmar.activo !== false ? (
+                <>
+                  El técnico <span className="font-bold text-slate-900">{tecnicoAConfirmar.nombreCompleto}</span> perderá el acceso a la app de asistencias y no podrá recibir nuevas órdenes de servicio.
+                </>
+              ) : (
+                <>
+                  El técnico <span className="font-bold text-slate-900">{tecnicoAConfirmar.nombreCompleto}</span> volverá a tener acceso a la app y podrá recibir nuevas órdenes de servicio.
+                </>
+              )}
+            </p>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setTecnicoAConfirmar(null)}
+                disabled={togglingId === tecnicoAConfirmar.id}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await onToggleEstado(tecnicoAConfirmar);
+                  setTecnicoAConfirmar(null);
+                }}
+                disabled={togglingId === tecnicoAConfirmar.id}
+                className={`flex-1 py-2.5 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer ${
+                  tecnicoAConfirmar.activo !== false
+                    ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20'
+                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
+                }`}
+              >
+                {togglingId === tecnicoAConfirmar.id ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Procesando...</span>
+                  </>
+                ) : tecnicoAConfirmar.activo !== false ? (
+                  <span>Sí, desactivar</span>
+                ) : (
+                  <span>Sí, activar</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

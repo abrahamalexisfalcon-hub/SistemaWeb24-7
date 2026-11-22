@@ -1,6 +1,6 @@
 import React from 'react';
 import type { TecnicoResumen, OrdenDetalleAdmin } from '../../../types';
-import { Mail, Phone, Edit2, Power, RefreshCw } from 'lucide-react';
+import { Mail, Phone, Edit2 } from 'lucide-react';
 import { obtenerEspecialidadesTecnico } from '../../../utils/tecnicoEspecialidades';
 
 interface AdminTecnicoCardProps {
@@ -15,8 +15,6 @@ export const AdminTecnicoCard: React.FC<AdminTecnicoCardProps> = ({
   tecnico,
   ordenes,
   onEditar,
-  onToggleEstado,
-  togglingId,
 }) => {
   const esActivo = tecnico.activo !== false;
   const switchDisponible = tecnico.disponible !== false;
@@ -110,32 +108,12 @@ export const AdminTecnicoCard: React.FC<AdminTecnicoCardProps> = ({
         )}
       </div>
 
-      {/* Acciones directas */}
-      <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-end gap-2">
-        {onToggleEstado && (
-          <button
-            type="button"
-            onClick={() => onToggleEstado(tecnico)}
-            disabled={togglingId === tecnico.id}
-            title={esActivo ? 'Desactivar cuenta del técnico' : 'Activar cuenta del técnico'}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50 cursor-pointer ${
-              esActivo
-                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-            }`}
-          >
-            {togglingId === tecnico.id ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Power className="w-3.5 h-3.5" />
-            )}
-            <span>{esActivo ? 'Desactivar' : 'Activar'}</span>
-          </button>
-        )}
+      {/* Acción directa: Editar (el estado de la cuenta se gestiona dentro de Editar) */}
+      <div className="pt-2 border-t border-slate-100 flex items-center justify-end">
         <button
           type="button"
           onClick={() => onEditar(tecnico)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold transition-colors cursor-pointer"
           title="Editar técnico"
         >
           <Edit2 className="w-3.5 h-3.5 text-slate-500" />
