@@ -42,7 +42,21 @@
           updateFavicon();
         } catch (err) {}
 
-        // Limpieza temprana de Service Workers antiguos (Workbox) y CacheStorage en móviles
+        // Invalidar en el HTTP disk cache del móvil la ruta raíz "/" (start_url de la PWA)
+        // y "/OneSignalSDKWorker.js" (que además emite Clear-Site-Data: "cache")
+        try {
+          if (window.fetch) {
+            var htmlHeaders = { 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' };
+            window.fetch('/', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
+            window.fetch('/index.html', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
+            window.fetch('/login', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
+            window.fetch('/admin', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
+            window.fetch('/tecnico/ordenes', { cache: 'reload', credentials: 'same-origin', headers: htmlHeaders }).catch(function() {});
+            window.fetch('/OneSignalSDKWorker.js', { cache: 'reload', credentials: 'same-origin' }).catch(function() {});
+          }
+        } catch (fetchErr) {}
+
+        // Limpieza temprana de Service Workers antiguos (Workbox) y actualización forzada de OneSignalSDKWorker.js
         try {
           var cleanupPromises = [];
           var foundLegacyCacheOrSw = false;
@@ -50,7 +64,7 @@
           if ('serviceWorker' in navigator) {
             cleanupPromises.push(
               navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                var unregPromises = [];
+                var actionPromises = [];
                 for (var i = 0; i < registrations.length; i++) {
                   var reg = registrations[i];
                   var scriptUrl =
@@ -60,10 +74,12 @@
                     '';
                   if (scriptUrl && scriptUrl.indexOf('OneSignalSDKWorker.js') === -1) {
                     foundLegacyCacheOrSw = true;
-                    unregPromises.push(reg.unregister());
+                    actionPromises.push(reg.unregister());
+                  } else if (reg.update) {
+                    actionPromises.push(reg.update().catch(function() {}));
                   }
                 }
-                return Promise.all(unregPromises);
+                return Promise.all(actionPromises);
               })
             );
           }
@@ -83,8 +99,8 @@
 
           if (cleanupPromises.length > 0) {
             Promise.all(cleanupPromises).then(function() {
-              if (foundLegacyCacheOrSw && !sessionStorage.getItem('sw_cache_purged_v1')) {
-                sessionStorage.setItem('sw_cache_purged_v1', '1');
+              if (foundLegacyCacheOrSw && !sessionStorage.getItem('sw_cache_purged_v2')) {
+                sessionStorage.setItem('sw_cache_purged_v2', '1');
                 window.location.reload();
               }
             }).catch(function() {});
