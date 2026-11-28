@@ -1007,26 +1007,30 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
                   </button>
                 </div>
                 <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <User className="w-4 h-4 text-sky-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <select
                     required
                     value={nuevaOrden.afiliadoId || ''}
                     onChange={(e) => handleSeleccionarAfiliado(Number(e.target.value) || 0)}
-                    className={`w-full appearance-none bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-10 pr-9 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all cursor-pointer ${
-                      nuevaOrden.afiliadoId ? 'text-slate-800' : 'text-slate-400'
+                    className={`w-full appearance-none bg-white border border-slate-300 hover:border-sky-400 rounded-2xl py-3 pl-10 pr-9 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all cursor-pointer ${
+                      nuevaOrden.afiliadoId ? 'text-slate-900' : 'text-slate-700'
                     }`}
                   >
-                    <option value="" disabled>
+                    <option value="" disabled className="bg-white text-slate-400">
                       Selecciona un afiliado
                     </option>
                     {(afiliados || []).map((a) => (
-                      <option key={a.id} value={a.id}>
+                      <option
+                        key={a.id}
+                        value={a.id}
+                        className="bg-white text-slate-900 font-medium"
+                      >
                         {a.nombreCompleto || a.nombre}
                         {a.dni?.trim() ? ` (DNI: ${a.dni})` : ''} - {a.distrito}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-slate-600 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
 
                 {afiliadoSeleccionado && (
@@ -1358,28 +1362,32 @@ export const NuevaOrdenTab: React.FC<NuevaOrdenTabProps> = ({
                 </div>
 
                 <div className="relative">
-                  <UserCheck className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <UserCheck className="w-4 h-4 text-sky-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <select
                     required
                     value={nuevaOrden.tecnicoId || ''}
                     onChange={(e) =>
                       onNuevaOrdenChange({ ...nuevaOrden, tecnicoId: Number(e.target.value) || 0 })
                     }
-                    className={`w-full appearance-none bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-10 pr-9 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all cursor-pointer ${
-                      nuevaOrden.tecnicoId ? 'text-slate-800' : 'text-slate-400'
+                    className={`w-full appearance-none bg-white border border-slate-300 hover:border-sky-400 rounded-2xl py-3 pl-10 pr-9 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all cursor-pointer ${
+                      nuevaOrden.tecnicoId ? 'text-slate-900' : 'text-slate-700'
                     }`}
                   >
-                    <option value="" disabled>
+                    <option value="" disabled className="bg-white text-slate-400">
                       Selecciona un técnico
                     </option>
                     {tecnicosActivos.map((t) => (
-                      <option key={t.id} value={t.id}>
+                      <option
+                        key={t.id}
+                        value={t.id}
+                        className="bg-white text-slate-900 font-medium"
+                      >
                         {t.nombreCompleto} ({obtenerEspecialidadesTecnico(t).join(', ')}) -{' '}
                         {t.disponible ? 'Disponible' : 'En atención'}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-slate-600 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
 
                 {/* Sugerencia / Vista rápida del Técnico */}
