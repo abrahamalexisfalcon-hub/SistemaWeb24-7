@@ -162,7 +162,7 @@ export const ExitoOrden: React.FC = () => {
     rawNombreCuenta && !String(rawNombreCuenta).trim().toUpperCase().startsWith('CTA-')
       ? String(rawNombreCuenta).trim()
       : 'Particular';
-  const numeroOt = orden?.numeroOt || '-';
+  const numeroOt = orden?.numeroOt?.trim() || '-';
   const tecnicoNombre = orden?.tecnicoNombre || 'Técnico 24/7';
   const tipoServicio = orden?.tipoServicio || '';
 
@@ -500,34 +500,38 @@ export const ExitoOrden: React.FC = () => {
                 <h3 className="font-bold text-gray-900 underline text-xs tracking-wider mb-1.5 uppercase">
                   DATOS DEL AFILIADO:
                 </h3>
-                <div className="text-[10px] space-y-1 text-gray-900">
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <span className="font-bold">NOMBRES Y APELLIDOS: </span>
+                <div className="flex flex-wrap sm:flex-nowrap print:flex-nowrap items-start justify-between gap-x-4 gap-y-1.5 text-[10px] text-gray-900">
+                  <div className="min-w-[200px] flex-1 space-y-1">
+                    <div>
+                      <span className="font-bold">APELLIDOS Y NOMBRES: </span>
                       <span className="border-b border-gray-300 pb-0.5">{nombreAfiliado}</span>
                     </div>
                     <div>
-                      <span className="font-bold">FECHA: </span>
-                      <span className="border-b border-gray-300 pb-0.5">{formatFechaHoy()}</span>
+                      <span className="font-bold">DIRECCIÓN: </span>
+                      <span className="border-b border-gray-300 pb-0.5">{direccion}{orden?.distrito ? `, ${orden.distrito}` : ''}</span>
                     </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="flex-1">
+                    <div>
                       <span className="font-bold">CUENTA: </span>
                       <span className="border-b border-gray-300 pb-0.5">{nombreCuenta}</span>
                     </div>
-                    <div>
+                  </div>
+
+                  <div className="shrink-0 space-y-1">
+                    <div className="whitespace-nowrap">
+                      <span className="font-bold">FECHA: </span>
+                      <span className="border-b border-gray-300 pb-0.5">{formatFechaHoy()}</span>
+                    </div>
+                    <div className="whitespace-nowrap">
                       <span className="font-bold">D.N.I. N°: </span>
                       <span className="border-b border-gray-300 pb-0.5">{dniAfiliado || '—'}</span>
                     </div>
-                  </div>
-                  <div>
-                    <span className="font-bold">DIRECCIÓN: </span>
-                    <span className="border-b border-gray-300 pb-0.5">{direccion}{orden?.distrito ? `, ${orden.distrito}` : ''}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold">OT: </span>
-                    <span className="border-b border-gray-300 pb-0.5">{numeroOt}</span>
+                    <div className="whitespace-nowrap font-bold pt-0.5">
+                      ASISTENCIA
+                    </div>
+                    <div className="whitespace-nowrap">
+                      <span className="font-bold">OT: </span>
+                      <span className="border-b border-gray-300 pb-0.5">{numeroOt}</span>
+                    </div>
                   </div>
                 </div>
               </div>

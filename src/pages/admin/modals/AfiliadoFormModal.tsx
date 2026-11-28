@@ -35,7 +35,7 @@ interface DireccionFormItem {
   esPrincipal: boolean;
 }
 
-const SUGERENCIAS_ETIQUETA = ['Casa Principal', 'Casa 2', 'Oficina', 'Familiar'] as const;
+const SUGERENCIAS_ETIQUETA = ['Casa', 'Departamento', 'Oficina'] as const;
 
 const crearDireccionVacia = (etiqueta: string, esPrincipal = false): DireccionFormItem => ({
   etiqueta,
@@ -69,7 +69,7 @@ const construirDireccionesIniciales = (
         return {
           id: d.id,
           etiqueta:
-            d.etiqueta?.trim() || (d.esPrincipal ? 'Casa Principal' : `Dirección ${idx + 1}`),
+            d.etiqueta?.trim() || (d.esPrincipal ? 'Casa' : `Dirección ${idx + 1}`),
           direccion: d.direccion || '',
           departamento: ubigeo.departamento,
           provincia: ubigeo.provincia,
@@ -88,7 +88,7 @@ const construirDireccionesIniciales = (
     return {
       direcciones: [
         {
-          etiqueta: 'Casa Principal',
+          etiqueta: 'Casa',
           direccion: afiliadoAEditar.direccion || '',
           departamento: ubigeo.departamento,
           provincia: ubigeo.provincia,
@@ -101,7 +101,7 @@ const construirDireccionesIniciales = (
     };
   }
   return {
-    direcciones: [crearDireccionVacia('Casa Principal', true)],
+    direcciones: [crearDireccionVacia('Casa', true)],
     idxInicial: 0,
   };
 };
@@ -159,7 +159,7 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
     Math.max(0, direccionActivaIdx),
     Math.max(0, listaDirecciones.length - 1)
   );
-  const direccionActiva = listaDirecciones[idxActivoSeguro] || crearDireccionVacia('Casa Principal', true);
+  const direccionActiva = listaDirecciones[idxActivoSeguro] || crearDireccionVacia('Casa', true);
 
   const provinciasDisponibles = useMemo(
     () => obtenerProvincias(direccionActiva.departamento),
@@ -287,7 +287,7 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
     const direccionesPayload: AfiliadoDireccion[] = listaDirecciones.map((d, idx) => ({
       ...(d.id && d.id > 0 ? { id: d.id } : {}),
       etiqueta:
-        d.etiqueta.trim() || (idx === idxPrincipal ? 'Casa Principal' : `Dirección ${idx + 1}`),
+        d.etiqueta.trim() || (idx === idxPrincipal ? 'Casa' : `Dirección ${idx + 1}`),
       direccion: d.direccion.trim(),
       distrito: d.distrito.trim(),
       referencia: d.referencia.trim(),
@@ -537,7 +537,7 @@ const AfiliadoFormModalContent: React.FC<AfiliadoFormModalContentProps> = ({
                   maxLength={60}
                   value={direccionActiva.etiqueta}
                   onChange={(e) => actualizarDireccionActiva({ etiqueta: e.target.value })}
-                  placeholder="Ej. Casa Principal, Casa 2, Oficina..."
+                  placeholder="Ej. Casa, Departamento, Oficina..."
                   className="w-full bg-white border border-slate-200 rounded-xl p-2.5 font-semibold text-slate-800 focus:outline-none focus:border-sky-500 transition-all"
                 />
                 <div className="flex flex-wrap items-center gap-1">
